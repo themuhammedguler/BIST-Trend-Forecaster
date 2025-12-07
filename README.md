@@ -1,8 +1,8 @@
-# 📈 Borsa İstanbul (BIST 30) Yapay Zeka Yön Tahmini
+# 📈 BIST Trend Forecaster (AI-Based Stock Prediction)
 
 Bu proje, **MultiGroup Zero2End Machine Learning Bootcamp** bitirme projesi olarak geliştirilmiştir. BIST 30 hisselerinin geçmiş verilerini ve teknik indikatörleri kullanarak, bir sonraki işlem gününde hissenin **Yükseleceğini mi** yoksa **Düşeceğini/Yatay kalacağını mı** tahmin eder.
 
-🔗 **Canlı Proje Linki:** [BIST Prediction App](https://bist-prediction.streamlit.app/)
+🔗 **Canlı Proje Linki:** [BIST Trend Forecaster](https://bist-prediction.streamlit.app/)
 
 ---
 
@@ -41,7 +41,7 @@ Bu model, bir yatırım tavsiyesi vermekten ziyade, yatırımcının karar deste
 
 ## 5. Proje Yapısı
 ```text
-BIST_PREDICTION/
+BIST-TREND-FORECASTER/
 ├── data/               # Ham ve işlenmiş veriler
 ├── models/             # Eğitilmiş .json/.pkl modeller
 ├── notebooks/          # EDA ve Deneme not defterleri
