@@ -2,9 +2,11 @@
 
 Bu proje, **MultiGroup Zero2End Machine Learning Bootcamp** bitirme projesi olarak geliştirilmiştir. BIST 30 hisselerinin geçmiş verilerini ve teknik indikatörleri kullanarak, bir sonraki işlem gününde hissenin **Yükseleceğini mi** yoksa **Düşeceğini/Yatay kalacağını mı** tahmin eder.
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://bist-prediction.streamlit.app/)
+🔗 **Canlı Demo:** 
 
-👆 **Yapay Zeka Modelini Canlı Denemek İçin Tıklayın**
+BIST 30 hisselerini analiz etmek ve yapay zeka tahminlerini görmek için uygulamaya gidin:
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://bist-prediction.streamlit.app/)
+👉 **[BIST Trend Forecaster Uygulamasını Başlat](https://bist-prediction.streamlit.app/)**
 
 ---
 
