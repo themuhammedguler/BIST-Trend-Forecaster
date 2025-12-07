@@ -8,9 +8,9 @@ BIST 30 hisseleri için geliştirdiğimiz yapay zeka modelini canlı verilerle t
 
 | Platform | Durum | Link |
 | :--- | :---: | :--- |
-| **Streamlit Cloud** | 🟢 Aktif | [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://bist-prediction.streamlit.app/) |
+| **Streamlit Cloud** | 🟢 Aktif | [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://bist-trend-forecaster.streamlit.app/) |
 
-👉 **Alternatif Link:** [https://bist-prediction.streamlit.app/](https://bist-prediction.streamlit.app/)
+👉 **Alternatif Link:** [https://bist-trend-forecaster.streamlit.app/](https://bist-prediction.streamlit.app/)
 
 
 ## 1. Problem Tanımı
