@@ -41,7 +41,7 @@ Bu model, bir yatırım tavsiyesi vermekten ziyade, yatırımcının karar deste
 
 ## 5. Proje Yapısı
 ```text
-project-name/
+BIST_PREDICTION/
 ├── data/               # Ham ve işlenmiş veriler
 ├── models/             # Eğitilmiş .json/.pkl modeller
 ├── notebooks/          # EDA ve Deneme not defterleri
