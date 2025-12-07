@@ -4,7 +4,7 @@ Bu proje, **MultiGroup Zero2End Machine Learning Bootcamp** bitirme projesi olar
 
 🔗 **Canlı Demo:** 
 
-BIST 30 hisselerini analiz etmek ve yapay zeka tahminlerini görmek için uygulamaya gidin:
+BIST 30 hisselerini analiz etmek ve yapay zeka tahminlerini görmek için uygulamaya gidin:  
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://bist-prediction.streamlit.app/)
 👉 **[BIST Trend Forecaster Uygulamasını Başlat](https://bist-prediction.streamlit.app/)**
 
