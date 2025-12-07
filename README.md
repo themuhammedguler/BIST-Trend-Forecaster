@@ -2,7 +2,7 @@
 
 Bu proje, **MultiGroup Zero2End Machine Learning Bootcamp** bitirme projesi olarak geliştirilmiştir. BIST 30 hisselerinin geçmiş verilerini ve teknik indikatörleri kullanarak, bir sonraki işlem gününde hissenin **Yükseleceğini mi** yoksa **Düşeceğini/Yatay kalacağını mı** tahmin eder.
 
-🔗 **Canlı Proje Linki:** [BIST Trend Forecaster](https://bist-prediction.streamlit.app/)
+🔗 **Canlı Proje Linki:** [BIST Trend Forecaster](https://bist-trend-forecaster.streamlit.app/)
 
 ---
 
