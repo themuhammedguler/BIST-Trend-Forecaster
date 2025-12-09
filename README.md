@@ -1,3 +1,14 @@
+---
+title: BIST Trend Forecaster
+emoji: 📈
+colorFrom: green
+colorTo: blue
+sdk: streamlit
+sdk_version: 1.39.0
+app_file: app.py
+pinned: false
+---
+
 # 📈 BIST Trend Forecaster (AI-Based Stock Prediction)
 
 Bu proje, **MultiGroup Zero2End Machine Learning Bootcamp** bitirme projesi olarak geliştirilmiştir. BIST 30 hisselerinin geçmiş verilerini ve teknik indikatörleri kullanarak, bir sonraki işlem gününde hissenin **Yükseleceğini mi** yoksa **Düşeceğini/Yatay kalacağını mı** tahmin eder.
