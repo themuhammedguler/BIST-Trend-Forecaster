@@ -86,21 +86,37 @@ try:
             # GÖSTERGE PANELİ
             col1, col2, col3 = st.columns(3)
             
-            current_price = full_df['close'].iloc[-1]
-            prev_price = full_df['close'].iloc[-2]
-            change = ((current_price - prev_price) / prev_price) * 100
+            # Fiyat ve Değişim Hesaplama
+            if len(full_df) >= 2:
+                current_price = full_df['close'].iloc[-1]
+                prev_price = full_df['close'].iloc[-2]
+                
+                # Değişim Miktarı (TL) ve Oranı (%)
+                change_amount = current_price - prev_price
+                change_rate = (change_amount / prev_price) * 100
+            else:
+                current_price = full_df['close'].iloc[-1]
+                change_amount = 0
+                change_rate = 0
             
             with col1:
-                st.metric("Son Kapanış Fiyatı", f"{current_price:.2f} TL", f"%{change:.2f}")
+                # Delta color parametresini otomatikte bırakıyoruz, Streamlit +/- algılayıp renk verir
+                st.metric(
+                    label=f"{selected_ticker} Son Fiyat",
+                    value=f"{current_price:.2f} TL",
+                    delta=f"{change_rate:.2f}%"  # Format: "-2.15%" veya "1.50%"
+                )
                 
             with col2:
+                st.write("🤖 **Modelin Yarınki Tahmini:**") # Başlık ekledik ki karışmasın
                 if prediction == 1:
-                    st.success(f"YÖN TAHMİNİ: **YUKARI** 🚀")
+                    st.success(f"YÖN: **YUKARI** 🚀")
                 else:
-                    st.error(f"YÖN TAHMİNİ: **AŞAĞI / YATAY** 🔻")
+                    st.error(f"YÖN: **DÜŞÜŞ / YATAY** 🔻")
             
             with col3:
-                st.info(f"Yükseliş Olasılığı: **%{prob*100:.1f}**")
+                st.write("📊 **Güven Skoru:**")
+                st.info(f"%{prob*100:.1f} Olasılıkla")
 
             # GRAFİK KISMI (Candlestick)
             st.subheader(f"{selected_ticker} - Son 3 Ay Fiyat Grafiği")
