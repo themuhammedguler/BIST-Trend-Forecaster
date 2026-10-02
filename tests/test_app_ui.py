@@ -86,3 +86,23 @@ def test_app_uses_most_recent_trading_day_for_prediction(patched_download):
         expected.reset_index(drop=True),
         check_exact=False,
     )
+
+
+def test_app_market_scanner_tab_triggers_and_renders(patched_download):
+    """Fırsat Radarı sekmesindeki 'BIST 30 Taramasını Başlat' butonuna basıldığında
+    Top 5 Yükseliş, Top 5 Düşüş ve tüm BIST 30 tablolarının hatasız render edildiğini doğrular."""
+    at = AppTest.from_file(APP_PATH, default_timeout=30)
+    at.run()
+
+    # Tarama butonuna tıkla ve yeniden çalıştır
+    at.button(key="btn_start_scan").click().run()
+
+    assert list(at.exception) == []
+    assert not any("Bir hata oluştu" in e.value for e in at.error)
+
+    # En az 4 tablo olmalı: Tab 1'deki indikatör tablosu + Tab 2'deki 3 sıralama tablosu
+    assert len(at.dataframe) >= 4
+    leaderboard = at.dataframe[-1].value
+    assert "Hisse" in leaderboard.columns
+    assert "Yükseliş Olasılığı (%)" in leaderboard.columns
+    assert len(leaderboard) > 0

@@ -81,6 +81,7 @@ BIST-TREND-FORECASTER/
 ├── src/                # Kaynak kodlar
 │   ├── config.py       # Ayarlar
 │   ├── features.py     # İndikatör hesaplamaları
+│   ├── scanner.py      # BIST 30 piyasa taraması ve fırsat radarı
 │   ├── tune.py         # Optuna hiperparametre optimizasyonu
 │   └── model_train.py  # Eğitim scripti
 ├── tests/              # Birim ve entegrasyon testleri
