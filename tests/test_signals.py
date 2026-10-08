@@ -18,11 +18,11 @@ def test_coin_flip_probabilities_are_neutral(prob):
 @pytest.mark.parametrize(
     "prob, expected",
     [
-        (0.53, UP),       # üst eşik dahil
+        (0.53, UP),  # üst eşik dahil
         (0.90, UP),
         (0.5299, NEUTRAL),
         (0.4701, NEUTRAL),
-        (0.47, DOWN),     # alt eşik dahil
+        (0.47, DOWN),  # alt eşik dahil
         (0.10, DOWN),
     ],
 )

@@ -12,11 +12,19 @@ def _raw_panel(n_days=120, multiindex_ticker=None):
     dates = pd.bdate_range("2025-01-01", periods=n_days)
     close = 100.0 + np.arange(n_days) * 0.1
     df = pd.DataFrame(
-        {"Close": close, "High": close + 1, "Low": close - 1, "Open": close - 0.5, "Volume": 1_000_000.0},
+        {
+            "Close": close,
+            "High": close + 1,
+            "Low": close - 1,
+            "Open": close - 0.5,
+            "Volume": 1_000_000.0,
+        },
         index=pd.Index(dates, name="Date"),
     )
     if multiindex_ticker:
-        df.columns = pd.MultiIndex.from_product([df.columns, [multiindex_ticker]], names=["Price", "Ticker"])
+        df.columns = pd.MultiIndex.from_product(
+            [df.columns, [multiindex_ticker]], names=["Price", "Ticker"]
+        )
     return df
 
 
@@ -95,7 +103,9 @@ def test_prepare_live_frame_drops_partial_rows_without_prices(multiindex_ticker)
     partial_day = raw.index[-1] + pd.offsets.BDay(1)
     raw.loc[partial_day] = [np.nan, np.nan, np.nan, np.nan, 125_773_102.0]
     if multiindex_ticker:
-        raw.columns = pd.MultiIndex.from_product([raw.columns, [multiindex_ticker]], names=["Price", "Ticker"])
+        raw.columns = pd.MultiIndex.from_product(
+            [raw.columns, [multiindex_ticker]], names=["Price", "Ticker"]
+        )
 
     processed, ohlcv = live_data.prepare_live_frame(raw, "AKBNK.IS")
 
@@ -107,7 +117,9 @@ def test_prepare_live_frame_drops_partial_rows_without_prices(multiindex_ticker)
 
 def test_fetch_live_frame_recovers_from_transient_network_errors(monkeypatch):
     outcomes = [ConnectionError("ağ hatası"), ConnectionError("ağ hatası"), _raw_panel()]
-    monkeypatch.setattr(yfinance, "download", lambda *args, **kwargs: _raise_or_return(outcomes.pop(0)))
+    monkeypatch.setattr(
+        yfinance, "download", lambda *args, **kwargs: _raise_or_return(outcomes.pop(0))
+    )
 
     df_processed, _ = live_data.fetch_live_frame("AKBNK.IS")
 

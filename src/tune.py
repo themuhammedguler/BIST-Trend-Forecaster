@@ -8,33 +8,33 @@ import metrics
 
 # model_train.py'deki manuel parametreler: optimizasyon bu noktadan başlar
 DEFAULT_PARAMS = {
-    'n_estimators': 100,
-    'learning_rate': 0.05,
-    'max_depth': 5,
+    "n_estimators": 100,
+    "learning_rate": 0.05,
+    "max_depth": 5,
 }
 
 # Optuna'nın maksimize edebileceği CV metrikleri (metrics.evaluate anahtarları)
-METRICS = ('accuracy', 'balanced_accuracy', 'roc_auc')
+METRICS = ("accuracy", "balanced_accuracy", "roc_auc")
 
 # XGBoost'a her denemede sabit geçilen parametreler
 FIXED_PARAMS = {
-    'objective': 'binary:logistic',
-    'random_state': 42,
-    'n_jobs': -1,
+    "objective": "binary:logistic",
+    "random_state": 42,
+    "n_jobs": -1,
 }
 
 
 def suggest_params(trial):
     """Bir Optuna denemesi için XGBoost hiperparametre önerir."""
     return {
-        'n_estimators': trial.suggest_int('n_estimators', 50, 500),
-        'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3, log=True),
-        'max_depth': trial.suggest_int('max_depth', 2, 10),
-        'min_child_weight': trial.suggest_int('min_child_weight', 1, 20),
-        'subsample': trial.suggest_float('subsample', 0.5, 1.0),
-        'colsample_bytree': trial.suggest_float('colsample_bytree', 0.5, 1.0),
-        'gamma': trial.suggest_float('gamma', 0.0, 5.0),
-        'reg_lambda': trial.suggest_float('reg_lambda', 1e-3, 10.0, log=True),
+        "n_estimators": trial.suggest_int("n_estimators", 50, 500),
+        "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.3, log=True),
+        "max_depth": trial.suggest_int("max_depth", 2, 10),
+        "min_child_weight": trial.suggest_int("min_child_weight", 1, 20),
+        "subsample": trial.suggest_float("subsample", 0.5, 1.0),
+        "colsample_bytree": trial.suggest_float("colsample_bytree", 0.5, 1.0),
+        "gamma": trial.suggest_float("gamma", 0.0, 5.0),
+        "reg_lambda": trial.suggest_float("reg_lambda", 1e-3, 10.0, log=True),
     }
 
 
@@ -65,10 +65,10 @@ def class_weight_params(y, balance):
     """balance=True ise eğitim etiketlerinden scale_pos_weight üretir."""
     if not balance:
         return {}
-    return {'scale_pos_weight': metrics.scale_pos_weight(y)}
+    return {"scale_pos_weight": metrics.scale_pos_weight(y)}
 
 
-def make_objective(X, y, dates, n_splits=3, metric='accuracy', balance_classes=False):
+def make_objective(X, y, dates, n_splits=3, metric="accuracy", balance_classes=False):
     """Zaman serisi CV'sindeki seçilen metriğin ortalamasını maksimize eden objective fonksiyonu."""
     if metric not in METRICS:
         raise ValueError(f"Bilinmeyen metric: {metric!r}. Seçenekler: {', '.join(METRICS)}")
@@ -80,8 +80,9 @@ def make_objective(X, y, dates, n_splits=3, metric='accuracy', balance_classes=F
         for step, (train_idx, val_idx) in enumerate(folds):
             y_train = y.iloc[train_idx]
             # Ağırlık yalnızca bu katın eğitim etiketlerinden hesaplanır (sızıntı yok)
-            model = xgb.XGBClassifier(**params, **FIXED_PARAMS,
-                                      **class_weight_params(y_train, balance_classes))
+            model = xgb.XGBClassifier(
+                **params, **FIXED_PARAMS, **class_weight_params(y_train, balance_classes)
+            )
             model.fit(X.iloc[train_idx], y_train)
             proba = model.predict_proba(X.iloc[val_idx])[:, 1]
             scores.append(metrics.evaluate(y.iloc[val_idx], proba)[metric])
@@ -95,21 +96,33 @@ def make_objective(X, y, dates, n_splits=3, metric='accuracy', balance_classes=F
     return objective
 
 
-def run_study(X, y, dates, n_trials=50, n_splits=3, seed=42, timeout=None, metric='accuracy',
-              balance_classes=False):
+def run_study(
+    X,
+    y,
+    dates,
+    n_trials=50,
+    n_splits=3,
+    seed=42,
+    timeout=None,
+    metric="accuracy",
+    balance_classes=False,
+):
     """
     Optuna çalışmasını başlatır ve tamamlanmış study nesnesini döndürür.
     En iyi parametreler: study.best_params
     """
     study = optuna.create_study(
-        direction='maximize',
+        direction="maximize",
         sampler=optuna.samplers.TPESampler(seed=seed),
         pruner=optuna.pruners.MedianPruner(n_startup_trials=5),
     )
-    study.set_user_attr('metric', metric)
-    study.set_user_attr('balance_classes', balance_classes)
+    study.set_user_attr("metric", metric)
+    study.set_user_attr("balance_classes", balance_classes)
     # Mevcut manuel parametreleri ilk deneme olarak ekle (baseline)
     study.enqueue_trial(DEFAULT_PARAMS)
-    study.optimize(make_objective(X, y, dates, n_splits, metric, balance_classes),
-                   n_trials=n_trials, timeout=timeout)
+    study.optimize(
+        make_objective(X, y, dates, n_splits, metric, balance_classes),
+        n_trials=n_trials,
+        timeout=timeout,
+    )
     return study

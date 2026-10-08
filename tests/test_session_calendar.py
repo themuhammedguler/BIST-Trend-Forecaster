@@ -1,7 +1,7 @@
 # tests/test_session_calendar.py - BIST seans takvimi ve tarih formatlama testleri
 from datetime import datetime
+
 import pandas as pd
-import pytest
 
 from src import session_calendar
 
@@ -82,7 +82,6 @@ def test_get_session_info_on_sunday_includes_notice():
     assert info.is_weekend
     assert info.weekend_notice is not None
     assert "5 Ekim 2026, Pazartesi" in info.next_session_str
-
 
 
 def test_get_session_info_uses_istanbul_time_for_weekend_check():

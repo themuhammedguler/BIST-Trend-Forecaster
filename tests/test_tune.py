@@ -23,11 +23,16 @@ def test_suggest_params_within_search_space():
 
 
 def test_default_params_are_inside_search_space():
-    trial = optuna.trial.FixedTrial({
-        **tune.DEFAULT_PARAMS,
-        "min_child_weight": 1, "subsample": 1.0, "colsample_bytree": 1.0,
-        "gamma": 0.0, "reg_lambda": 1.0,
-    })
+    trial = optuna.trial.FixedTrial(
+        {
+            **tune.DEFAULT_PARAMS,
+            "min_child_weight": 1,
+            "subsample": 1.0,
+            "colsample_bytree": 1.0,
+            "gamma": 0.0,
+            "reg_lambda": 1.0,
+        }
+    )
     assert tune.suggest_params(trial)["max_depth"] == tune.DEFAULT_PARAMS["max_depth"]
 
 
@@ -137,8 +142,9 @@ def test_class_weighting_counters_majority_class_bias(imbalanced_data):
     X_tr, y_tr, X_te, y_te = X[:2000], y[:2000], X[2000:], y[2000:]
 
     def fit_score(balance):
-        model = xgb.XGBClassifier(**tune.DEFAULT_PARAMS, **tune.FIXED_PARAMS,
-                                  **tune.class_weight_params(y_tr, balance))
+        model = xgb.XGBClassifier(
+            **tune.DEFAULT_PARAMS, **tune.FIXED_PARAMS, **tune.class_weight_params(y_tr, balance)
+        )
         model.fit(X_tr, y_tr)
         return metrics.evaluate(y_te, model.predict_proba(X_te)[:, 1])
 

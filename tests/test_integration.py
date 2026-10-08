@@ -31,8 +31,9 @@ def small_dataset(tmp_path, monkeypatch):
 
 def test_features_and_study_on_real_data(small_dataset):
     processed = features.add_features(small_dataset)
-    study = tune.run_study(processed[FEATURES], processed["target"], processed["Date"],
-                           n_trials=2, n_splits=2)
+    study = tune.run_study(
+        processed[FEATURES], processed["target"], processed["Date"], n_trials=2, n_splits=2
+    )
     assert 0.0 <= study.best_value <= 1.0
 
 

@@ -13,13 +13,15 @@ def multi_ticker_dataset():
     records = []
     for ticker in ["AKBNK", "GARAN", "THYAO"]:
         for d in dates:
-            records.append({
-                "ticker": ticker,
-                "Date": d,
-                "f1": np.random.randn(),
-                "f2": np.random.randn(),
-                "target": int(np.random.rand() > 0.5)
-            })
+            records.append(
+                {
+                    "ticker": ticker,
+                    "Date": d,
+                    "f1": np.random.randn(),
+                    "f2": np.random.randn(),
+                    "target": int(np.random.rand() > 0.5),
+                }
+            )
     df = pd.DataFrame(records)
     # Veriyi ticker ardından Date şeklinde sırala (features.py gibi)
     df = df.sort_values(by=["ticker", "Date"]).reset_index(drop=True)
@@ -49,14 +51,17 @@ def test_temporal_split_includes_all_tickers(multi_ticker_dataset):
     """Eski satır bazlı split alfabetik son hisseleri teste atıyordu.
     Tarih bazlı splitte her hissenin hem geçmişi hem geleceği olmalı."""
     features_list = ["f1", "f2"]
-    train_mask = multi_ticker_dataset["Date"] < multi_ticker_dataset["Date"].quantile(0.8)
-    
+
     X_train, X_test, _, _, _, cutoff_date = get_temporal_split(
         multi_ticker_dataset, features_list, train_ratio=0.8
     )
 
-    train_tickers = multi_ticker_dataset.loc[multi_ticker_dataset["Date"] < cutoff_date, "ticker"].unique()
-    test_tickers = multi_ticker_dataset.loc[multi_ticker_dataset["Date"] >= cutoff_date, "ticker"].unique()
+    train_tickers = multi_ticker_dataset.loc[
+        multi_ticker_dataset["Date"] < cutoff_date, "ticker"
+    ].unique()
+    test_tickers = multi_ticker_dataset.loc[
+        multi_ticker_dataset["Date"] >= cutoff_date, "ticker"
+    ].unique()
 
     assert set(train_tickers) == {"AKBNK", "GARAN", "THYAO"}
     assert set(test_tickers) == {"AKBNK", "GARAN", "THYAO"}
@@ -90,18 +95,20 @@ def test_temporal_split_resets_indices(multi_ticker_dataset):
 
 
 def test_temporal_split_insufficient_dates():
-    single_date_df = pd.DataFrame({
-        "Date": [pd.Timestamp("2024-01-01"), pd.Timestamp("2024-01-01")],
-        "f1": [1.0, 2.0],
-        "target": [0, 1]
-    })
+    single_date_df = pd.DataFrame(
+        {
+            "Date": [pd.Timestamp("2024-01-01"), pd.Timestamp("2024-01-01")],
+            "f1": [1.0, 2.0],
+            "target": [0, 1],
+        }
+    )
     with pytest.raises(ValueError, match="en az 2 farklı tarih"):
         get_temporal_split(single_date_df, ["f1"])
 
 
 def test_temporal_split_extreme_ratios(multi_ticker_dataset):
     features_list = ["f1", "f2"]
-    
+
     # Çok küçük train_ratio: En az 1 tarih eğitimde, gerisi testte kalmalı
     X_tr_low, X_te_low, _, _, _, _ = get_temporal_split(
         multi_ticker_dataset, features_list, train_ratio=0.0001

@@ -68,6 +68,14 @@ pip install -r requirements-dev.txt
 pytest -q
 ```
 
+### Kod Kalitesi
+Kod stili ve lint kuralları `pyproject.toml` içinde tanımlıdır ([ruff](https://docs.astral.sh/ruff/); PEP 8, Pyflakes ve import sırası, satır sınırı 100). CI her push ve PR'da aynı kontrolleri çalıştırır:
+```bash
+ruff check .          # lint (otomatik düzeltme için: ruff check --fix .)
+ruff format .         # biçimlendirme (yalnızca kontrol için: ruff format --check .)
+```
+Toplu biçimlendirme commit'ini `git blame` çıktısında gizlemek için: `git config blame.ignoreRevsFile .git-blame-ignore-revs`
+
 ### Model Performansı
 *   **Test Seti (varsayılan parametreler, kesim 2025-02-25):** Doğruluk 0.511, Dengeli Doğruluk 0.511, ROC-AUC 0.513, Log Loss 0.698. Test setindeki yükseliş günü oranı %49.4'tür.
     *   *Yorum:* Finansal piyasaların stokastik yapısı göz önüne alındığında sinyal zayıftır; ROC-AUC'nin 0.5'e yakın olması tahminlerin çoğunun yazı-tura seviyesinde olduğunu gösterir. Bu nedenle arayüzde nötr eşik bandı kullanılır.
@@ -95,5 +103,6 @@ BIST-TREND-FORECASTER/
 ├── app.py              # Streamlit arayüz kodu
 ├── requirements.txt    # Kütüphane bağımlılıkları (prod)
 ├── requirements-dev.txt# Geliştirme ve test bağımlılıkları
+├── pyproject.toml      # Proje meta verisi ve ruff ayarları
 └── README.md           # Proje dokümantasyonu
 ```

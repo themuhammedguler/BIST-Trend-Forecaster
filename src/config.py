@@ -9,11 +9,36 @@ MODEL_META_PATH = os.path.join(BASE_DIR, "models", "xgb_bist_model_meta.json")
 
 # BIST 30 Hisseleri (Likiditesi yüksek, manipülasyonu zor)
 TICKERS = [
-    "AKBNK.IS", "ARCLK.IS", "ASELS.IS", "BIMAS.IS", "EKGYO.IS", "ENKAI.IS", "EREGL.IS",
-    "FROTO.IS", "GARAN.IS", "GUBRF.IS", "HALKB.IS", "HEKTS.IS", "ISCTR.IS", "KCHOL.IS",
-    "KOZAA.IS", "KOZAL.IS", "KRDMD.IS", "PETKM.IS", "PGSUS.IS", "SAHOL.IS", "SASA.IS",
-    "SISE.IS", "TCELL.IS", "THYAO.IS", "TKFEN.IS", "TOASO.IS", "TSKB.IS", "TTKOM.IS",
-    "TUPRS.IS", "YKBNK.IS"
+    "AKBNK.IS",
+    "ARCLK.IS",
+    "ASELS.IS",
+    "BIMAS.IS",
+    "EKGYO.IS",
+    "ENKAI.IS",
+    "EREGL.IS",
+    "FROTO.IS",
+    "GARAN.IS",
+    "GUBRF.IS",
+    "HALKB.IS",
+    "HEKTS.IS",
+    "ISCTR.IS",
+    "KCHOL.IS",
+    "KOZAA.IS",
+    "KOZAL.IS",
+    "KRDMD.IS",
+    "PETKM.IS",
+    "PGSUS.IS",
+    "SAHOL.IS",
+    "SASA.IS",
+    "SISE.IS",
+    "TCELL.IS",
+    "THYAO.IS",
+    "TKFEN.IS",
+    "TOASO.IS",
+    "TSKB.IS",
+    "TTKOM.IS",
+    "TUPRS.IS",
+    "YKBNK.IS",
 ]
 
 # Yahoo Finance'te sembolü/adı değişen hisseler için eşleme tablosu
@@ -27,14 +52,15 @@ TICKER_YAHOO_MAP = {
 
 # Eğitim için kaç yıllık veri çekilsin?
 START_DATE = "2018-01-01"
-END_DATE = "2025-12-08" # Bugüne kadar
+END_DATE = "2025-12-08"  # Bugüne kadar
 
 # Yön sinyali için nötr bant: bu aralıktaki olasılıklar yazı-turadan ayırt edilemez
 # prob >= HIGH -> yükseliş, prob <= LOW -> düşüş, arası -> nötr / belirsiz
 PROB_THRESHOLD_HIGH = 0.53
 PROB_THRESHOLD_LOW = 0.47
 
-# Modelin girdi olarak kullandığı teknik göstergeler ve takvim öznitelikleri (Single Source of Truth)
+# Modelin girdi olarak kullandığı teknik göstergeler ve takvim öznitelikleri
+# (Single Source of Truth)
 FEATURES = [
     "rsi",
     "macd",
@@ -48,4 +74,3 @@ FEATURES = [
     "day_of_week",
     "month",
 ]
-

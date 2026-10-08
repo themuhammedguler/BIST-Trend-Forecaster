@@ -1,21 +1,22 @@
 # tests/test_scanner.py - scanner.py birim testleri
-import pandas as pd
 import numpy as np
+import pandas as pd
 import pytest
-import xgboost as xgb
 import yfinance
 
-from src import scanner, config
+from src import scanner
 
 
 @pytest.fixture
 def dummy_model():
     """Test için basit bir XGBoost modeli simülasyonu."""
+
     class DummyModel:
         def predict_proba(self, X):
             # RSI'a göre deterministik olasılık (RSI 0-100 -> olasılık 0-1)
             prob = float(X["rsi"].iloc[0]) / 100.0
             return np.array([[1.0 - prob, prob]])
+
     return DummyModel()
 
 
@@ -24,13 +25,16 @@ def fake_panel():
     """120 iş günü OHLCV paneli."""
     dates = pd.bdate_range("2025-01-01", periods=120)
     close = 100.0 + np.arange(120) * 0.1
-    df = pd.DataFrame({
-        "Open": close - 0.5,
-        "High": close + 1.0,
-        "Low": close - 1.0,
-        "Close": close,
-        "Volume": 1_000_000.0
-    }, index=pd.Index(dates, name="Date"))
+    df = pd.DataFrame(
+        {
+            "Open": close - 0.5,
+            "High": close + 1.0,
+            "Low": close - 1.0,
+            "Close": close,
+            "Volume": 1_000_000.0,
+        },
+        index=pd.Index(dates, name="Date"),
+    )
     return df
 
 
@@ -38,6 +42,7 @@ def batch_download(make_frame, calls=None):
     """yf.download(liste, group_by="ticker") çıktısını taklit eder: (sembol, alan)
     MultiIndex sütunlu tek bir DataFrame. Verisi olmayan semboller, gerçek
     Yahoo yanıtında olduğu gibi tamamen NaN bir blok olarak döner."""
+
     def download(tickers, *args, **kwargs):
         if calls is not None:
             calls.append(tickers)
@@ -47,9 +52,12 @@ def batch_download(make_frame, calls=None):
         if index is None:
             return pd.DataFrame()
         cols = ["Open", "High", "Low", "Close", "Volume"]
-        frames = {sym: (f if not f.empty else pd.DataFrame(np.nan, index=index, columns=cols))
-                  for sym, f in frames.items()}
+        frames = {
+            sym: (f if not f.empty else pd.DataFrame(np.nan, index=index, columns=cols))
+            for sym, f in frames.items()
+        }
         return pd.concat(frames, axis=1)
+
     return download
 
 
@@ -104,9 +112,11 @@ def test_scan_market_handles_empty_list(dummy_model):
 
 
 def test_scan_market_continues_on_partial_failure(monkeypatch, dummy_model, fake_panel):
-    monkeypatch.setattr(yfinance, "download", batch_download(
-        lambda symbol: pd.DataFrame() if "FAIL" in symbol else fake_panel.copy()
-    ))
+    monkeypatch.setattr(
+        yfinance,
+        "download",
+        batch_download(lambda symbol: pd.DataFrame() if "FAIL" in symbol else fake_panel.copy()),
+    )
 
     tickers = ["AKBNK.IS", "FAIL.IS", "THYAO.IS"]
     df_scan, failed = scanner.scan_market(tickers, dummy_model)
@@ -118,7 +128,9 @@ def test_scan_market_continues_on_partial_failure(monkeypatch, dummy_model, fake
 
 def test_scan_market_downloads_all_symbols_in_one_request(monkeypatch, dummy_model, fake_panel):
     calls = []
-    monkeypatch.setattr(yfinance, "download", batch_download(lambda symbol: fake_panel.copy(), calls))
+    monkeypatch.setattr(
+        yfinance, "download", batch_download(lambda symbol: fake_panel.copy(), calls)
+    )
 
     df_scan, failed = scanner.scan_market(["AKBNK.IS", "KOZAL.IS", "THYAO.IS"], dummy_model)
 
@@ -140,6 +152,7 @@ def test_scan_market_reports_no_failures_on_success(monkeypatch, dummy_model, fa
 def test_scan_market_does_not_hide_model_errors(monkeypatch, fake_panel, error):
     """Model hataları "veri alınamadı" gibi görünmemeli; çağırana ulaşmalı.
     XGBoost öznitelik uyumsuzluğunda ValueError fırlattığı için o da kapsanır."""
+
     class BrokenModel:
         def predict_proba(self, X):
             raise error("feature mismatch")
@@ -155,7 +168,9 @@ def _scan_frame(n):
     return pd.DataFrame({"ticker_code": [f"T{i}.IS" for i in range(n)], "_prob": probs})
 
 
-@pytest.mark.parametrize("n_rows, expected_size", [(30, 5), (10, 5), (9, 4), (3, 1), (1, 0), (0, 0)])
+@pytest.mark.parametrize(
+    "n_rows, expected_size", [(30, 5), (10, 5), (9, 4), (3, 1), (1, 0), (0, 0)]
+)
 def test_top_and_bottom_never_overlap(n_rows, expected_size):
     bull, bear = scanner.top_and_bottom(_scan_frame(n_rows), n=5)
 

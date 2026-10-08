@@ -87,21 +87,29 @@ def test_rejects_multiple_rows(trained_model):
 
 def _explanation(impacts):
     """Verilen etkilerden (feature -> impact) explain_prediction çıktısı biçiminde tablo üretir."""
-    df = pd.DataFrame({
-        "feature": list(impacts),
-        "value": 0.0,
-        "contribution": list(impacts.values()),
-        "impact": list(impacts.values()),
-    })
+    df = pd.DataFrame(
+        {
+            "feature": list(impacts),
+            "value": 0.0,
+            "contribution": list(impacts.values()),
+            "impact": list(impacts.values()),
+        }
+    )
     order = df["contribution"].abs().sort_values(ascending=False).index
     return df.loc[order].reset_index(drop=True)
 
 
 def test_top_drivers_splits_by_direction_and_ranks_by_impact():
-    explanation = _explanation({
-        "macd": 0.072, "vol_change": 0.041, "rsi": 0.010, "month": 0.002,
-        "volatility": -0.030, "lag_1_ret": -0.005,
-    })
+    explanation = _explanation(
+        {
+            "macd": 0.072,
+            "vol_change": 0.041,
+            "rsi": 0.010,
+            "month": 0.002,
+            "volatility": -0.030,
+            "lag_1_ret": -0.005,
+        }
+    )
 
     up, down = top_drivers(explanation, n=3)
 

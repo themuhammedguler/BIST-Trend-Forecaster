@@ -1,5 +1,4 @@
 # tests/test_ticker_alias.py - sembol eşleme ve boş veri doğrulama testleri
-from pathlib import Path
 import pandas as pd
 import pytest
 import yfinance
@@ -9,23 +8,25 @@ import config
 
 
 def test_ticker_yahoo_map_contains_renamed_tickers():
-    """Kasım 2025'te değişen KOZAL (TRALT) ve KOZAA (TRMET) sembollerinin haritada olduğunu doğrular."""
+    """Kasım 2025'te değişen KOZAL (TRALT) ve KOZAA (TRMET) sembollerinin
+    haritada olduğunu doğrular."""
     assert hasattr(config, "TICKER_YAHOO_MAP")
     assert config.TICKER_YAHOO_MAP.get("KOZAL.IS") == "TRALT.IS"
     assert config.TICKER_YAHOO_MAP.get("KOZAA.IS") == "TRMET.IS"
 
 
 def test_get_prediction_data_uses_mapped_ticker(monkeypatch):
-    """get_prediction_data fonksiyonunun Yahoo Finance'e sorgu atarken haritadaki güncel sembolü kullandığını doğrular."""
+    """get_prediction_data fonksiyonunun Yahoo Finance'e sorgu atarken haritadaki
+    güncel sembolü kullandığını doğrular."""
     requested_tickers = []
 
     def fake_download(ticker, *args, **kwargs):
         requested_tickers.append(ticker)
         # 120 günlük sahte veri dön
         dates = pd.bdate_range("2025-01-01", periods=120)
-        return pd.DataFrame({
-            "Open": 10.0, "High": 11.0, "Low": 9.0, "Close": 10.5, "Volume": 1000.0
-        }, index=dates)
+        return pd.DataFrame(
+            {"Open": 10.0, "High": 11.0, "Low": 9.0, "Close": 10.5, "Volume": 1000.0}, index=dates
+        )
 
     monkeypatch.setattr(yfinance, "download", fake_download)
 

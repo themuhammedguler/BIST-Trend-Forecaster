@@ -44,5 +44,6 @@ def no_retry_delay(monkeypatch):
     olarak yükler; ikisi ayrı modül nesneleridir."""
     import network
     from src import network as src_network
+
     for module in (network, src_network):
         monkeypatch.setattr(module, "_sleep", lambda seconds: None)

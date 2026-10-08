@@ -15,7 +15,7 @@ import features
 
 APP_PATH = str(Path(__file__).resolve().parents[1] / "app.py")
 
-DISPLAYED_COLUMNS = ['rsi', 'macd', 'sma_10', 'sma_50', 'volatility']
+DISPLAYED_COLUMNS = ["rsi", "macd", "sma_10", "sma_50", "volatility"]
 
 
 def _fake_download_panel(n_days=130, ticker="AKBNK.IS"):
@@ -49,8 +49,13 @@ def _expected_last_row(panel, ticker="AKBNK.IS"):
     df.columns = df.columns.get_level_values(0)
     df["ticker"] = ticker.replace(".IS", "")
     df.reset_index(inplace=True)
-    df.rename(columns={c: ("Date" if c.lower() == "date" else c if c == "ticker" else c.lower())
-                       for c in df.columns}, inplace=True)
+    df.rename(
+        columns={
+            c: ("Date" if c.lower() == "date" else c if c == "ticker" else c.lower())
+            for c in df.columns
+        },
+        inplace=True,
+    )
     processed = features.add_features(df, drop_incomplete_target=False)
     return processed.iloc[[-1]]
 
@@ -146,11 +151,14 @@ def test_explanation_renders_contribution_waterfall(patched_download):
 def fixed_probability(monkeypatch):
     """Modelin artış olasılığını sabitler; UI'ın sinyal etiketlemesini
     eğitilmiş modelden bağımsız test etmeyi sağlar."""
+
     def _set(prob):
         monkeypatch.setattr(
-            xgboost.XGBClassifier, "predict_proba",
+            xgboost.XGBClassifier,
+            "predict_proba",
             lambda self, X: np.tile([1.0 - prob, prob], (len(X), 1)),
         )
+
     return _set
 
 
@@ -170,7 +178,9 @@ def _boxes(at):
         (0.40, "error", "DÜŞÜŞ"),
     ],
 )
-def test_direction_and_confidence_share_signal_color(patched_download, fixed_probability, prob, kind, label):
+def test_direction_and_confidence_share_signal_color(
+    patched_download, fixed_probability, prob, kind, label
+):
     fixed_probability(prob)
 
     at = AppTest.from_file(APP_PATH, default_timeout=30)
@@ -224,7 +234,12 @@ def test_backtest_compares_model_strategy_with_buy_and_hold(patched_download):
 
     assert list(at.exception) == []
     assert any("Backtest" in h.value for h in at.subheader)
-    curves = [t for traces in _chart_traces(at) for t in traces if t.get("name") in ("Model Stratejisi", "Al ve Tut")]
+    curves = [
+        t
+        for traces in _chart_traces(at)
+        for t in traces
+        if t.get("name") in ("Model Stratejisi", "Al ve Tut")
+    ]
     assert sorted(t["name"] for t in curves) == ["Al ve Tut", "Model Stratejisi"]
 
     table = _backtest_table(at)
@@ -275,8 +290,10 @@ def test_backtest_caption_reports_exposure_and_trades(patched_download, fixed_pr
     at.run()
 
     # Hep yükseliş sinyali: tüm günlerde hissede, yalnızca ilk giriş işlemi
-    assert any("Hissede kalınan gün oranı: %100" in c.value and "Pozisyon değişikliği: 1" in c.value
-               for c in at.caption)
+    assert any(
+        "Hissede kalınan gün oranı: %100" in c.value and "Pozisyon değişikliği: 1" in c.value
+        for c in at.caption
+    )
 
 
 def test_app_market_scanner_tab_triggers_and_renders(patched_download):
@@ -327,7 +344,8 @@ def test_scanner_tab_stays_usable_when_selected_ticker_has_no_data(monkeypatch):
     göstermeli; Fırsat Radarı sekmesi kullanılabilir kalmalı."""
     panel = _fake_download_panel()
     monkeypatch.setattr(
-        yfinance, "download",
+        yfinance,
+        "download",
         lambda ticker, *args, **kwargs: pd.DataFrame() if ticker == "AKBNK.IS" else panel.copy(),
     )
 
@@ -381,8 +399,11 @@ def test_scanner_tables_use_consistent_number_formats(patched_download):
     scan_tables = at.dataframe[-3:]
     assert len(scan_tables) == 3
     for table in scan_tables:
-        formats = {col: cfg["type_config"]["format"] for col, cfg in json.loads(table.proto.columns).items()
-                   if "format" in cfg.get("type_config", {})}
+        formats = {
+            col: cfg["type_config"]["format"]
+            for col, cfg in json.loads(table.proto.columns).items()
+            if "format" in cfg.get("type_config", {})
+        }
         assert formats["Son Fiyat (TL)"] == "%.2f"
         assert formats["Günlük Değişim (%)"] == "%.2f"
         assert formats["Yükseliş Olasılığı (%)"] == "%.1f"
@@ -407,7 +428,9 @@ def test_app_renders_session_calendar_caption(patched_download):
     at.run()
 
     assert list(at.exception) == []
-    assert any("Analiz Edilen Son Kapanış" in c.value and "Hedef Seans" in c.value for c in at.caption)
+    assert any(
+        "Analiz Edilen Son Kapanış" in c.value and "Hedef Seans" in c.value for c in at.caption
+    )
 
 
 def test_app_renders_weekend_notice_on_weekends(patched_download, monkeypatch):

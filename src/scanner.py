@@ -1,6 +1,7 @@
 # src/scanner.py
 # BIST 30 hisselerinin tamamını modelden geçirip fırsat radarı sıralaması oluşturan modül
 import pandas as pd
+
 from src import config, live_data, network
 
 
@@ -78,8 +79,10 @@ def scan_market(tickers, model):
     if symbols:
         try:
             batch = network.download_with_retry(
-                sorted(set(symbols.values())), period=live_data.LIVE_PERIOD,
-                group_by="ticker", progress=False,
+                sorted(set(symbols.values())),
+                period=live_data.LIVE_PERIOD,
+                group_by="ticker",
+                progress=False,
             )
         except network.MarketDataUnavailableError:
             # Yahoo'ya ulaşılamadı: tüm hisseler verisi alınamayanlar listesine düşer
@@ -97,8 +100,13 @@ def scan_market(tickers, model):
     if not records:
         return pd.DataFrame(
             columns=[
-                "Hisse", "ticker_code", "Son Fiyat (TL)",
-                "Günlük Değişim (%)", "Yükseliş Olasılığı (%)", "Tahmin", "_prob"
+                "Hisse",
+                "ticker_code",
+                "Son Fiyat (TL)",
+                "Günlük Değişim (%)",
+                "Yükseliş Olasılığı (%)",
+                "Tahmin",
+                "_prob",
             ]
         ), failed
 

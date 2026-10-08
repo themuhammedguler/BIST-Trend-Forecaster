@@ -60,11 +60,11 @@ def summarize(returns):
 @dataclass
 class BacktestResult:
     returns: pd.DataFrame  # gerçekleşen günlük getiriler (strategy, buy_hold)
-    curve: pd.DataFrame    # ilk günden itibaren kümülatif getiri eğrileri (0'dan başlar)
+    curve: pd.DataFrame  # ilk günden itibaren kümülatif getiri eğrileri (0'dan başlar)
     strategy: dict
     buy_hold: dict
-    exposure: float        # hissede geçirilen gün oranı
-    trades: int            # pozisyon değişikliği sayısı (nakitten ilk giriş dahil)
+    exposure: float  # hissede geçirilen gün oranı
+    trades: int  # pozisyon değişikliği sayısı (nakitten ilk giriş dahil)
 
 
 def run_backtest(frame, probs, threshold, cost=0.0):

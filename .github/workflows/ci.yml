@@ -7,6 +7,27 @@ on:
     branches: [main]
 
 jobs:
+  lint:
+    name: Lint (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ruff (version pinned in requirements-dev.txt)
+        run: pip install "$(grep '^ruff' requirements-dev.txt)"
+
+      - name: Check lint rules
+        run: ruff check --output-format=github .
+
+      - name: Check formatting
+        run: ruff format --check .
+
   test:
     name: Test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest

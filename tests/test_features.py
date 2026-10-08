@@ -16,15 +16,17 @@ def ohlcv_dataset():
         price = 100.0
         for d in dates:
             price += rng.normal(scale=1.0)
-            records.append({
-                "Date": d,
-                "ticker": ticker,
-                "open": price,
-                "high": price + 1,
-                "low": price - 1,
-                "close": price,
-                "volume": rng.integers(1_000, 10_000),
-            })
+            records.append(
+                {
+                    "Date": d,
+                    "ticker": ticker,
+                    "open": price,
+                    "high": price + 1,
+                    "low": price - 1,
+                    "close": price,
+                    "volume": rng.integers(1_000, 10_000),
+                }
+            )
     return pd.DataFrame(records)
 
 
@@ -49,8 +51,17 @@ def test_keeping_incomplete_target_retains_most_recent_day(ohlcv_dataset):
     last_rows = processed[processed["Date"] == max_input_date]
     assert len(last_rows) == ohlcv_dataset["ticker"].nunique()
 
-    feature_cols = ["rsi", "macd", "sma_10", "sma_50", "bb_width",
-                     "volatility", "lag_1_ret", "lag_2_ret", "vol_change"]
+    feature_cols = [
+        "rsi",
+        "macd",
+        "sma_10",
+        "sma_50",
+        "bb_width",
+        "volatility",
+        "lag_1_ret",
+        "lag_2_ret",
+        "vol_change",
+    ]
     assert not last_rows[feature_cols].isna().any().any()
 
 
@@ -84,4 +95,3 @@ def test_single_ticker_vectorized_matches_multi_ticker_exact(ohlcv_dataset):
     multi_akbnk = multi_result[multi_result["ticker"] == "AKBNK"].reset_index(drop=True)
 
     pd.testing.assert_frame_equal(fast_result, multi_akbnk)
-

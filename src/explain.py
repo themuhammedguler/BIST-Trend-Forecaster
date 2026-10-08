@@ -44,11 +44,13 @@ def explain_prediction(model, X_row):
     contribs = model.get_booster().predict(xgb.DMatrix(X_row), pred_contribs=True)[0]
     bias = contribs[-1]
 
-    explanation = pd.DataFrame({
-        "feature": list(X_row.columns),
-        "value": X_row.iloc[0].to_numpy(dtype=float),
-        "contribution": contribs[:-1],
-    })
+    explanation = pd.DataFrame(
+        {
+            "feature": list(X_row.columns),
+            "value": X_row.iloc[0].to_numpy(dtype=float),
+            "contribution": contribs[:-1],
+        }
+    )
     order = explanation["contribution"].abs().sort_values(ascending=False, kind="stable").index
     explanation = explanation.loc[order].reset_index(drop=True)
 
@@ -76,8 +78,14 @@ def _format_drivers(drivers):
 def summarize_drivers(explanation, ticker, n=3):
     """Tahmini en çok etkileyen faktörleri tek cümlelik bir özetle anlatır."""
     up, down = top_drivers(explanation, n)
-    up_text = (f"yukarı taşıyan ana faktörler: {_format_drivers(up)}"
-               if not up.empty else "yukarı taşıyan belirgin bir faktör yok")
-    down_text = (f"aşağı çeken: {_format_drivers(down)}"
-                 if not down.empty else "aşağı çeken belirgin bir faktör yok")
+    up_text = (
+        f"yukarı taşıyan ana faktörler: {_format_drivers(up)}"
+        if not up.empty
+        else "yukarı taşıyan belirgin bir faktör yok"
+    )
+    down_text = (
+        f"aşağı çeken: {_format_drivers(down)}"
+        if not down.empty
+        else "aşağı çeken belirgin bir faktör yok"
+    )
     return f"{ticker} tahminini {up_text}; {down_text}."

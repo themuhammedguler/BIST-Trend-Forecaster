@@ -5,7 +5,9 @@ Hafta sonları ve seans dışı zamanlarda en son kapanış verisi ile
 tahmin yapılan bir sonraki işlem seansını belirler, Türkçe tarih
 formatında kullanıcı arayüzüne sunar.
 """
+
 from dataclasses import dataclass
+
 import pandas as pd
 
 # Hafta sonu kontrolü sunucu saatine göre değil, borsanın saatine göre yapılır
@@ -104,4 +106,3 @@ def get_session_info(last_date, now=None) -> SessionInfo:
         badge_text=badge,
         weekend_notice=weekend_notice,
     )
-

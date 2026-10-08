@@ -1,6 +1,7 @@
 # src/live_data.py - Yahoo Finance'ten canlı veri çekip modele hazırlayan ortak yardımcılar
 # (Tek hisse analizi ve BIST 30 taraması aynı işlem hattını kullanır.)
 import pandas as pd
+
 from src import config, features, network
 
 # İndikatörlerin ısınması (sma_50) sonrası 6 aylık backtest için son 1 yılın verisi çekilir
@@ -31,34 +32,36 @@ def prepare_live_frame(raw, ticker):
     if isinstance(df.columns, pd.MultiIndex):
         df.columns = df.columns.get_level_values(0)
 
-    df['ticker'] = ticker.replace(".IS", "")
+    df["ticker"] = ticker.replace(".IS", "")
     df.reset_index(inplace=True)
 
     # Sütun isimlerini düzenle (features.py 'Date' ve küçük harfli sütunlar bekliyor)
     new_columns = {}
     for col in df.columns:
-        if col.lower() in ('date', 'index'):
-            new_columns[col] = 'Date'
-        elif col.lower() == 'ticker':
-            new_columns[col] = 'ticker'
+        if col.lower() in ("date", "index"):
+            new_columns[col] = "Date"
+        elif col.lower() == "ticker":
+            new_columns[col] = "ticker"
         else:
             new_columns[col] = col.lower()
     df.rename(columns=new_columns, inplace=True)
 
-    if 'Date' not in df.columns:
+    if "Date" not in df.columns:
         raise ValueError(f"'{ticker}' için çekilen veride 'Date' sütunu bulunamadı.")
 
     # Yahoo seans sonrası bazen günün satırını OHLC'si boş, yalnızca hacmi dolu
     # döndürür (#25). Bu satır fiyat, grafik ve tahminin farklı günleri
     # kullanmasına yol açtığı için atılır; hepsi son tam işlem gününü kullanır.
-    price_cols = [c for c in ('open', 'high', 'low', 'close') if c in df.columns]
+    price_cols = [c for c in ("open", "high", "low", "close") if c in df.columns]
     df = df.dropna(subset=price_cols).reset_index(drop=True)
 
     # drop_incomplete_target=False: canlı tahminde bugünün hedefi (yarının kapanışı)
     # henüz bilinmez; bu normalde eğitimde düşürülen son günü burada tutar.
     df_processed = features.add_features(df, drop_incomplete_target=False)
     if df_processed.empty:
-        raise ValueError(f"'{ticker}' verisi teknik indikatörler hesaplandıktan sonra yetersiz kaldı.")
+        raise ValueError(
+            f"'{ticker}' verisi teknik indikatörler hesaplandıktan sonra yetersiz kaldı."
+        )
 
     return df_processed, df
 
