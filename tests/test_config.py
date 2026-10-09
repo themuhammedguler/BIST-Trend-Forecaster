@@ -10,9 +10,15 @@ import explain
 import features
 
 
+def test_config_defines_macro_tickers():
+    assert config.INDEX_TICKER == "XU100.IS"
+    assert config.FX_TICKER == "USDTRY=X"
+    assert config.MACRO_TICKERS == ["XU100.IS", "USDTRY=X"]
+
+
 def test_config_defines_features_list():
     assert isinstance(config.FEATURES, list)
-    assert len(config.FEATURES) == 11
+    assert len(config.FEATURES) == 14
     assert len(config.FEATURES) == len(set(config.FEATURES))
     expected = [
         "rsi",
@@ -26,6 +32,9 @@ def test_config_defines_features_list():
         "vol_change",
         "day_of_week",
         "month",
+        "xu100_ret",
+        "rel_strength_bist",
+        "usdtry_change",
     ]
     assert config.FEATURES == expected
 

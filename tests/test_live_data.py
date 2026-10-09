@@ -141,3 +141,34 @@ def _raise_or_return(outcome):
     if isinstance(outcome, Exception):
         raise outcome
     return outcome
+
+
+def test_prepare_live_frame_with_macro_data():
+    raw = _raw_panel(n_days=120)
+    macro_tuples = [("XU100.IS", "Close"), ("USDTRY=X", "Close")]
+    cols = pd.MultiIndex.from_tuples(macro_tuples, names=["Ticker", "Price"])
+    macro_df = pd.DataFrame(
+        [[1000.0, 30.0], [1020.0, 30.3]],
+        index=raw.index[-2:],
+        columns=cols,
+    )
+
+    processed, _ = live_data.prepare_live_frame(raw, "AKBNK.IS", macro_data=macro_df)
+
+    assert "xu100_ret" in processed.columns
+    assert "rel_strength_bist" in processed.columns
+    assert "usdtry_change" in processed.columns
+
+
+def test_fetch_macro_frame_downloads_macro_tickers(monkeypatch):
+    called_tickers = []
+
+    def fake_download(tickers, *args, **kwargs):
+        called_tickers.append(tickers)
+        return _raw_panel()
+
+    monkeypatch.setattr(yfinance, "download", fake_download)
+
+    live_data.fetch_macro_frame()
+    assert len(called_tickers) == 1
+    assert set(called_tickers[0]) == {"XU100.IS", "USDTRY=X"}

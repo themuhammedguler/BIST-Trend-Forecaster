@@ -9,7 +9,7 @@ import config
 import network
 
 
-def fetch_data(start_date=None, end_date=None, output_path=None):
+def fetch_data(start_date=None, end_date=None, output_path=None, include_macro=True):
     start = start_date or config.START_DATE
     end = end_date or config.END_DATE
     out_path = output_path or config.DATA_PATH
@@ -17,7 +17,14 @@ def fetch_data(start_date=None, end_date=None, output_path=None):
     print(f"Veri çekme işlemi başladı ({start} - {end})... Bu işlem biraz sürebilir.")
     all_data = []
 
-    for ticker in config.TICKERS:
+    tickers = list(config.TICKERS)
+    if include_macro:
+        macro_tickers = getattr(config, "MACRO_TICKERS", [])
+        fetch_list = tickers + [t for t in macro_tickers if t not in tickers]
+    else:
+        fetch_list = tickers
+
+    for ticker in fetch_list:
         try:
             # Veriyi çek (Yahoo Finance sembol değişikliği varsa eşle)
             yahoo_ticker = getattr(config, "TICKER_YAHOO_MAP", {}).get(ticker, ticker)
@@ -27,10 +34,12 @@ def fetch_data(start_date=None, end_date=None, output_path=None):
             if isinstance(df.columns, pd.MultiIndex):
                 df.columns = df.columns.get_level_values(0)
 
-            df["Ticker"] = ticker.replace(".IS", "")  # .IS uzantısını temizle
+            # .IS veya =X uzantısını temizle
+            clean_ticker = ticker.replace(".IS", "").replace("=X", "")
+            df["Ticker"] = clean_ticker
             df.reset_index(inplace=True)
             all_data.append(df)
-            print(f"✅ {ticker} çekildi. ({len(df)} satır)")
+            print(f"✅ {ticker} ({clean_ticker}) çekildi. ({len(df)} satır)")
         except Exception as e:
             print(f"❌ {ticker} hatası: {e}")
 
@@ -60,10 +69,20 @@ if __name__ == "__main__":
         help="Bitiş tarihi (YYYY-MM-DD) veya 'today' / 'latest'",
     )
     parser.add_argument("--output-path", default=None, help="Çıktı CSV dosya yolu")
+    parser.add_argument(
+        "--no-macro",
+        action="store_true",
+        help="Endeks ve kur verilerini indirme",
+    )
     args = parser.parse_args()
 
     end_d = args.end_date
     if end_d in ("today", "latest"):
         end_d = date.today().isoformat()
 
-    fetch_data(start_date=args.start_date, end_date=end_d, output_path=args.output_path)
+    fetch_data(
+        start_date=args.start_date,
+        end_date=end_d,
+        output_path=args.output_path,
+        include_macro=not args.no_macro,
+    )

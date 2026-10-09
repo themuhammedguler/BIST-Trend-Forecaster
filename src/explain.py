@@ -16,6 +16,9 @@ FEATURE_LABELS = {
     "vol_change": "Hacim Değişimi",
     "day_of_week": "Haftanın Günü",
     "month": "Ay",
+    "xu100_ret": "BIST 100 Getirisi",
+    "rel_strength_bist": "BIST 100 Göreceli Güç",
+    "usdtry_change": "USD/TRY Değişimi",
 }
 
 

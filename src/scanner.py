@@ -48,20 +48,11 @@ def _build_record(ticker, df_processed, df, model):
 
 
 def _symbol_frame(batch, symbol):
-    """Toplu yf.download çıktısından tek bir sembolün OHLCV verisini çıkarır.
-
-    Yahoo verisi alınamayan sembolleri tamamen NaN bir blok olarak döndürür;
-    bu satırlar atılır, sembol hiç yoksa boş DataFrame döner.
-    """
-    if batch is None or batch.empty or not isinstance(batch.columns, pd.MultiIndex):
-        return pd.DataFrame()
-    for level in range(batch.columns.nlevels):
-        if symbol in batch.columns.get_level_values(level):
-            return batch.xs(symbol, axis=1, level=level).dropna(how="all")
-    return pd.DataFrame()
+    """Toplu yf.download çıktısından tek bir sembolün OHLCV verisini çıkarır."""
+    return live_data.extract_symbol_frame(batch, symbol)
 
 
-def scan_market(tickers, model):
+def scan_market(tickers, model, include_macro=False):
     """
     Verilen hisse listesini tarar, modelden geçirir ve artış olasılığına göre
     azalan sırada sıralanmış bir DataFrame döndürür.
@@ -78,8 +69,14 @@ def scan_market(tickers, model):
     batch = None
     if symbols:
         try:
+            download_symbols = list(symbols.values())
+            if include_macro:
+                macro_syms = getattr(config, "MACRO_TICKERS", [])
+                download_symbols = download_symbols + [
+                    s for s in macro_syms if s not in download_symbols
+                ]
             batch = network.download_with_retry(
-                sorted(set(symbols.values())),
+                sorted(set(download_symbols)),
                 period=live_data.LIVE_PERIOD,
                 group_by="ticker",
                 progress=False,
@@ -89,7 +86,11 @@ def scan_market(tickers, model):
             batch = None
     for ticker, symbol in symbols.items():
         try:
-            df_processed, df = live_data.prepare_live_frame(_symbol_frame(batch, symbol), ticker)
+            df_processed, df = live_data.prepare_live_frame(
+                _symbol_frame(batch, symbol),
+                ticker,
+                macro_data=batch if include_macro else None,
+            )
         except ValueError:
             failed.append(ticker)
             continue
