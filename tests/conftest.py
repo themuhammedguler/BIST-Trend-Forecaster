@@ -65,4 +65,3 @@ def small_dataset(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "MODEL_PATH", str(tmp_path / "models" / "model.json"))
     monkeypatch.setattr(config, "MODEL_META_PATH", str(tmp_path / "models" / "model_meta.json"))
     return df
-

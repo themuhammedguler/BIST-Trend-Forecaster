@@ -26,4 +26,3 @@ def test_train_model_succeeds_when_accuracy_meets_threshold(small_dataset):
     assert acc >= 0.40
     assert os.path.exists(config.MODEL_PATH)
     assert os.path.exists(config.MODEL_META_PATH)
-
