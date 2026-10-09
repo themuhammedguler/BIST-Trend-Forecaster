@@ -102,24 +102,24 @@ Bu model, bir yatırım tavsiyesi vermekten ziyade, yatırımcının karar deste
 ## 5. Proje Yapısı
 ```text
 BIST-TREND-FORECASTER/
-├── .github/workflows/  # CI, CD ve periyodik yeniden eğitim iş akışları
-├── data/               # Ham ve işlenmiş veriler
-├── docs/experiments/   # Model mimarisi kıyaslama ve deney raporları
-├── models/             # Eğitilmiş .json modelleri ve model meta verileri
-├── notebooks/          # EDA ve Deneme not defterleri
-├── src/                # Kaynak kodlar
-│   ├── benchmark.py    # Genişleyen pencereli model benchmark harness
-│   ├── config.py       # Ayarlar ve özellik listeleri
-│   ├── features.py     # Teknik indikatör ve makro özellik hesaplamaları
-│   ├── scanner.py      # BIST 30 piyasa taraması ve fırsat radarı
-│   ├── tune.py         # Optuna hiperparametre optimizasyonu
-│   ├── metrics.py      # Değerlendirme metrikleri ve sınıf ağırlıklandırma
-│   ├── model_metadata.py # Model üretim meta verisi kayıt modülü
-│   └── model_train.py  # Model eğitimi ve kalite kapısı (quality gate)
-├── tests/              # Birim ve entegrasyon testleri
-├── app.py              # Streamlit arayüz kodu
-├── requirements.txt    # Kütüphane bağımlılıkları (prod)
-├── requirements-dev.txt# Geliştirme ve test bağımlılıkları
-├── pyproject.toml      # Proje meta verisi ve ruff ayarları
-└── README.md           # Proje dokümantasyonu
+├── .github/workflows/     # CI, CD ve periyodik yeniden eğitim iş akışları
+├── data/                  # Ham ve işlenmiş veriler
+├── docs/experiments/      # Model mimarisi kıyaslama ve deney raporları
+├── models/                # Eğitilmiş .json modelleri ve model meta verileri
+├── notebooks/             # EDA ve Deneme not defterleri
+├── src/                   # Kaynak kodlar
+│   ├── benchmark.py       # Genişleyen pencereli model benchmark harness
+│   ├── config.py          # Ayarlar ve özellik listeleri
+│   ├── features.py        # Teknik indikatör ve makro özellik hesaplamaları
+│   ├── scanner.py         # BIST 30 piyasa taraması ve fırsat radarı
+│   ├── tune.py            # Optuna hiperparametre optimizasyonu
+│   ├── metrics.py         # Değerlendirme metrikleri ve sınıf ağırlıklandırma
+│   ├── model_metadata.py  # Model üretim meta verisi kayıt modülü
+│   └── model_train.py     # Model eğitimi ve kalite kapısı (quality gate)
+├── tests/                 # Birim ve entegrasyon testleri
+├── app.py                 # Streamlit arayüz kodu
+├── requirements.txt       # Kütüphane bağımlılıkları (prod)
+├── requirements-dev.txt   # Geliştirme ve test bağımlılıkları
+├── pyproject.toml         # Proje meta verisi ve ruff ayarları
+└── README.md              # Proje dokümantasyonu
 ```
