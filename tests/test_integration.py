@@ -1,7 +1,6 @@
 # tests/test_integration.py - gerçek veri seti ile uçtan uca eğitim/optimizasyon
 import os
 
-import pandas as pd
 import pytest
 import xgboost as xgb
 

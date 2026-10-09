@@ -1,7 +1,7 @@
 # src/data_ingestion.py
 import argparse
-from datetime import date
 import os
+from datetime import date
 
 import pandas as pd
 

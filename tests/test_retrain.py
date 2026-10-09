@@ -1,5 +1,6 @@
 # tests/test_retrain.py - Model yeniden eğitimi ve kalite kapısı testleri (#20)
 import os
+
 import pytest
 
 import config
@@ -9,7 +10,8 @@ pytestmark = pytest.mark.skipif(not os.path.exists(config.DATA_PATH), reason="ve
 
 
 def test_train_model_aborts_when_accuracy_below_threshold(small_dataset):
-    """Model doğruluğu belirlenen kalite eşiğinin altındaysa model kaydedilmeden hata fırlatılmalıdır."""
+    """Model doğruluğu belirlenen kalite eşiğinin altındaysa model
+    kaydedilmeden hata fırlatılmalıdır."""
     with pytest.raises(ValueError, match="minimum kalite eşiğinin"):
         model_train.train_model(min_accuracy=0.999)
 
