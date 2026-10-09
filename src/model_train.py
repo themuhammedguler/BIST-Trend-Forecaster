@@ -43,7 +43,9 @@ def get_temporal_split(df_processed, features_list, train_ratio=0.9):
     return X_train, X_test, y_train, y_test, dates_train, cutoff_date
 
 
-def train_model(tune=False, n_trials=50, metric="accuracy", balance_classes=False):
+def train_model(
+    tune=False, n_trials=50, metric="accuracy", balance_classes=False, min_accuracy=None
+):
     # 1. Veriyi Yükle
     print("Veri yükleniyor...")
     df = pd.read_csv(config.DATA_PATH)
@@ -116,6 +118,13 @@ def train_model(tune=False, n_trials=50, metric="accuracy", balance_classes=Fals
     for k, v in sorted(importance.items(), key=lambda item: item[1], reverse=True):
         print(f"{k}: {v:.4f}")
 
+    # Kalite Kapısı: Minimum doğruluk eşiği kontrolü (#20)
+    if min_accuracy is not None and acc < min_accuracy:
+        raise ValueError(
+            f"Model doğruluğu ({acc:.4f}) belirlenen minimum kalite eşiğinin "
+            f"({min_accuracy:.4f}) altında kaldı. Model kaydedilmedi."
+        )
+
     # 6. Modeli ve Meta-verisini Kaydet
     if not os.path.exists(os.path.dirname(config.MODEL_PATH)):
         os.makedirs(os.path.dirname(config.MODEL_PATH))
@@ -156,10 +165,17 @@ if __name__ == "__main__":
         action="store_true",
         help="Sınıf oranına göre scale_pos_weight ile ağırlıklandır",
     )
+    parser.add_argument(
+        "--min-accuracy",
+        type=float,
+        default=None,
+        help="Modelin kaydedilmesi için gereken minimum test doğruluğu eşiği (örn: 0.50)",
+    )
     args = parser.parse_args()
     train_model(
         tune=args.tune,
         n_trials=args.n_trials,
         metric=args.metric,
         balance_classes=args.balance_classes,
+        min_accuracy=args.min_accuracy,
     )

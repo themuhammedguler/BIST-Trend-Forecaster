@@ -16,19 +16,6 @@ FEATURES = config.FEATURES
 pytestmark = pytest.mark.skipif(not os.path.exists(config.DATA_PATH), reason="veri seti yok")
 
 
-@pytest.fixture
-def small_dataset(tmp_path, monkeypatch):
-    """Gerçek CSV'den 3 hisse x ~1 yıllık küçük bir kesit; config yolları tmp'ye yönlendirilir."""
-    df = pd.read_csv(config.DATA_PATH)
-    df = df[df["ticker"].isin(["AKBNK", "GARAN", "THYAO"]) & (df["Date"] >= "2024-01-01")]
-    data_path = tmp_path / "data.csv"
-    df.to_csv(data_path, index=False)
-    monkeypatch.setattr(config, "DATA_PATH", str(data_path))
-    monkeypatch.setattr(config, "MODEL_PATH", str(tmp_path / "models" / "model.json"))
-    monkeypatch.setattr(config, "MODEL_META_PATH", str(tmp_path / "models" / "model_meta.json"))
-    return df
-
-
 def test_features_and_study_on_real_data(small_dataset):
     processed = features.add_features(small_dataset)
     study = tune.run_study(
