@@ -21,9 +21,7 @@ def fetch_data(start_date=None, end_date=None, output_path=None):
         try:
             # Veriyi çek (Yahoo Finance sembol değişikliği varsa eşle)
             yahoo_ticker = getattr(config, "TICKER_YAHOO_MAP", {}).get(ticker, ticker)
-            df = network.download_with_retry(
-                yahoo_ticker, start=start, end=end, progress=False
-            )
+            df = network.download_with_retry(yahoo_ticker, start=start, end=end, progress=False)
 
             # Multi-index düzeltmesi (yfinance yeni versiyonları için)
             if isinstance(df.columns, pd.MultiIndex):
@@ -55,9 +53,7 @@ def fetch_data(start_date=None, end_date=None, output_path=None):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="BIST 30 veri seti indirme aracı")
-    parser.add_argument(
-        "--start-date", default=None, help="Başlangıç tarihi (YYYY-MM-DD)"
-    )
+    parser.add_argument("--start-date", default=None, help="Başlangıç tarihi (YYYY-MM-DD)")
     parser.add_argument(
         "--end-date",
         default=None,
