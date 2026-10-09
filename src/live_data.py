@@ -13,9 +13,25 @@ def yahoo_symbol(ticker):
     return config.TICKER_YAHOO_MAP.get(ticker, ticker)
 
 
-def prepare_live_frame(raw, ticker):
+def extract_symbol_frame(batch, symbol):
+    """Toplu yf.download çıktısından tek bir sembolün OHLCV verisini çıkarır.
+
+    Yahoo verisi alınamayan sembolleri tamamen NaN bir blok olarak döndürür;
+    bu satırlar atılır, sembol hiç yoksa boş DataFrame döner.
+    """
+    if batch is None or batch.empty:
+        return pd.DataFrame()
+    if not isinstance(batch.columns, pd.MultiIndex):
+        return batch
+    for level in range(batch.columns.nlevels):
+        if symbol in batch.columns.get_level_values(level):
+            return batch.xs(symbol, axis=1, level=level).dropna(how="all")
+    return pd.DataFrame()
+
+
+def prepare_live_frame(raw, ticker, macro_data=None):
     """yf.download çıktısını features.add_features'ın beklediği biçime getirip
-    indikatörleri hesaplar.
+    indikatörleri ve makro piyasa göstergelerini hesaplar.
 
     Dönüş: (df_processed, df_ohlcv). df_processed'in son satırı en güncel işlem
     günüdür; df_ohlcv grafik ve fiyat metrikleri içindir.
@@ -32,7 +48,7 @@ def prepare_live_frame(raw, ticker):
     if isinstance(df.columns, pd.MultiIndex):
         df.columns = df.columns.get_level_values(0)
 
-    df["ticker"] = ticker.replace(".IS", "")
+    df["ticker"] = ticker.replace(".IS", "").replace("=X", "")
     df.reset_index(inplace=True)
 
     # Sütun isimlerini düzenle (features.py 'Date' ve küçük harfli sütunlar bekliyor)
@@ -57,7 +73,7 @@ def prepare_live_frame(raw, ticker):
 
     # drop_incomplete_target=False: canlı tahminde bugünün hedefi (yarının kapanışı)
     # henüz bilinmez; bu normalde eğitimde düşürülen son günü burada tutar.
-    df_processed = features.add_features(df, drop_incomplete_target=False)
+    df_processed = features.add_features(df, macro_df=macro_data, drop_incomplete_target=False)
     if df_processed.empty:
         raise ValueError(
             f"'{ticker}' verisi teknik indikatörler hesaplandıktan sonra yetersiz kaldı."
@@ -66,7 +82,27 @@ def prepare_live_frame(raw, ticker):
     return df_processed, df
 
 
-def fetch_live_frame(ticker):
+def fetch_macro_frame(period=LIVE_PERIOD):
+    """XU100.IS ve USDTRY=X için canlı verileri tek bir istekte indirir."""
+    macro_tickers = getattr(
+        config,
+        "MACRO_TICKERS",
+        [getattr(config, "INDEX_TICKER", "XU100.IS"), getattr(config, "FX_TICKER", "USDTRY=X")],
+    )
+    if not macro_tickers:
+        return None
+    try:
+        return network.download_with_retry(
+            macro_tickers,
+            period=period,
+            group_by="ticker",
+            progress=False,
+        )
+    except Exception:
+        return None
+
+
+def fetch_live_frame(ticker, macro_data=None):
     """Tek bir hisse için canlı veriyi indirip prepare_live_frame ile hazırlar."""
     raw = network.download_with_retry(yahoo_symbol(ticker), period=LIVE_PERIOD, progress=False)
-    return prepare_live_frame(raw, ticker)
+    return prepare_live_frame(raw, ticker, macro_data=macro_data)

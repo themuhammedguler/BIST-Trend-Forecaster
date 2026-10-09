@@ -12,10 +12,16 @@ from streamlit.testing.v1 import AppTest
 import config
 import explain
 import features
+from src import config as src_config
 
 APP_PATH = str(Path(__file__).resolve().parents[1] / "app.py")
 
 DISPLAYED_COLUMNS = ["rsi", "macd", "sma_10", "sma_50", "volatility"]
+
+
+def _disable_macro(monkeypatch):
+    for cfg in (config, src_config):
+        monkeypatch.setattr(cfg, "MACRO_TICKERS", [])
 
 
 def _fake_download_panel(n_days=130, ticker="AKBNK.IS"):
@@ -64,6 +70,7 @@ def _expected_last_row(panel, ticker="AKBNK.IS"):
 def patched_download(monkeypatch):
     """Tek sembol istekleri için `panel`, BIST 30 taramasının toplu isteği için
     (sembol, alan) sütunlu bir toplu panel döndürür."""
+    _disable_macro(monkeypatch)
     panel = _fake_download_panel()
 
     def download(tickers, *args, **kwargs):
@@ -463,6 +470,7 @@ def test_app_renders_model_metadata_in_sidebar(patched_download):
 @pytest.fixture
 def counted_download(monkeypatch):
     """Tek sembol isteklerini sayan sahte yf.download; önbellek isabetini ölçmek için."""
+    _disable_macro(monkeypatch)
     panel = _fake_download_panel()
     calls = []
 
@@ -505,3 +513,27 @@ def test_refresh_data_button_keeps_other_tickers_cached(counted_download):
 
     assert list(at.exception) == []
     assert counted_download == ["AKBNK.IS", "GARAN.IS", "GARAN.IS"]
+
+
+def test_app_renders_macro_indicators_expander(monkeypatch):
+    panel = _fake_download_panel()
+    macro_tuples = [("XU100.IS", "Close"), ("USDTRY=X", "Close")]
+    cols = pd.MultiIndex.from_tuples(macro_tuples, names=["Ticker", "Price"])
+    macro_df = pd.DataFrame(
+        [[1000.0, 30.0], [1020.0, 30.3]],
+        index=panel.index[-2:],
+        columns=cols,
+    )
+    monkeypatch.setattr(config, "MACRO_TICKERS", ["XU100.IS", "USDTRY=X"])
+
+    def download(tickers, *args, **kwargs):
+        if isinstance(tickers, list) and set(tickers) == {"XU100.IS", "USDTRY=X"}:
+            return macro_df
+        return panel.copy()
+
+    monkeypatch.setattr(yfinance, "download", download)
+    at = AppTest.from_file(APP_PATH, default_timeout=30)
+    at.run()
+    assert list(at.exception) == []
+    expander_labels = [e.label for e in at.expander]
+    assert any("Makro Piyasa Göstergeleri" in label for label in expander_labels)

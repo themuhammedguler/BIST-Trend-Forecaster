@@ -1,16 +1,16 @@
 {
   "version": "1.0",
-  "trained_at": null,
+  "trained_at": "2026-10-09T16:13:17.378757+00:00",
   "data_cutoff_date": "2025-02-25",
   "train_rows": 52190,
   "test_rows": 5794,
-  "test_accuracy": 0.5671,
+  "test_accuracy": 0.5035,
   "metrics": {
-    "accuracy": 0.5671,
-    "balanced_accuracy": 0.5666,
-    "roc_auc": 0.6117,
-    "log_loss": 0.6764,
-    "precision": 0.5668
+    "accuracy": 0.5035,
+    "balanced_accuracy": 0.5033,
+    "roc_auc": 0.5121,
+    "log_loss": 0.697,
+    "precision": 0.4974
   },
   "features": [
     "rsi",
@@ -23,11 +23,14 @@
     "lag_2_ret",
     "vol_change",
     "day_of_week",
-    "month"
+    "month",
+    "xu100_ret",
+    "rel_strength_bist",
+    "usdtry_change"
   ],
   "best_params": {
     "n_estimators": 100,
-    "max_depth": 6,
-    "learning_rate": 0.3
+    "learning_rate": 0.05,
+    "max_depth": 5
   }
 }

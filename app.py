@@ -79,18 +79,25 @@ def load_model():
     return model
 
 
+# Makro Veri Çekme Fonksiyonu (#10)
+@st.cache_data(ttl=900, show_spinner=False)
+def get_cached_macro_data():
+    return live_data.fetch_macro_frame()
+
+
 # Canlı Veri Çekme ve İşleme Fonksiyonu
 @st.cache_data(ttl=900, show_spinner=False)
 def get_prediction_data(ticker):
     # df_processed: tahmin (son satır) ve backtest için; df: grafik çizimi için
-    return live_data.fetch_live_frame(ticker)
+    macro_data = get_cached_macro_data()
+    return live_data.fetch_live_frame(ticker, macro_data=macro_data)
 
 
 # Tüm BIST 30 Hisseleri için Önbellekli Tarama Fonksiyonu
 @st.cache_data(ttl=900, show_spinner=False)
 def get_cached_market_scan(tickers):
     model = load_model()
-    return scanner.scan_market(tickers, model)
+    return scanner.scan_market(tickers, model, include_macro=True)
 
 
 def render_single_ticker_tab():
@@ -151,6 +158,18 @@ def render_single_ticker_tab():
         with col3:
             st.write("📊 **Güven Skoru:**")
             signal_box(f"%{prob * 100:.1f} Olasılıkla Yükseliş")
+
+        # Makro ve Piyasa Göstergeleri (#10)
+        macro_cols = ["xu100_ret", "rel_strength_bist", "usdtry_change"]
+        if all(col in input_data.columns for col in macro_cols):
+            with st.expander("🌐 Makro Piyasa Göstergeleri (BIST 100 & USD/TRY)", expanded=False):
+                m1, m2, m3 = st.columns(3)
+                xu_pct = input_data["xu100_ret"].iloc[-1] * 100
+                rel_pct = input_data["rel_strength_bist"].iloc[-1] * 100
+                fx_pct = input_data["usdtry_change"].iloc[-1] * 100
+                m1.write(f"**🏛️ BIST 100 Getirisi:** %{xu_pct:+.2f}")
+                m2.write(f"**💪 BIST 100 Rölatif Güç:** %{rel_pct:+.2f}")
+                m3.write(f"**💵 USD/TRY Değişimi:** %{fx_pct:+.2f}")
 
         # GRAFİK KISMI (Candlestick)
         st.subheader(f"{selected_ticker} - Son 3 Ay Fiyat Grafiği")

@@ -216,3 +216,16 @@ def test_scan_market_marks_all_failed_when_yahoo_unreachable(monkeypatch, dummy_
 
     assert df_scan.empty
     assert failed == ["AKBNK.IS", "GARAN.IS"]
+
+
+def test_scan_market_with_macro_includes_index_and_fx(monkeypatch, dummy_model, fake_panel):
+    calls = []
+    monkeypatch.setattr(
+        yfinance, "download", batch_download(lambda symbol: fake_panel.copy(), calls)
+    )
+
+    df_scan, failed = scanner.scan_market(["AKBNK.IS", "GARAN.IS"], dummy_model, include_macro=True)
+
+    assert len(calls) == 1
+    assert set(calls[0]) == {"AKBNK.IS", "GARAN.IS", "XU100.IS", "USDTRY=X"}
+    assert len(df_scan) == 2

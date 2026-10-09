@@ -95,3 +95,77 @@ def test_single_ticker_vectorized_matches_multi_ticker_exact(ohlcv_dataset):
     multi_akbnk = multi_result[multi_result["ticker"] == "AKBNK"].reset_index(drop=True)
 
     pd.testing.assert_frame_equal(fast_result, multi_akbnk)
+
+
+def test_add_features_computes_relative_strength_and_macro_features_from_macro_df(ohlcv_dataset):
+    """Makro veri verildiğinde xu100_ret, usdtry_change ve rel_strength_bist doğru hesaplanmalı."""
+    dates = ohlcv_dataset["Date"].unique()
+    macro_records = []
+    for i, d in enumerate(dates):
+        macro_records.append(
+            {
+                "Date": d,
+                "ticker": "XU100",
+                "close": 1000.0 * (1.01**i),  # her gün +%1 getiri
+            }
+        )
+        macro_records.append(
+            {
+                "Date": d,
+                "ticker": "USDTRY",
+                "close": 30.0 * (1.005**i),  # her gün +%0.5 değişim
+            }
+        )
+    macro_df = pd.DataFrame(macro_records)
+
+    processed = add_features(ohlcv_dataset, macro_df=macro_df, drop_incomplete_target=False)
+
+    for col in ["xu100_ret", "rel_strength_bist", "usdtry_change"]:
+        assert col in processed.columns
+        assert not processed[col].isna().any()
+
+    # XU100 getirisi ~ %1 (0.01) olmalı
+    valid_rows = processed.iloc[55:]  # ısınma periyodu sonrası
+    assert np.allclose(valid_rows["xu100_ret"], 0.01, atol=1e-3)
+    assert np.allclose(valid_rows["usdtry_change"], 0.005, atol=1e-3)
+
+    # rel_strength_bist == pct_change - xu100_ret olmalı
+    expected_rel = valid_rows["pct_change"] - valid_rows["xu100_ret"]
+    pd.testing.assert_series_equal(valid_rows["rel_strength_bist"], expected_rel, check_names=False)
+
+
+def test_add_features_extracts_macro_from_combined_dataframe(ohlcv_dataset):
+    """DataFrame içinde XU100 ve USDTRY satırları yer aldığında otomatik ayıklanmalı."""
+    dates = ohlcv_dataset["Date"].unique()
+    macro_records = []
+    for d in dates:
+        macro_records.append(
+            {
+                "Date": d,
+                "ticker": "XU100",
+                "open": 1000.0,
+                "high": 1010.0,
+                "low": 990.0,
+                "close": 1005.0,
+                "volume": 1e8,
+            }
+        )
+        macro_records.append(
+            {
+                "Date": d,
+                "ticker": "USDTRY",
+                "open": 30.0,
+                "high": 30.5,
+                "low": 29.5,
+                "close": 30.2,
+                "volume": 1e6,
+            }
+        )
+    combined = pd.concat([ohlcv_dataset, pd.DataFrame(macro_records)], ignore_index=True)
+
+    processed = add_features(combined, drop_incomplete_target=False)
+
+    # Çıktıda yalnızca hisse senetleri kalmalı, XU100/USDTRY düşürülmüş olmalı
+    assert set(processed["ticker"].unique()) == {"AKBNK", "GARAN"}
+    for col in ["xu100_ret", "rel_strength_bist", "usdtry_change"]:
+        assert col in processed.columns

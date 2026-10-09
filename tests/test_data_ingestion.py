@@ -10,6 +10,7 @@ import data_ingestion
 @pytest.fixture
 def two_tickers(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "TICKERS", ["AKBNK.IS", "GARAN.IS"])
+    monkeypatch.setattr(config, "MACRO_TICKERS", [])
     monkeypatch.setattr(config, "DATA_PATH", str(tmp_path / "data" / "bist.csv"))
 
 
@@ -52,3 +53,14 @@ def test_fetch_data_skips_ticker_that_stays_unreachable(two_tickers, monkeypatch
     saved = pd.read_csv(config.DATA_PATH)
     assert list(saved["ticker"].unique()) == ["GARAN"]
     assert "AKBNK.IS hatası" in capsys.readouterr().out
+
+
+def test_fetch_data_downloads_macro_tickers(two_tickers, monkeypatch):
+    monkeypatch.setattr(config, "MACRO_TICKERS", ["XU100.IS", "USDTRY=X"])
+    monkeypatch.setattr(yfinance, "download", lambda ticker, *args, **kwargs: _frame())
+
+    data_ingestion.fetch_data(include_macro=True)
+
+    saved = pd.read_csv(config.DATA_PATH)
+    assert set(saved["ticker"].unique()) == {"AKBNK", "GARAN", "XU100", "USDTRY"}
+    assert len(saved) == 12

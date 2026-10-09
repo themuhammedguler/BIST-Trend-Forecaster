@@ -58,7 +58,11 @@ def small_dataset(tmp_path, monkeypatch):
         pytest.skip("veri seti yok")
 
     df = pd.read_csv(config.DATA_PATH)
-    df = df[df["ticker"].isin(["AKBNK", "GARAN", "THYAO"]) & (df["Date"] >= "2024-01-01")]
+    macro_tickers = {"XU100", "USDTRY", "XU100.IS", "USDTRY=X"}
+    df = df[
+        (df["ticker"].isin(["AKBNK", "GARAN", "THYAO"]) | df["ticker"].isin(macro_tickers))
+        & (df["Date"] >= "2024-01-01")
+    ]
     data_path = tmp_path / "data.csv"
     df.to_csv(data_path, index=False)
     monkeypatch.setattr(config, "DATA_PATH", str(data_path))

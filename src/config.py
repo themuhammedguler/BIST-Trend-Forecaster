@@ -59,6 +59,11 @@ END_DATE = "2025-12-08"  # Bugüne kadar
 PROB_THRESHOLD_HIGH = 0.53
 PROB_THRESHOLD_LOW = 0.47
 
+# Makro ve piyasa göstergeleri (BIST 100 endeksi ve USD/TRY kuru) (#10)
+INDEX_TICKER = "XU100.IS"
+FX_TICKER = "USDTRY=X"
+MACRO_TICKERS = [INDEX_TICKER, FX_TICKER]
+
 # Modelin girdi olarak kullandığı teknik göstergeler ve takvim öznitelikleri
 # (Single Source of Truth)
 FEATURES = [
@@ -73,4 +78,7 @@ FEATURES = [
     "vol_change",
     "day_of_week",
     "month",
+    "xu100_ret",
+    "rel_strength_bist",
+    "usdtry_change",
 ]
