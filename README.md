@@ -81,6 +81,19 @@ Toplu biçimlendirme commit'ini `git blame` çıktısında gizlemek için: `git 
     *   *Yorum:* Finansal piyasaların stokastik yapısı göz önüne alındığında sinyal zayıftır; ROC-AUC'nin 0.5'e yakın olması tahminlerin çoğunun yazı-tura seviyesinde olduğunu gösterir. Bu nedenle arayüzde nötr eşik bandı kullanılır.
 *   **Önemli Öznitelikler:** Model kararlarında en çok `day_of_week` (haftanın günü), `month` (ay) ve `vol_change` (hacim değişimi) etkili olmuştur.
 
+### Model Mimarileri Kıyaslama (Benchmark)
+Farklı makine öğrenimi ve derin öğrenme mimarilerinin BIST 100 yön tahminindeki performansını sızıntısız (leak-free) ve adil bir şekilde karşılaştırmak için `src/benchmark.py` yürütülür:
+*   **Değerlendirme:** 3 katmanlı genişleyen pencereli ileriye dönük zaman serisi çapraz doğrulama (walk-forward expanding window cross-validation).
+*   **Karşılaştırılan Modeller:**
+    *   *Temel Referanslar (Baselines):* Always Down, Always Up, Repeat Yesterday, Regularized Logistic Regression.
+    *   *Gradient Boosting Varyantları:* XGBoost, LightGBM, Scikit-learn HistGradientBoosting, Calibrated XGBoost (Platt Scaling).
+    *   *Derin Öğrenme (Deep Learning):* Multi-Layer Perceptron (MLP), PyTorch GRU yinelemeli ağ (Recurrent Neural Network).
+*   **Kullanım:**
+    ```bash
+    python src/benchmark.py --output-report docs/experiments/model_benchmark_report.md
+    ```
+*   **Sonuç:** Ayrıntılı ampirik bulgular, Sharpe oranı ve kümülatif strateji getirileri için [docs/experiments/model_benchmark_report.md](docs/experiments/model_benchmark_report.md) raporunu inceleyebilirsiniz.
+
 ## 4. İş Gereksinimleri ve Kullanım
 Bu model, bir yatırım tavsiyesi vermekten ziyade, yatırımcının karar destek mekanizması olarak tasarlanmıştır.
 *   **Canlıya Alma:** Model, `Streamlit` kullanılarak interaktif bir web arayüzüne dönüştürülmüştür.
@@ -89,16 +102,20 @@ Bu model, bir yatırım tavsiyesi vermekten ziyade, yatırımcının karar deste
 ## 5. Proje Yapısı
 ```text
 BIST-TREND-FORECASTER/
+├── .github/workflows/  # CI, CD ve periyodik yeniden eğitim iş akışları
 ├── data/               # Ham ve işlenmiş veriler
-├── models/             # Eğitilmiş .json/.pkl modeller
+├── docs/experiments/   # Model mimarisi kıyaslama ve deney raporları
+├── models/             # Eğitilmiş .json modelleri ve model meta verileri
 ├── notebooks/          # EDA ve Deneme not defterleri
 ├── src/                # Kaynak kodlar
-│   ├── config.py       # Ayarlar
-│   ├── features.py     # İndikatör hesaplamaları
+│   ├── benchmark.py    # Genişleyen pencereli model benchmark harness
+│   ├── config.py       # Ayarlar ve özellik listeleri
+│   ├── features.py     # Teknik indikatör ve makro özellik hesaplamaları
 │   ├── scanner.py      # BIST 30 piyasa taraması ve fırsat radarı
 │   ├── tune.py         # Optuna hiperparametre optimizasyonu
 │   ├── metrics.py      # Değerlendirme metrikleri ve sınıf ağırlıklandırma
-│   └── model_train.py  # Eğitim scripti
+│   ├── model_metadata.py # Model üretim meta verisi kayıt modülü
+│   └── model_train.py  # Model eğitimi ve kalite kapısı (quality gate)
 ├── tests/              # Birim ve entegrasyon testleri
 ├── app.py              # Streamlit arayüz kodu
 ├── requirements.txt    # Kütüphane bağımlılıkları (prod)

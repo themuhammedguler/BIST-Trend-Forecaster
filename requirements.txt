@@ -9,3 +9,4 @@ matplotlib
 ta
 plotly
 optuna==5.0.0
+lightgbm>=4.0.0
