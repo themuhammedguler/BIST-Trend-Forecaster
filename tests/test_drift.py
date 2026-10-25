@@ -170,3 +170,39 @@ def test_cli_main_execution(tmp_path, monkeypatch, capsys):
     captured = capsys.readouterr()
     assert "ÖZNİTELİK SAPMASI RAPORU" in captured.out
     assert "tamamlandı" in captured.out
+
+
+def test_cyclical_features_classified_as_calendar_cycle():
+    """month ve day_of_week gibi takvim öznitelikleri kritik sapma alarmı üretmemelidir."""
+    status, badge, action = drift.classify_drift(5.0, feature_name="month")
+    assert status == "Takvim Döngüsü"
+    assert "📅" in badge
+    assert "yeniden eğitilmesini gerektirmez" in action
+
+    status_dow, badge_dow, _ = drift.classify_drift(2.0, feature_name="day_of_week")
+    assert status_dow == "Takvim Döngüsü"
+    assert "📅" in badge_dow
+
+    # summary içinde critical_features listesine girmemeli
+    drift_df = pd.DataFrame(
+        [
+            {
+                "Öznitelik": "month",
+                "PSI": 5.0,
+                "Durum": "Takvim Döngüsü",
+                "Rozet": "📅 Takvim",
+                "Öneri": "Takvim döngüsü",
+            },
+            {
+                "Öznitelik": "rsi",
+                "PSI": 0.05,
+                "Durum": "Sağlıklı",
+                "Rozet": "🟢 Sağlıklı",
+                "Öneri": "Sağlıklı",
+            },
+        ]
+    )
+    summary = drift.summarize_drift(drift_df)
+    assert summary["overall_status"] == "Sağlıklı"
+    assert "month" not in summary["critical_features"]
+    assert "month" in summary["cyclical_features"]

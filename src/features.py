@@ -189,6 +189,8 @@ def _ticker_features(df):
     # 3. Hareketli Ortalamalar
     out["sma_10"] = ta.trend.sma_indicator(close, window=10)
     out["sma_50"] = ta.trend.sma_indicator(close, window=50)
+    out["sma_10_ratio"] = (close - out["sma_10"]) / out["sma_10"]
+    out["sma_50_ratio"] = (close - out["sma_50"]) / out["sma_50"]
 
     # 4. Bollinger Bands
     out["bb_width"] = ta.volatility.bollinger_wband(close)

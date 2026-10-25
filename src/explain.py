@@ -9,6 +9,8 @@ FEATURE_LABELS = {
     "macd": "MACD",
     "sma_10": "10 Günlük Ortalama",
     "sma_50": "50 Günlük Ortalama",
+    "sma_10_ratio": "10 Günlük HO Sapması (%)",
+    "sma_50_ratio": "50 Günlük HO Sapması (%)",
     "bb_width": "Bollinger Bant Genişliği",
     "volatility": "Volatilite",
     "lag_1_ret": "Dünkü Getiri",

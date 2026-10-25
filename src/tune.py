@@ -4,7 +4,10 @@ import numpy as np
 import optuna
 import xgboost as xgb
 
-import metrics
+try:
+    import metrics  # type: ignore
+except ImportError:
+    from src import metrics
 
 # model_train.py'deki manuel parametreler: optimizasyon bu noktadan başlar
 DEFAULT_PARAMS = {

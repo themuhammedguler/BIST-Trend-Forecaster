@@ -1,7 +1,23 @@
 # src/network.py - Yahoo Finance istekleri için üstel geri çekilmeli (exponential backoff) retry
+import os
+import shutil
+import tempfile
 import time
 
+import certifi
 import yfinance as yf
+
+# Windows'ta dosya yolunda Türkçe/özel karakterler (örn: Masaüstü) olduğunda
+# curl SSL error (77) oluşmasını engellemek için CA sertifikasını ASCII temp dizinine kopyalar
+try:
+    ca_path = certifi.where()
+    if any(ord(c) > 127 for c in ca_path):
+        ascii_ca = os.path.join(tempfile.gettempdir(), "cacert.pem")
+        shutil.copyfile(ca_path, ascii_ca)
+        os.environ.setdefault("CURL_CA_BUNDLE", ascii_ca)
+        os.environ.setdefault("SSL_CERT_FILE", ascii_ca)
+except Exception:
+    pass
 
 # Testlerde gerçek beklemeyi atlamak için değiştirilebilir
 _sleep = time.sleep
@@ -12,8 +28,7 @@ class MarketDataUnavailableError(ValueError):
 
 
 def download_with_retry(*args, attempts=3, min_delay=2, max_delay=10, **kwargs):
-    """
-    yf.download'ı geçici hatalara karşı yeniden deneyerek çağırır.
+    """yf.download'ı geçici hatalara karşı yeniden deneyerek çağırır.
 
     yfinance ağ ve hız sınırı (HTTP 429) hatalarının çoğunu yutup boş DataFrame
     döndürdüğü için hem istisnalar hem de boş sonuçlar yeniden denenir.
