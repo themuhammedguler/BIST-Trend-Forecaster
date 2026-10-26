@@ -1,17 +1,29 @@
 # src/model_train.py
 import argparse
 import os
+import sys
+
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 import numpy as np
 import pandas as pd
 import xgboost as xgb
 from sklearn.metrics import classification_report
 
-import config
-import features
-import metrics
-import model_metadata
-import tune as tune_module
+try:
+    import config  # type: ignore
+    import features  # type: ignore
+    import metrics  # type: ignore
+    import model_metadata  # type: ignore
+    import tune as tune_module  # type: ignore
+except ImportError:
+    from src import config, features, metrics, model_metadata
+    from src import tune as tune_module
 
 
 def get_temporal_split(df_processed, features_list, train_ratio=0.9):

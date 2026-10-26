@@ -15,6 +15,13 @@ import argparse
 import sys
 from typing import Optional
 
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 import numpy as np
 import pandas as pd
 
@@ -25,11 +32,15 @@ except ImportError:
     import features  # type: ignore
 
 
+CYCLICAL_FEATURES = {"month", "day_of_week"}
+
+
 def calculate_psi(
     reference: pd.Series | np.ndarray,
     current: pd.Series | np.ndarray,
     num_buckets: int = 10,
     epsilon: float = 1e-4,
+    pseudocount: float = 0.5,
 ) -> float:
     """İki veri dağılımı (referans/eğitim ve güncel/çıkarım) arasındaki
     Population Stability Index (PSI) değerini hesaplar.
@@ -76,17 +87,24 @@ def calculate_psi(
     curr_counts, _ = np.histogram(curr_clean, bins=bin_edges)
 
     k = len(ref_counts)
-    # Epsilon ile Laplace/Dirichlet düzeltmesi
-    ref_pct = (ref_counts + epsilon) / (len(ref_clean) + k * epsilon)
-    curr_pct = (curr_counts + epsilon) / (len(curr_clean) + k * epsilon)
+    # Laplace/Lidstone düzeltmesi ile sıfır frekans patlamasını önle
+    alpha = max(epsilon, pseudocount)
+    ref_pct = (ref_counts + alpha) / (len(ref_clean) + k * alpha)
+    curr_pct = (curr_counts + alpha) / (len(curr_clean) + k * alpha)
 
     # PSI toplam formülü
     psi = np.sum((curr_pct - ref_pct) * np.log(curr_pct / ref_pct))
     return float(max(0.0, psi))
 
 
-def classify_drift(psi: float) -> tuple[str, str, str]:
-    """PSI değerine göre durum kategorisi, rozet ve öneri metni döndürür."""
+def classify_drift(psi: float, feature_name: Optional[str] = None) -> tuple[str, str, str]:
+    """PSI değerine ve öznitelik tipine göre durum kategorisi, rozet ve öneri metni döndürür."""
+    if feature_name in CYCLICAL_FEATURES:
+        return (
+            "Takvim Döngüsü",
+            "📅 Takvim",
+            "Doğal takvim döngüsü; modelin yeniden eğitilmesini gerektirmez.",
+        )
     if psi < 0.10:
         return (
             "Sağlıklı",
@@ -131,7 +149,7 @@ def compute_feature_drift(
     records = []
     for feat in target_features:
         psi = calculate_psi(reference_df[feat], current_df[feat], num_buckets=num_buckets)
-        status, badge, action = classify_drift(psi)
+        status, badge, action = classify_drift(psi, feature_name=feat)
         records.append(
             {
                 "Öznitelik": feat,
@@ -159,6 +177,7 @@ def summarize_drift(drift_df: pd.DataFrame) -> dict:
             "critical_features": [],
             "moderate_features": [],
             "healthy_features": [],
+            "cyclical_features": [],
             "total_features": 0,
         }
 
@@ -166,7 +185,8 @@ def summarize_drift(drift_df: pd.DataFrame) -> dict:
     mean_psi = float(drift_df["PSI"].mean())
     critical = drift_df[drift_df["Durum"] == "Kritik Sapma"]["Öznitelik"].tolist()
     moderate = drift_df[drift_df["Durum"] == "Hafif Sapma"]["Öznitelik"].tolist()
-    healthy = drift_df[drift_df["Durum"] == "Sağlıklı"]["Öznitelik"].tolist()
+    healthy = drift_df[drift_df["Durum"].isin(["Sağlıklı", "Takvim Döngüsü"])]["Öznitelik"].tolist()
+    cyclical = drift_df[drift_df["Durum"] == "Takvim Döngüsü"]["Öznitelik"].tolist()
 
     if critical:
         overall_status = "Kritik Sapma"
@@ -186,6 +206,7 @@ def summarize_drift(drift_df: pd.DataFrame) -> dict:
         "critical_features": critical,
         "moderate_features": moderate,
         "healthy_features": healthy,
+        "cyclical_features": cyclical,
         "total_features": len(drift_df),
     }
 
@@ -204,8 +225,14 @@ def compute_series_drift_by_split(
         return empty_df, summarize_drift(empty_df)
 
     if recent_rows is not None and 0 < recent_rows < len(df):
-        ref_df = df.iloc[:-recent_rows]
-        curr_df = df.iloc[-recent_rows:]
+        if "Date" in df.columns and df["Date"].nunique() > recent_rows:
+            unique_dates = df["Date"].drop_duplicates().sort_values()
+            cutoff_dates = set(unique_dates.iloc[-recent_rows:])
+            ref_df = df[~df["Date"].isin(cutoff_dates)]
+            curr_df = df[df["Date"].isin(cutoff_dates)]
+        else:
+            ref_df = df.iloc[:-recent_rows]
+            curr_df = df.iloc[-recent_rows:]
     else:
         split_idx = max(1, int(len(df) * split_ratio))
         ref_df = df.iloc[:split_idx]

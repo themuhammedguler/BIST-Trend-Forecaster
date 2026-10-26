@@ -1,12 +1,23 @@
 # src/data_ingestion.py
 import argparse
 import os
+import sys
 from datetime import date
 
 import pandas as pd
 
-import config
-import network
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+try:
+    import config  # type: ignore
+    import network  # type: ignore
+except ImportError:
+    from src import config, network
 
 
 def _download_ticker_frames(start, end, include_macro=True):
@@ -91,7 +102,7 @@ def fetch_incremental(start_date=None, end_date=None, output_path=None, include_
 
     inc_start = (latest_date + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
     inc_end = end_date or config.END_DATE
-    if inc_end in ("today", "latest"):
+    if inc_end is None or inc_end in ("today", "latest"):
         inc_end = date.today().isoformat()
 
     if inc_start > inc_end:
@@ -100,30 +111,34 @@ def fetch_incremental(start_date=None, end_date=None, output_path=None, include_
         )
         return existing_df
 
-    print(
-        f"Artımlı veri çekme başlatılıyor: {inc_start} -> {inc_end} "
-        f"(Mevcut son tarih: {latest_date.strftime('%Y-%m-%d')})"
-    )
+    print(f"Mevcut veri setinin son tarihi: {latest_date.strftime('%Y-%m-%d')}")
+    print(f"Eksik aralık için artımlı indirme başlatılıyor: {inc_start} -> {inc_end}")
 
     new_data = _download_ticker_frames(inc_start, inc_end, include_macro=include_macro)
     if not new_data:
-        print("Yeni veri bulunamadı.")
+        print("Yeni veri indirilemedi, mevcut veri seti korundu.")
         return existing_df
 
     new_df = pd.concat(new_data, ignore_index=True)
     new_df.columns = [c.lower() for c in new_df.columns]
     new_df.rename(columns={"date": "Date"}, inplace=True)
+    new_df["Date"] = pd.to_datetime(new_df["Date"]).dt.strftime("%Y-%m-%d")
 
+    # Mevcut veriyi ve yeni veriyi birleştir
     combined_df = pd.concat([existing_df, new_df], ignore_index=True)
-    combined_df["Date"] = pd.to_datetime(combined_df["Date"]).dt.strftime("%Y-%m-%d")
+    # Tarih ve ticker bazında mükerrer kayıtları temizle (yeni gelen geçerli)
     combined_df.drop_duplicates(subset=["Date", "ticker"], keep="last", inplace=True)
     combined_df.sort_values(by=["Date", "ticker"], inplace=True)
 
+    out_dir = os.path.dirname(out_path)
+    if out_dir and not os.path.exists(out_dir):
+        os.makedirs(out_dir, exist_ok=True)
+
     combined_df.to_csv(out_path, index=False)
-    print(
-        f"🎉 Artımlı güncelleme tamamlandı: {len(new_df)} yeni satır eklendi. "
-        f"Toplam Satır: {len(combined_df)}"
-    )
+    added_rows = len(combined_df) - len(existing_df)
+    print(f"\n🎉 Veri seti güncellendi: {out_path}")
+    print(f"Eklenen yeni satır sayısı: {added_rows}")
+    print(f"Toplam Satır Sayısı: {len(combined_df)}")
     return combined_df
 
 
@@ -144,6 +159,8 @@ def fetch_data(
 
     start = start_date or config.START_DATE
     end = end_date or config.END_DATE
+    if end is None or end in ("today", "latest"):
+        end = date.today().isoformat()
     out_path = output_path or config.DATA_PATH
 
     print(f"Veri çekme işlemi başladı ({start} - {end})... Bu işlem biraz sürebilir.")

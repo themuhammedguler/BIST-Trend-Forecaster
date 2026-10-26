@@ -112,8 +112,8 @@ MACRO_TICKERS = [INDEX_TICKER, FX_TICKER]
 FEATURES = [
     "rsi",
     "macd",
-    "sma_10",
-    "sma_50",
+    "sma_10_ratio",
+    "sma_50_ratio",
     "bb_width",
     "volatility",
     "lag_1_ret",
