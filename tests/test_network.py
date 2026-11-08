@@ -90,3 +90,16 @@ def test_does_not_sleep_after_last_attempt(monkeypatch, sleeps):
     with pytest.raises(network.MarketDataUnavailableError):
         network.download_with_retry("AKBNK.IS", attempts=2)
     assert sleeps == [2]
+
+
+def test_ensure_ascii_ca_bundle_noop_on_non_windows(monkeypatch):
+    """Windows harici işletim sistemlerinde sertifika yönlendirmesi çalıştırılmaz."""
+    monkeypatch.setattr("os.name", "posix")
+    network.ensure_ascii_ca_bundle()
+
+
+def test_ensure_ascii_ca_bundle_noop_when_path_is_ascii(monkeypatch):
+    """Sertifika yolu zaten standart ASCII ise ortam değişkenleri değiştirilmez."""
+    monkeypatch.setattr("os.name", "nt")
+    monkeypatch.setattr("certifi.where", lambda: "C:/standard/path/cacert.pem")
+    network.ensure_ascii_ca_bundle()

@@ -3,13 +3,6 @@ import argparse
 import os
 import sys
 
-if hasattr(sys.stdout, "reconfigure"):
-    try:
-        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
-    except Exception:
-        pass
-
 import numpy as np
 import pandas as pd
 import xgboost as xgb
@@ -161,6 +154,13 @@ def train_model(
 
 
 if __name__ == "__main__":
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+            sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
     parser = argparse.ArgumentParser(description="BIST XGBoost model eğitimi")
     parser.add_argument(
         "--tune", action="store_true", help="Optuna ile hiperparametre optimizasyonu yap"

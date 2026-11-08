@@ -72,17 +72,24 @@ def render_backtest(model, df_processed, threshold=config.PROB_THRESHOLD_HIGH, c
 
 
 def render_drift_section(df_features):
-    """Öznitelik sapmasını (Data Drift / PSI) hesaplayıp özetler (#45)."""
+    """Öznitelik sapmasını (Data Drift / PSI) hesaplayıp özetler (#45, #69)."""
     with st.expander("📊 Veri & Öznitelik Sapması (Data Drift / PSI)", expanded=False):
         drift_df, summary = drift.compute_series_drift_by_split(df_features, recent_rows=60)
+        cyclical_text = (
+            f" · Takvim Döngüsü: `{summary['max_cyclical_psi']:.2f}`"
+            if summary.get("max_cyclical_psi", 0.0) > 0.25
+            else ""
+        )
         st.markdown(
             f"**Genel Sağlık Durumu:** {summary['badge']} | "
-            f"**Ortalama PSI:** `{summary['mean_psi']:.4f}` | "
-            f"**Maksimum PSI:** `{summary['max_psi']:.4f}`"
+            f"**Ortalama Gösterge PSI:** `{summary['mean_psi']:.4f}` | "
+            f"**Maksimum Gösterge PSI:** `{summary['max_psi']:.4f}`"
+            f"{cyclical_text}"
         )
         st.caption(
             "Population Stability Index (PSI), geçmiş referans dönem ile son 60 günün "
-            "teknik gösterge dağılımlarını kıyaslar. "
+            "teknik gösterge dağılımlarını kıyaslar. Takvim öznitelikleri doğal döngü olarak "
+            "ayrı etiketlenir ve gösterge sapma puanlarını etkilemez. "
             "PSI < 0.10: Sağlıklı, 0.10-0.25: Hafif Sapma, > 0.25: Kritik Sapma."
         )
         if not drift_df.empty:

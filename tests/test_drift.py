@@ -206,3 +206,48 @@ def test_cyclical_features_classified_as_calendar_cycle():
     assert summary["overall_status"] == "Sağlıklı"
     assert "month" not in summary["critical_features"]
     assert "month" in summary["cyclical_features"]
+    # Takvim döngüsü gösterge PSI agregasyonlarını şişirmemelidir (#69)
+    assert summary["max_psi"] == pytest.approx(0.05, abs=1e-4)
+    assert summary["mean_psi"] == pytest.approx(0.05, abs=1e-4)
+    assert summary["max_cyclical_psi"] == pytest.approx(5.0, abs=1e-4)
+
+
+def test_calculate_psi_alpha_and_backward_compatibility():
+    """alpha parametresi ve geriye dönük takma adlar (epsilon, pseudocount) hatasız çalışmalıdır."""
+    rng = np.random.RandomState(42)
+    ref = rng.normal(0, 1, 100)
+    curr = rng.normal(0.2, 1, 100)
+
+    psi_alpha = drift.calculate_psi(ref, curr, alpha=0.5)
+    psi_pseudocount = drift.calculate_psi(ref, curr, pseudocount=0.5)
+    psi_epsilon = drift.calculate_psi(ref, curr, epsilon=0.5)
+
+    assert psi_alpha == pytest.approx(psi_pseudocount, abs=1e-6)
+    assert psi_alpha == pytest.approx(psi_epsilon, abs=1e-6)
+    assert psi_alpha >= 0.0
+
+
+def test_compute_series_drift_by_split_date_based_multi_ticker():
+    """Çoklu hisse içeren veri setinde recent_rows gün bazlı olarak doğru ayrılmalıdır (#69)."""
+    dates = pd.bdate_range("2025-01-01", periods=30)
+    rows = []
+    # İlk 20 gün 50.0 (referans), son 10 gün 80.0 (güncel)
+    for i, d in enumerate(dates):
+        val = 50.0 if i < 20 else 80.0
+        for ticker in ["AKBNK", "GARAN", "THYAO"]:
+            rows.append(
+                {
+                    "Date": d.strftime("%Y-%m-%d"),
+                    "ticker": ticker,
+                    "rsi": val,
+                }
+            )
+    df = pd.DataFrame(rows)
+
+    # Son 10 gün güncel pencere (3 ticker x 10 gün = 30 satır), ilk 20 gün referans olmalı
+    drift_df, summary = drift.compute_series_drift_by_split(df, recent_rows=10, features=["rsi"])
+    assert len(drift_df) == 1
+    assert drift_df.iloc[0]["Öznitelik"] == "rsi"
+    assert summary["total_features"] == 1
+    assert summary["overall_status"] == "Kritik Sapma"
+    assert summary["max_psi"] == pytest.approx(1.0, abs=1e-4)

@@ -15,13 +15,6 @@ import argparse
 import sys
 from typing import Optional
 
-if hasattr(sys.stdout, "reconfigure"):
-    try:
-        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
-    except Exception:
-        pass
-
 import numpy as np
 import pandas as pd
 
@@ -39,11 +32,15 @@ def calculate_psi(
     reference: pd.Series | np.ndarray,
     current: pd.Series | np.ndarray,
     num_buckets: int = 10,
-    epsilon: float = 1e-4,
-    pseudocount: float = 0.5,
+    alpha: float = 0.5,
+    epsilon: Optional[float] = None,
+    pseudocount: Optional[float] = None,
 ) -> float:
     """İki veri dağılımı (referans/eğitim ve güncel/çıkarım) arasındaki
     Population Stability Index (PSI) değerini hesaplar.
+
+    alpha: Laplace/Lidstone yumuşatma katsayısı (varsayılan: 0.5).
+    epsilon / pseudocount: Geriye dönük uyumluluk için desteklenen takma adlar.
     """
     if isinstance(reference, pd.Series):
         ref_arr = reference.to_numpy()
@@ -87,10 +84,17 @@ def calculate_psi(
     curr_counts, _ = np.histogram(curr_clean, bins=bin_edges)
 
     k = len(ref_counts)
+    # Yumuşatma parametresini belirle (alpha öncelikli, geriye dönük takma adları destekle)
+    smoothing = alpha
+    if pseudocount is not None:
+        smoothing = pseudocount
+    elif epsilon is not None:
+        smoothing = epsilon
+    smoothing = max(1e-9, float(smoothing))
+
     # Laplace/Lidstone düzeltmesi ile sıfır frekans patlamasını önle
-    alpha = max(epsilon, pseudocount)
-    ref_pct = (ref_counts + alpha) / (len(ref_clean) + k * alpha)
-    curr_pct = (curr_counts + alpha) / (len(curr_clean) + k * alpha)
+    ref_pct = (ref_counts + smoothing) / (len(ref_clean) + k * smoothing)
+    curr_pct = (curr_counts + smoothing) / (len(curr_clean) + k * smoothing)
 
     # PSI toplam formülü
     psi = np.sum((curr_pct - ref_pct) * np.log(curr_pct / ref_pct))
@@ -167,13 +171,20 @@ def compute_feature_drift(
 
 
 def summarize_drift(drift_df: pd.DataFrame) -> dict:
-    """Öznitelik sapma tablosundan genel sistem sağlık özeti üretir."""
+    """Öznitelik sapma tablosundan genel sistem sağlık özeti üretir (#45, #69).
+
+    Takvim döngüsü öznitelikleri (month, day_of_week) genel maksimum ve ortalama
+    gösterge PSI değerlerini yapay olarak şişirmemesi için agregasyonlardan ayrıştırılır.
+    """
     if drift_df is None or drift_df.empty:
         return {
             "overall_status": "Sağlıklı",
             "badge": "🟢 Sağlıklı",
             "max_psi": 0.0,
             "mean_psi": 0.0,
+            "max_feature_psi": 0.0,
+            "mean_feature_psi": 0.0,
+            "max_cyclical_psi": 0.0,
             "critical_features": [],
             "moderate_features": [],
             "healthy_features": [],
@@ -181,12 +192,23 @@ def summarize_drift(drift_df: pd.DataFrame) -> dict:
             "total_features": 0,
         }
 
-    max_psi = float(drift_df["PSI"].max())
-    mean_psi = float(drift_df["PSI"].mean())
-    critical = drift_df[drift_df["Durum"] == "Kritik Sapma"]["Öznitelik"].tolist()
-    moderate = drift_df[drift_df["Durum"] == "Hafif Sapma"]["Öznitelik"].tolist()
+    # Takvim döngüsü özniteliklerini (month, day_of_week) teknik göstergelerden ayır
+    feature_rows = drift_df[~drift_df["Öznitelik"].isin(CYCLICAL_FEATURES)]
+    cyclical_rows = drift_df[drift_df["Öznitelik"].isin(CYCLICAL_FEATURES)]
+
+    if not feature_rows.empty:
+        max_feature_psi = float(feature_rows["PSI"].max())
+        mean_feature_psi = float(feature_rows["PSI"].mean())
+    else:
+        max_feature_psi = float(drift_df["PSI"].max())
+        mean_feature_psi = float(drift_df["PSI"].mean())
+
+    max_cyclical_psi = float(cyclical_rows["PSI"].max()) if not cyclical_rows.empty else 0.0
+
+    critical = feature_rows[feature_rows["Durum"] == "Kritik Sapma"]["Öznitelik"].tolist()
+    moderate = feature_rows[feature_rows["Durum"] == "Hafif Sapma"]["Öznitelik"].tolist()
     healthy = drift_df[drift_df["Durum"].isin(["Sağlıklı", "Takvim Döngüsü"])]["Öznitelik"].tolist()
-    cyclical = drift_df[drift_df["Durum"] == "Takvim Döngüsü"]["Öznitelik"].tolist()
+    cyclical = cyclical_rows["Öznitelik"].tolist()
 
     if critical:
         overall_status = "Kritik Sapma"
@@ -201,8 +223,11 @@ def summarize_drift(drift_df: pd.DataFrame) -> dict:
     return {
         "overall_status": overall_status,
         "badge": badge,
-        "max_psi": round(max_psi, 4),
-        "mean_psi": round(mean_psi, 4),
+        "max_psi": round(max_feature_psi, 4),
+        "mean_psi": round(mean_feature_psi, 4),
+        "max_feature_psi": round(max_feature_psi, 4),
+        "mean_feature_psi": round(mean_feature_psi, 4),
+        "max_cyclical_psi": round(max_cyclical_psi, 4),
         "critical_features": critical,
         "moderate_features": moderate,
         "healthy_features": healthy,
@@ -285,7 +310,12 @@ def main():
 
     print("\n" + "=" * 65)
     print(f"  ÖZNİTELİK SAPMASI RAPORU | Genel Durum: {summary['badge']}")
-    print(f"  Maksimum PSI: {summary['max_psi']:.4f} | Ortalama PSI: {summary['mean_psi']:.4f}")
+    print(
+        f"  Maksimum Gösterge PSI: {summary['max_psi']:.4f} | "
+        f"Ortalama Gösterge PSI: {summary['mean_psi']:.4f}"
+    )
+    if summary.get("max_cyclical_psi", 0.0) > 0:
+        print(f"  Takvim Döngüsü Maksimum PSI: {summary['max_cyclical_psi']:.4f}")
     print("=" * 65)
 
     for _, row in drift_df.iterrows():
