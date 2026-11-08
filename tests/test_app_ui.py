@@ -605,9 +605,7 @@ def test_app_renders_data_drift_expander(patched_download):
 
 def test_app_renders_kap_llm_expander(monkeypatch, patched_download):
     """Tekli hisse sekmesinde KAP & LLM temel analiz expander'ı render edilmeli (#70)."""
-    sample_news = [
-        kap_news.parse_raw_news_item("AKBNK", {"title": "Yeni İş İlişkisi ve Sipariş"})
-    ]
+    sample_news = [kap_news.parse_raw_news_item("AKBNK", {"title": "Yeni İş İlişkisi ve Sipariş"})]
     monkeypatch.setattr(
         "src.kap_news.fetch_latest_disclosures",
         lambda ticker, limit=5, custom_fetcher=None: sample_news,
