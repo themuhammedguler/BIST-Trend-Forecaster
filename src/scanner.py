@@ -36,6 +36,8 @@ def _build_record(ticker, df_processed, df, model):
     elif clean_name == "KOZAA":
         clean_name = "KOZAA (TRMET)"
 
+    vol = float(last_row["volatility"].iloc[0]) if "volatility" in last_row.columns else 0.25
+
     return {
         "Hisse": clean_name,
         "Sektör": config.get_ticker_sector(ticker),
@@ -45,6 +47,8 @@ def _build_record(ticker, df_processed, df, model):
         "Yükseliş Olasılığı (%)": round(prob * 100, 1),
         "Tahmin": "YUKARI 🚀" if prob > 0.5 else "DÜŞÜŞ 🔻",
         "_prob": prob,
+        "_volatility": vol,
+        "volatility": round(vol, 4),
     }
 
 

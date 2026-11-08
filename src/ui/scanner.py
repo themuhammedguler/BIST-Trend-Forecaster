@@ -2,7 +2,7 @@
 
 import streamlit as st
 
-from src import config, scanner
+from src import config, risk_sizing, scanner
 from src.ui.components import SCAN_COLUMN_CONFIG, get_cached_market_scan
 
 
@@ -80,6 +80,22 @@ def render_market_scanner_tab():
                     hide_index=True,
                     column_config=SCAN_COLUMN_CONFIG,
                 )
+
+            with st.expander(
+                "💼 Önerilen Portföy Sermaye Dağılımı (Kelly Criterion)", expanded=False
+            ):
+                st.markdown(
+                    "Yükseliş potansiyeli en yüksek hisseler arasında Kelly Kriteri ve oynaklık "
+                    "bütçelemesine göre optimize edilmiş sermaye tahsisi (#71):"
+                )
+                alloc_df = risk_sizing.calculate_portfolio_allocation(
+                    filtered_scan_df, max_tickers=5
+                )
+                if not alloc_df.empty:
+                    md_table = risk_sizing.format_allocation_as_markdown(alloc_df)
+                    st.markdown(md_table)
+                else:
+                    st.caption("Eşik üzeri yükseliş sinyali veren hisse bulunamadı.")
 
             st.markdown("### 📋 Tüm BIST 30 Liderlik Tablosu")
             st.dataframe(
