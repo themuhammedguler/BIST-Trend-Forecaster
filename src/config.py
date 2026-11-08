@@ -102,6 +102,11 @@ END_DATE = "2025-12-08"  # Bugüne kadar
 PROB_THRESHOLD_HIGH = 0.53
 PROB_THRESHOLD_LOW = 0.47
 
+# LLM ve KAP Bildirim Analizi Yapılandırması (#70)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+GEMINI_TIMEOUT_SECONDS = int(os.getenv("GEMINI_TIMEOUT_SECONDS", "10"))
+
 # Makro ve piyasa göstergeleri (BIST 100 endeksi ve USD/TRY kuru) (#10)
 INDEX_TICKER = "XU100.IS"
 FX_TICKER = "USDTRY=X"

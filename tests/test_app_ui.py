@@ -598,6 +598,15 @@ def test_app_renders_data_drift_expander(patched_download):
     assert "Rozet" in drift_tables[0].columns
 
 
+def test_app_renders_kap_llm_expander(patched_download):
+    """Tekli hisse sekmesinde KAP & LLM temel analiz expander'ı render edilmeli (#70)."""
+    at = AppTest.from_file(APP_PATH, default_timeout=30)
+    at.run()
+    assert list(at.exception) == []
+    expander_labels = [e.label for e in at.expander]
+    assert any("Yapay Zeka Temel Analiz & KAP Yorumu" in label for label in expander_labels)
+
+
 def test_app_title_renders_correctly(patched_download):
     """Ana başlığın beklenen metinle render edildiğini doğrular."""
     at = AppTest.from_file(APP_PATH, default_timeout=30)
