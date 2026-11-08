@@ -1,16 +1,16 @@
 {
   "version": "1.0",
-  "trained_at": "2026-11-08T21:01:52.247159+00:00",
-  "data_cutoff_date": "2025-12-12",
-  "train_rows": 58134,
-  "test_rows": 6355,
-  "test_accuracy": 0.529,
+  "trained_at": "2026-11-08T23:33:22.833807+00:00",
+  "data_cutoff_date": "2025-12-24",
+  "train_rows": 58374,
+  "test_rows": 6382,
+  "test_accuracy": 0.5191,
   "metrics": {
-    "accuracy": 0.529,
-    "balanced_accuracy": 0.5272,
-    "roc_auc": 0.5273,
-    "log_loss": 0.6922,
-    "precision": 0.5092
+    "accuracy": 0.5191,
+    "balanced_accuracy": 0.5165,
+    "roc_auc": 0.5291,
+    "log_loss": 0.6911,
+    "precision": 0.502
   },
   "features": [
     "rsi",
