@@ -4,7 +4,17 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from src import backtest, config, drift, explain, kap_llm, kap_news, session_calendar, signals
+from src import (
+    backtest,
+    config,
+    drift,
+    explain,
+    kap_llm,
+    kap_news,
+    risk_sizing,
+    session_calendar,
+    signals,
+)
 from src.ui.components import get_prediction_data, load_model
 
 BACKTEST_MONTHS = 6
@@ -13,6 +23,11 @@ BACKTEST_MONTHS = 6
 def render_backtest(model, df_processed, threshold=config.PROB_THRESHOLD_HIGH, cost=0.0):
     """Modelin yükseliş sinyallerini izleyen al/nakit stratejisini al-tut ile kıyaslar."""
     st.subheader(f"Geçmiş Strateji Getirisi (Backtest, Son {BACKTEST_MONTHS} Ay)", anchor=False)
+    use_kelly = st.checkbox(
+        "🎯 Dinamik Kelly Boyutlandırmalı Backtest Göster",
+        value=False,
+        help="Sermayeyi sabit %100 yerine güven skoru ve oynaklığa göre dinamik tahsis eder (#71).",
+    )
     window = backtest.recent_window(df_processed, months=BACKTEST_MONTHS)
     probs = model.predict_proba(window.drop(columns=["Date", "close"]))[:, 1]
     result = backtest.run_backtest(window, probs, threshold=threshold, cost=cost)
@@ -31,12 +46,33 @@ def render_backtest(model, df_processed, threshold=config.PROB_THRESHOLD_HIGH, c
                 line={"color": color},
             )
         )
+
+    result_kelly = None
+    if use_kelly:
+        result_kelly = backtest.run_backtest(
+            window, probs, threshold=threshold, cost=cost, sizing="kelly"
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=result_kelly.curve.index,
+                y=result_kelly.curve["strategy"] * 100,
+                mode="lines",
+                name="Model (Kelly Dinamik)",
+                line={"color": "#2ca02c", "dash": "dot"},
+            )
+        )
+
     fig.update_layout(yaxis_title="Kümülatif Getiri (%)", hovermode="x unified")
     st.plotly_chart(fig, width="stretch")
 
-    summary = pd.DataFrame(
-        [result.strategy, result.buy_hold], index=["Model Stratejisi", "Al ve Tut"]
-    )
+    if use_kelly and result_kelly is not None:
+        summary_rows = [result.strategy, result_kelly.strategy, result.buy_hold]
+        indices = ["Model Stratejisi (Sabit)", "Model (Kelly Dinamik)", "Al ve Tut"]
+    else:
+        summary_rows = [result.strategy, result.buy_hold]
+        indices = ["Model Stratejisi", "Al ve Tut"]
+
+    summary = pd.DataFrame(summary_rows, index=indices)
     table = pd.DataFrame(
         {
             "Toplam Getiri (%)": summary["total_return"] * 100,
@@ -69,6 +105,28 @@ def render_backtest(model, df_processed, threshold=config.PROB_THRESHOLD_HIGH, c
         f"{cost_text}"
         "Geçmiş performans gelecekteki sonuçları garanti etmez."
     )
+
+
+def render_risk_sizing_section(selected_ticker: str, prob: float, volatility: float):
+    """Kelly Kriteri ve volatiliteye duyarlı pozisyon boyutlandırma kartı (#71)."""
+    with st.expander("🎯 Sermaye Tahsisi & Pozisyon Boyutlandırma (Kelly)", expanded=False):
+        rec = risk_sizing.recommend_position_size(
+            selected_ticker,
+            prob=prob,
+            volatility=volatility,
+            min_threshold=config.PROB_THRESHOLD_HIGH,
+        )
+        c1, c2, c3 = st.columns(3)
+        c1.markdown(f"**Önerilen Hisse Payı:** `%{rec.position_size * 100:.1f}`")
+        c2.markdown(f"**Önerilen Nakit Payı:** `%{rec.cash_size * 100:.1f}`")
+        c3.markdown(f"**Risk Seviyesi:** {rec.risk_level}")
+
+        st.caption(
+            f"ℹ️ **Hesaplama:** Ham Kelly: `%{rec.kelly_raw * 100:.1f}` · "
+            f"Volatilite Çarpanı: `{rec.vol_multiplier:.2f}` "
+            f"(Hedef: %25.0, Hisse: %{volatility * 100:.1f})"
+        )
+        st.info(rec.summary_note)
 
 
 def render_drift_section(df_features):
@@ -215,6 +273,12 @@ def render_single_ticker_tab(
                 m1.write(f"**🏛️ BIST 100 Getirisi:** %{xu_pct:+.2f}")
                 m2.write(f"**💪 BIST 100 Rölatif Güç:** %{rel_pct:+.2f}")
                 m3.write(f"**💵 USD/TRY Değişimi:** %{fx_pct:+.2f}")
+
+        # Sermaye Tahsisi & Pozisyon Boyutlandırma (Kelly) (#71)
+        vol = (
+            float(input_data["volatility"].iloc[-1]) if "volatility" in input_data.columns else 0.25
+        )
+        render_risk_sizing_section(selected_ticker, prob, vol)
 
         # GRAFİK KISMI (Candlestick)
         st.subheader(f"{selected_ticker} - Son 3 Ay Fiyat Grafiği", anchor=False)

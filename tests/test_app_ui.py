@@ -631,3 +631,35 @@ def test_app_title_renders_correctly(patched_download):
     assert list(at.exception) == []
     assert len(at.title) >= 1
     assert "Borsa İstanbul Yapay Zeka Yön Tahmini" in at.title[0].value
+
+
+def test_app_renders_kelly_risk_sizing_expander(patched_download):
+    """Tekli hisse sekmesinde Kelly sermaye tahsisi expander'ı render edilmeli (#71)."""
+    at = AppTest.from_file(APP_PATH, default_timeout=30)
+    at.run()
+    assert list(at.exception) == []
+    expander_labels = [e.label for e in at.expander]
+    assert any("Sermaye Tahsisi & Pozisyon Boyutlandırma" in label for label in expander_labels)
+
+
+def test_app_backtest_with_kelly_checkbox(patched_download):
+    """Backtest sekmesinde Kelly onay kutusu seçildiğinde dinamik strateji render edilmeli (#71)."""
+    at = AppTest.from_file(APP_PATH, default_timeout=30)
+    at.run()
+    assert list(at.exception) == []
+    kelly_cb = [cb for cb in at.checkbox if "Kelly" in cb.label]
+    assert len(kelly_cb) == 1
+    kelly_cb[0].check().run()
+    assert list(at.exception) == []
+    table = _backtest_table(at)
+    assert "Model (Kelly Dinamik)" in table.index
+
+
+def test_scanner_renders_portfolio_allocation_expander(patched_download):
+    """Fırsat radarında tarama sonrası Kelly portföy sermaye dağılımı expander'ı görünmeli (#71)."""
+    at = AppTest.from_file(APP_PATH, default_timeout=30)
+    at.run()
+    at.button(key="btn_start_scan").click().run()
+    assert list(at.exception) == []
+    expander_labels = [e.label for e in at.expander]
+    assert any("Önerilen Portföy Sermaye Dağılımı" in label for label in expander_labels)
