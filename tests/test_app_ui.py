@@ -13,6 +13,7 @@ import config
 import explain
 import features
 from src import config as src_config
+from src import kap_news
 
 APP_PATH = str(Path(__file__).resolve().parents[1] / "app.py")
 
@@ -81,6 +82,10 @@ def patched_download(monkeypatch):
         return pd.concat({sym: single for sym in tickers}, axis=1)
 
     monkeypatch.setattr(yfinance, "download", download)
+    monkeypatch.setattr(
+        "src.kap_news.fetch_latest_disclosures",
+        lambda ticker, limit=5, custom_fetcher=None: [],
+    )
     return panel
 
 
@@ -598,13 +603,27 @@ def test_app_renders_data_drift_expander(patched_download):
     assert "Rozet" in drift_tables[0].columns
 
 
-def test_app_renders_kap_llm_expander(patched_download):
+def test_app_renders_kap_llm_expander(monkeypatch, patched_download):
     """Tekli hisse sekmesinde KAP & LLM temel analiz expander'ı render edilmeli (#70)."""
+    sample_news = [
+        kap_news.parse_raw_news_item("AKBNK", {"title": "Yeni İş İlişkisi ve Sipariş"})
+    ]
+    monkeypatch.setattr(
+        "src.kap_news.fetch_latest_disclosures",
+        lambda ticker, limit=5, custom_fetcher=None: sample_news,
+    )
     at = AppTest.from_file(APP_PATH, default_timeout=30)
     at.run()
     assert list(at.exception) == []
     expander_labels = [e.label for e in at.expander]
     assert any("Yapay Zeka Temel Analiz & KAP Yorumu" in label for label in expander_labels)
+    kap_tables = [
+        df.value
+        for df in at.dataframe
+        if "Kategori" in df.value.columns and "Başlık" in df.value.columns
+    ]
+    assert len(kap_tables) == 1
+    assert "Yeni İş İlişkisi" in kap_tables[0]["Başlık"].iloc[0]
 
 
 def test_app_title_renders_correctly(patched_download):

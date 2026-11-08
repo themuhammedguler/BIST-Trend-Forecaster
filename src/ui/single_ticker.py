@@ -216,9 +216,6 @@ def render_single_ticker_tab(
                 m2.write(f"**💪 BIST 100 Rölatif Güç:** %{rel_pct:+.2f}")
                 m3.write(f"**💵 USD/TRY Değişimi:** %{fx_pct:+.2f}")
 
-        # KAP ve LLM Temel Analiz (#70)
-        render_kap_llm_section(selected_ticker)
-
         # GRAFİK KISMI (Candlestick)
         st.subheader(f"{selected_ticker} - Son 3 Ay Fiyat Grafiği", anchor=False)
         fig = go.Figure(
@@ -279,3 +276,4 @@ def render_single_ticker_tab(
             cost=cost,
         )
         render_drift_section(df_processed[config.FEATURES])
+        render_kap_llm_section(selected_ticker)
