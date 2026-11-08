@@ -6,13 +6,6 @@ from datetime import date
 
 import pandas as pd
 
-if hasattr(sys.stdout, "reconfigure"):
-    try:
-        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
-    except Exception:
-        pass
-
 try:
     import config  # type: ignore
     import network  # type: ignore
@@ -191,6 +184,13 @@ def fetch_data(
 
 
 if __name__ == "__main__":
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+            sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
     parser = argparse.ArgumentParser(description="BIST 30 veri seti indirme aracı")
     parser.add_argument("--start-date", default=None, help="Başlangıç tarihi (YYYY-MM-DD)")
     parser.add_argument(

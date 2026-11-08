@@ -7,20 +7,26 @@ import time
 import certifi
 import yfinance as yf
 
-# Windows'ta dosya yolunda Türkçe/özel karakterler (örn: Masaüstü) olduğunda
-# curl SSL error (77) oluşmasını engellemek için CA sertifikasını ASCII temp dizinine kopyalar
-try:
-    ca_path = certifi.where()
-    if any(ord(c) > 127 for c in ca_path):
-        ascii_ca = os.path.join(tempfile.gettempdir(), "cacert.pem")
-        shutil.copyfile(ca_path, ascii_ca)
-        os.environ.setdefault("CURL_CA_BUNDLE", ascii_ca)
-        os.environ.setdefault("SSL_CERT_FILE", ascii_ca)
-except Exception:
-    pass
-
 # Testlerde gerçek beklemeyi atlamak için değiştirilebilir
 _sleep = time.sleep
+
+
+def ensure_ascii_ca_bundle() -> None:
+    """Windows'ta dosya yolunda ASCII dışı karakterler olduğunda (örn: Masaüstü)
+    libcurl SSL error (77) hatasını önlemek için CA sertifikasını ASCII temp dizinine kopyalar.
+    """
+    if os.name != "nt":
+        return
+    try:
+        ca_path = certifi.where()
+        if any(ord(c) > 127 for c in ca_path):
+            ascii_ca = os.path.join(tempfile.gettempdir(), "cacert.pem")
+            if not os.path.exists(ascii_ca):
+                shutil.copyfile(ca_path, ascii_ca)
+            os.environ.setdefault("CURL_CA_BUNDLE", ascii_ca)
+            os.environ.setdefault("SSL_CERT_FILE", ascii_ca)
+    except Exception:
+        pass
 
 
 class MarketDataUnavailableError(ValueError):
@@ -38,6 +44,7 @@ def download_with_retry(*args, attempts=3, min_delay=2, max_delay=10, **kwargs):
     Son deneme de boş dönerse boş sonuç döndürülür (örn. geçersiz sembol);
     hepsi istisna fırlatırsa MarketDataUnavailableError fırlatılır.
     """
+    ensure_ascii_ca_bundle()
     last_error = None
     result = None
     for attempt in range(attempts):
