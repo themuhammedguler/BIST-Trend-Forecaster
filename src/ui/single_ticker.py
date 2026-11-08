@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from src import backtest, config, drift, explain, session_calendar, signals
+from src import backtest, config, drift, explain, kap_llm, kap_news, session_calendar, signals
 from src.ui.components import get_prediction_data, load_model
 
 BACKTEST_MONTHS = 6
@@ -94,6 +94,50 @@ def render_drift_section(df_features):
         )
         if not drift_df.empty:
             st.dataframe(drift_df[["Öznitelik", "Rozet", "PSI", "Öneri"]])
+
+
+def render_kap_llm_section(selected_ticker: str):
+    """KAP bildirimlerini ve LLM destekli temel analiz özetini gösterir (#70)."""
+    with st.expander("🤖 Yapay Zeka Temel Analiz & KAP Yorumu", expanded=False):
+        disclosures = kap_news.fetch_latest_disclosures(selected_ticker, limit=5)
+        analysis = kap_llm.analyze_disclosures_with_llm(selected_ticker, disclosures)
+
+        provider_badge = (
+            "🤖 Gemini LLM"
+            if analysis.provider == "gemini"
+            else "⚙️ Kural Tabanlı (Yedek Mod)"
+            if analysis.provider == "rule_based"
+            else "⚪ Bildirim Yok"
+        )
+        c1, c2, c3 = st.columns(3)
+        c1.markdown(f"**KAP Etki Rozeti:** {analysis.badge}")
+        c2.markdown(f"**Etki Skoru:** `{analysis.impact_score:+.2f}`")
+        c3.markdown(f"**Analiz Kaynağı:** `{provider_badge}`")
+
+        if analysis.summary:
+            st.markdown(f"**Özet Değerlendirme:** {analysis.summary}")
+
+        st.markdown("**Finansal Öne Çıkanlar (Temel Göstergeler):**")
+        for bullet in analysis.bullets:
+            st.markdown(f"- {bullet}")
+
+        if analysis.error_message:
+            st.caption(f"ℹ️ Not: {analysis.error_message}")
+
+        if disclosures:
+            st.markdown("---")
+            st.markdown("**Son KAP Bildirimleri & Şirket Haberleri:**")
+            disc_table = pd.DataFrame(
+                [
+                    {
+                        "Tarih": d.publish_date,
+                        "Kategori": d.badge,
+                        "Başlık": d.title,
+                    }
+                    for d in disclosures
+                ]
+            )
+            st.dataframe(disc_table)
 
 
 def render_single_ticker_tab(
@@ -232,3 +276,4 @@ def render_single_ticker_tab(
             cost=cost,
         )
         render_drift_section(df_processed[config.FEATURES])
+        render_kap_llm_section(selected_ticker)
