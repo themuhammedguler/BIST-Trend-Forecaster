@@ -9,138 +9,222 @@ app_file: app.py
 pinned: false
 ---
 
-# 📈 BIST Trend Forecaster (AI-Based Stock Prediction)
+<div align="center">
 
-Bu proje, **MultiGroup Zero2End Machine Learning Bootcamp** bitirme projesi olarak geliştirilmiştir. BIST 30 hisselerinin geçmiş verilerini ve teknik indikatörleri kullanarak, bir sonraki işlem gününde hissenin **Yükseleceğini mi** yoksa **Düşeceğini/Yatay kalacağını mı** tahmin eder.
+# 📈 BIST Trend Forecaster
+### Borsa İstanbul (BIST 30) Yapay Zeka Tabanlı Yön Tahmin & Portföy Karar Destek Platformu
 
-### 🖥️ Canlı Demo ve Uygulama
+[![CI Pipeline](https://img.shields.io/github/actions/workflow/status/themuhammedguler/BIST-Trend-Forecaster/ci.yml?branch=main&label=CI%20Pipeline&logo=github&style=for-the-badge)](https://github.com/themuhammedguler/BIST-Trend-Forecaster/actions)
+[![Unit Tests](https://img.shields.io/badge/Tests-357%20Passed-10B981?style=for-the-badge&logo=pytest&logoColor=white)](https://github.com/themuhammedguler/BIST-Trend-Forecaster)
+[![Python Version](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![Code Style](https://img.shields.io/badge/Code%20Style-Ruff-black?style=for-the-badge&logo=ruff&logoColor=white)](https://docs.astral.sh/ruff/)
+[![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
-BIST 30 hisseleri için geliştirdiğimiz yapay zeka modelini canlı verilerle test edebilirsiniz. Kurulum yapmanıza gerek yoktur.
+<br/>
 
-| Platform | Durum | Link |
+[🚀 Canlı Streamlit Uygulaması](https://bist-trend-forecaster.streamlit.app/) • [🤗 Hugging Face Space](https://huggingface.co/spaces/themuhammedguler/BIST-Trend-Forecaster) • [📊 Deney ve Kıyaslama Raporu](docs/experiments/model_benchmark_report.md)
+
+</div>
+
+---
+
+## 🌟 Proje Genel Bakışı
+
+**BIST Trend Forecaster**, Borsa İstanbul (BIST 30) endeksindeki hisse senetlerinin bir sonraki işlem günündeki yönünü (**Yükseliş / Düşüş**) tahmin etmek ve yatırımcılara matematiksel karar desteği sunmak amacıyla geliştirilmiş uçtan uca kurumsal bir makine öğrenimi (MLOps) platformudur.
+
+Platform; teknik analiz gürültüsünü filtreleyen **çoklu model topluluğu (Ensemble Engine)**, **Modern Portföy Teorisi (Markowitz MPT)**, **Hibrit Karar Motoru** ve insan müdahalesine gerek duymayan **otonom seans kapanış robotu** ile desteklenmiştir.
+
+### 🖥️ Canlı Demo ve Erişim
+
+| Platform | Durum | Canlı Bağlantı |
 | :--- | :---: | :--- |
-| **Streamlit Cloud** | 🟢 Aktif | [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://bist-trend-forecaster.streamlit.app/) |
-| **Hugging Face** | 🟢 Aktif | [![Hugging Face Spaces](https://img.shields.io/badge/🤗%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/themuhammedguler/BIST-Trend-Forecaster) |
+| **Streamlit Cloud** | 🟢 Yayında | [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://bist-trend-forecaster.streamlit.app/) |
+| **Hugging Face Spaces** | 🟢 Yayında | [![Hugging Face Spaces](https://img.shields.io/badge/🤗%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/themuhammedguler/BIST-Trend-Forecaster) |
 
-## 1. Problem Tanımı
-Finansal piyasalarda bireysel yatırımcılar genellikle teknik analiz yapmakta zorlanır ve duygusal kararlar verirler.
-*   **Problem:** Karmaşık teknik göstergelerin yorumlanmasının zorluğu ve piyasa gürültüsü içinde doğru sinyali bulamama.
-*   **Çözüm:** Geçmiş fiyat hareketlerini ve teknik indikatörleri (RSI, MACD, SMA vb.) analiz ederek matematiksel bir "Yön Tahmini" (Binary Classification) sunan bir Makine Öğrenmesi modeli.
+---
 
-## 2. Veri Seti ve Hazırlık
-*   **Veri Kaynağı:** `yfinance` kütüphanesi ile Yahoo Finance üzerinden çekilmiştir.
-*   **Kapsam:** BIST 30 endeksindeki 30 şirketin son 8 yıllık (2018-2025) günlük verileri.
-*   **Veri Büyüklüğü:** Yaklaşık 70.000+ satır (PDF gereksinimi olan 10k satır fazlasıyla karşılanmıştır).
-*   **Feature Engineering (Öznitelik Mühendisliği):**
-    *   RSI (14), MACD, Bollinger Bands
-    *   SMA (10 ve 50 günlük hareketli ortalamalar)
-    *   Volatilite ve Momentum (Lag Features)
-    *   Takvim Etkisi (Haftanın günü, Ayın günü)
+## 🚀 Öne Çıkan Temel Yetenekler
 
-## 3. Modelleme Süreci
-### Baseline Model
-*   Başlangıçta "Yarın, bugünün aynısıdır" mantığıyla basit bir yaklaşım test edildi. Başarı oranı %50 civarındaydı (Rastgele tahmin).
+```mermaid
+flowchart LR
+    A["📡 Veri Toplama\n(yfinance BIST 30 + Makro)"] --> B["⚙️ Feature Engineering 2.0\n(20 Teknik & Hacim Özniteliği)"]
+    B --> C["🧠 Çoklu Model & Ensemble\n(CatBoost %52.1 + LGBM + XGB)"]
+    C --> D["⚖️ Hibrit Karar Motoru\n(ML + Makro + RSI + Kelly)"]
+    D --> E["🌲 Sektörel Isı Haritası\n(Treemap) & Markowitz MPT"]
+    D --> F["🤖 Otonom Günlük Cron\n(18:30 TRT Ledger & E-posta)"]
+```
 
-### Final Model: XGBoost
-*   Tabular verilerde yüksek performans gösterdiği için **XGBoost Classifier** seçildi.
-*   **Validasyon Şeması:** Finansal verilerde "geleceği görmeyi" (look-ahead bias) ve hisseler arası gün içi sızıntıyı engellemek için **Tarihsel Zaman Kesimi (`get_temporal_split`)** kullanıldı. Belirlenen tarihe kadarki tüm hisse verileri eğitim setine, o tarih ve sonrasındaki dönem ise test setine ayrıldı.
+### 1. 🧠 Çoklu Model & Topluluk Tahmin Motoru (Ensemble)
+* **CatBoost, LightGBM ve XGBoost:** Farklı ağaç mimarileri birleştirilerek finansal serilerdeki aşırı uyum (overfitting) ve varyans düşürülmüştür.
+* **Yumuşak Oylama (Soft Voting):** Model olasılıkları ağırlıklandırılarak dengeli ve kararlı sinyaller üretilir.
+* **CatBoost Liderliği:** Test setinde **%52.13 doğruluk** ve **0.5327 ROC-AUC** ile en yüksek başarıma ulaşmıştır.
 
-### Hiperparametre Optimizasyonu: Optuna
-*   `src/tune.py`, XGBoost hiperparametrelerini **Optuna** (TPE sampler + MedianPruner) ile arar. Her deneme, tarihe göre ileri doğru (walk-forward) zaman serisi CV'si ile değerlendirilir; aynı günün satırları hep aynı katta kalır.
-*   İlk deneme mevcut manuel parametrelerle (`n_estimators=100, learning_rate=0.05, max_depth=5`) başlar.
-*   Kullanım (varsayılan eğitim davranışı değişmez):
-    ```bash
-    cd src
-    python model_train.py                        # manuel parametreler
-    python model_train.py --tune --n-trials 50   # Optuna ile optimizasyon
-    python model_train.py --tune --metric roc_auc # CV hedefi: accuracy | balanced_accuracy | roc_auc
-    python model_train.py --balance-classes      # sınıf oranına göre scale_pos_weight
-    ```
+### 2. ⚖️ Hibrit Karar Motoru (Rule-Based + AI)
+* Yalnızca makine öğrenimi sinyaline bağlı kalmaz; **BIST 100 ana trendi**, **RSI aşırı alım/satım kuralları** ve **momentum göstergelerini** birleştirir.
+* Yatırımcıya 5 kademeli net kanaat üretir:  
+  `GÜÇLÜ ALIŞ` • `TEMKİNLİ ALIŞ` • `NÖTR / NAKİTTE KAL` • `TEMKİNLİ SATIŞ` • `GÜÇLÜ SATIŞ`
 
-### Değerlendirme Metrikleri
-*   Doğruluk tek başına yanıltıcıdır: çoğunluk sınıfını tahmin eden bir model yüksek doğruluk alır ama hiçbir şey öğrenmemiş olur. Bu yüzden `model_train.py`, eğitim/test setlerinin sınıf dağılımını loglar ve doğruluğun yanında **Dengeli Doğruluk (Balanced Accuracy)**, **ROC-AUC**, **Log Loss** ve **Kesinlik (Precision)** değerlerini raporlar (`src/metrics.py`).
-*   `--balance-classes`, yükseliş/düşüş oranı dengesizleştiğinde XGBoost'un `scale_pos_weight` parametresini eğitim etiketlerinden hesaplar; Optuna CV'sinde her kat kendi eğitim etiketlerini kullanır.
+### 3. 🌲 BIST 30 Sektörel Isı Haritası (Treemap)
+* Bankacılık, Sanayi, Holding, Havacılık vb. tüm sektörlerin yapay zeka yön eğilimini hiyerarşik interaktif bir ağaç haritasında görselleştirir.
+* Hem **Yapay Zeka Yükseliş Olasılığı (%)** hem de **Günlük Fiyat Değişimi (%)** ölçeğinde renklendirilebilir.
 
-### Testler
-Geliştirme ve test bağımlılıklarını kurup testleri çalıştırabilirsiniz:
+### 4. 💼 Modern Portföy Teorisi (Markowitz Maksimum Sharpe Oranı)
+* Hisselerin tahmin edilen getirileri ($\boldsymbol{\mu}$) ile 5 yıllık kovaryans matrisini ($\boldsymbol{\Sigma}$) birleştirir.
+* `scipy.optimize (SLSQP)` çözücüsüyle risk başına getiriyi maksimize eden optimal ağırlıkları hesaplar.
+* Portföy dağılım halka grafiği (donut chart) ve TL bazlı somut alım tutarları sunar.
+
+### 5. 🤖 Otonom Günlük Tahmin & Denetim Defteri (Forward Tracking Ledger)
+* **Otomatik Çalışma:** Her iş günü **18:30 TRT (15:30 UTC)** seans kapandığında GitHub Actions cron job'ı devreye girer.
+* Dünkü tahminleri gerçekleşen fiyatlarla denetler, yarınki seans için tüm BIST 30 tahminlerini üretip `prediction_audit.json` defterine işler ve repoya otomatik commit eder.
+* **440+ Tarihsel Tahmin:** Gerçekleşen 1 günlük, 3 günlük ve 1 haftalık getiriler ve isabet oranları şeffafça takip edilir.
+
+### 6. 🔒 Gizlilik Dostu Ziyaretçi Analitiği (3 Katmanlı Mimari)
+* **GoatCounter** entegrasyonu ile KVKK/GDPR uyumlu, çerezsiz ziyaretçi takibi.
+* Streamlit iframe sandbox engellerini aşan istemci scripti + görsel beacon + sunucu taraflı Python arka plan pingi (**%100 AdBlock geçirmez**).
+
+### 7. 📰 KAP Haber & Kurumsal RAG Chatbot Entegrasyonu
+* Son KAP açıklamaları üzerinde FinBERT/LLM tabanlı duygu analizi.
+* [Financial-Analyst-ChatBot-Project](https://github.com/themuhammedguler/Financial-Analyst-ChatBot-Project) ile çift yönlü derin bağlantı ve bilanço incelemesi.
+
+---
+
+## 📊 Model Karşılaştırma Karnesi (Feature Engineering 2.0)
+
+Eğitim ve test setleri, finansal zaman serilerinde veri sızıntısını (look-ahead bias) engellemek amacıyla **tarihsel kesim (`get_temporal_split`)** ile ayrılmıştır (Eğitim: 2018-2025, Test: 2025-2026).
+
+| Model Mimarisi | Test Doğruluğu (Accuracy) | Dengeli Doğruluk | ROC-AUC | Log Loss | Açıklama |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| 🥇 **CatBoost** | **%52.13** | **%51.82** | **0.5327** | **0.6899** | En yüksek genelleme başarımı |
+| 🥈 **LightGBM** | **%51.83** | **%51.41** | **0.5285** | **0.6904** | Hızlı ve dengeli ağaç yapısı |
+| 🥉 **Topluluk (Ensemble)** | **%51.58** | **%51.23** | **0.5281** | **0.6902** | Düşük varyanslı yumuşak oylama |
+| ⚙️ **XGBoost** | **%50.75** | **%50.39** | **0.5160** | **0.6912** | Sağlam temel referans model |
+
+> 📌 **Finansal Piyasalarda %52 Doğruluğun Anlamı:** Günlük hisse yön tahminlerinde %50 rastgele yazı-tura seviyesidir. İşlem maliyetleri ve fraksiyonel Kelly kriteri ile birleştiğinde %52+ out-of-sample başarı, istatistiksel ve pozitif beklenen getiri (edge) sunar.
+
+---
+
+## 🛠️ Feature Engineering 2.0 (20 Öznitelik)
+
+Modelimiz aşağıdaki 20 matematiksel gösterge üzerinden beslenmektedir:
+
+| Kategori | Göstergeler | Açıklama |
+| :--- | :--- | :--- |
+| **Momentum & Salınım** | `rsi`, `stoch_k`, `williams_r`, `roc_5` | Aşırı alım/satım, momentum ivmesi ve döngüsel salınımlar |
+| **Hacim & Para Akışı** | `mfi`, `vol_ratio`, `vol_change` | Para Akışı Endeksi (MFI) ve 20 günlük hacim patlama oranı |
+| **Trend & Ortalamalar** | `macd`, `sma_10_ratio`, `sma_50_ratio` | MACD farkı ve 10/50 günlük hareketli ortalamalardan sapma |
+| **Volatilite & Risk** | `atr_ratio`, `bb_width`, `volatility` | Normalize Average True Range, Bollinger bant genişliği |
+| **Gecikmeli Getiriler** | `lag_1_ret`, `lag_2_ret` | Dünkü ve önceki günün yüzdesel getirileri |
+| **Makro & Göreceli Güç**| `xu100_ret`, `rel_strength_bist`, `usdtry_change` | BIST 100 endeks getirisi, hissenin endekse göre rölatif gücü ve kur |
+| **Takvim Döngüleri** | `day_of_week`, `month` | Haftanın günü ve ay mevsimselliği |
+
+---
+
+## 💻 Kurulum ve Yerel Çalıştırma
+
+### 1. Yerel Ortam (Python venv)
+
 ```bash
+# Depoyu klonlayın
+git clone https://github.com/themuhammedguler/BIST-Trend-Forecaster.git
+cd BIST-Trend-Forecaster
+
+# Sanal ortam oluşturun ve aktifleştirin
+python -m venv venv
+# Windows:
+.\venv\Scripts\activate
+# Linux/macOS:
+source venv/bin/activate
+
+# Bağımlılıkları yükleyin
+pip install -r requirements.txt
+
+# Uygulamayı başlatın
+streamlit run app.py
+```
+
+### 2. Docker & Docker Compose ile Çalıştırma
+
+```bash
+# Konteyneri derleyin ve ayağa kaldırın
+docker compose up --build
+```
+Uygulama doğrudan `http://localhost:8501` adresinde yayına başlayacaktır.
+
+---
+
+## 🧪 Testler ve Kod Kalitesi
+
+Projede regresyonları önlemek için **357 birim ve entegrasyon testi** bulunmaktadır:
+
+```bash
+# Geliştirme bağımlılıklarını kurun
 pip install -r requirements-dev.txt
+
+# Tüm test paketini çalıştırın
 pytest -q
+
+# Linter ve biçimlendirme kontrolleri
+ruff check .
+ruff format . --check
 ```
 
-### Kod Kalitesi
-Kod stili ve lint kuralları `pyproject.toml` içinde tanımlıdır ([ruff](https://docs.astral.sh/ruff/); PEP 8, Pyflakes ve import sırası, satır sınırı 100). CI her push ve PR'da aynı kontrolleri çalıştırır:
-```bash
-ruff check .          # lint (otomatik düzeltme için: ruff check --fix .)
-ruff format .         # biçimlendirme (yalnızca kontrol için: ruff format --check .)
-```
-Toplu biçimlendirme commit'ini `git blame` çıktısında gizlemek için: `git config blame.ignoreRevsFile .git-blame-ignore-revs`
+---
 
-### Model Performansı
-*   **Test Seti (varsayılan parametreler, kesim 2025-02-25):** Doğruluk 0.511, Dengeli Doğruluk 0.511, ROC-AUC 0.513, Log Loss 0.698. Test setindeki yükseliş günü oranı %49.4'tür.
-    *   *Yorum:* Finansal piyasaların stokastik yapısı göz önüne alındığında sinyal zayıftır; ROC-AUC'nin 0.5'e yakın olması tahminlerin çoğunun yazı-tura seviyesinde olduğunu gösterir. Bu nedenle arayüzde nötr eşik bandı kullanılır.
-*   **Önemli Öznitelikler:** Model kararlarında en çok `day_of_week` (haftanın günü), `month` (ay) ve `vol_change` (hacim değişimi) etkili olmuştur.
+## 📁 Proje Dizin Yapısı
 
-### Model Mimarileri Kıyaslama (Benchmark)
-Farklı makine öğrenimi ve derin öğrenme mimarilerinin BIST 100 yön tahminindeki performansını sızıntısız (leak-free) ve adil bir şekilde karşılaştırmak için `src/benchmark.py` yürütülür:
-*   **Değerlendirme:** 3 katmanlı genişleyen pencereli ileriye dönük zaman serisi çapraz doğrulama (walk-forward expanding window cross-validation).
-*   **Karşılaştırılan Modeller:**
-    *   *Temel Referanslar (Baselines):* Always Down, Always Up, Repeat Yesterday, Regularized Logistic Regression.
-    *   *Gradient Boosting Varyantları:* XGBoost, LightGBM, Scikit-learn HistGradientBoosting, Calibrated XGBoost (Platt Scaling).
-    *   *Derin Öğrenme (Deep Learning):* Multi-Layer Perceptron (MLP), PyTorch GRU yinelemeli ağ (Recurrent Neural Network).
-*   **Kullanım:**
-    ```bash
-    python src/benchmark.py --output-report docs/experiments/model_benchmark_report.md
-    ```
-*   **Sonuç:** Ayrıntılı ampirik bulgular, Sharpe oranı ve kümülatif strateji getirileri için [docs/experiments/model_benchmark_report.md](docs/experiments/model_benchmark_report.md) raporunu inceleyebilirsiniz.
-
-## 4. İş Gereksinimleri ve Kullanım
-Bu model, bir yatırım tavsiyesi vermekten ziyade, yatırımcının karar destek mekanizması olarak tasarlanmıştır.
-*   **Canlıya Alma (Streamlit):** Model, `Streamlit` kullanılarak interaktif bir web arayüzüne dönüştürülmüştür. `.streamlit/config.toml` ile kurumsal koyu tema (Dark Mode) varsayılan olarak sabitlenmiştir:
-    ```bash
-    streamlit run app.py
-    ```
-*   **İki Yönlü RAG & Temel Analiz Entegrasyonu:**
-    Proje, [themuhammedguler/Financial-Analyst-ChatBot-Project](https://github.com/themuhammedguler/Financial-Analyst-ChatBot-Project) ile çift yönlü entegre çalışır:
-    *   **Derin Bağlantı (Deep-Linking):** URL `?ticker=THYAO` parametresiyle açıldığında seçili hisse otomatik yüklenir.
-    *   **Yapılandırılmış Çıktı:** Chatbot projesinin ürettiği temel analiz ve bilanço özetleri (`FundamentalReport`) `src/fundamental_rag.py` üzerinden arayüze taşınır.
-    *   **Çift Yönlü Köprü:** Tek tıkla hissenin bilanço dipnotlarını ve faaliyet raporlarını analiz eden RAG chatbot'una geçiş sağlanır.
-*   **Docker & Docker Compose ile Çalıştırma:**
-    Herhangi bir yerel ortam kurulumu yapmadan tek bir komutla uygulamayı konteyner üzerinde çalıştırabilirsiniz:
-    ```bash
-    docker compose up --build
-    ```
-    Uygulama `http://localhost:8501` adresinde yayına başlar.
-*   **İzleme (Monitoring):** Canlı ortamda modelin başarısı "Doğru Yön Tahmini Yüzdesi" metriği ile haftalık olarak takip edilmelidir.
-
-## 5. Proje Yapısı
 ```text
 BIST-TREND-FORECASTER/
-├── .github/workflows/     # CI, CD ve periyodik yeniden eğitim iş akışları
-├── .streamlit/            # Streamlit koyu tema ve istemci yapılandırması
-├── data/                  # Ham ve işlenmiş veriler
-├── docs/experiments/      # Model mimarisi kıyaslama ve deney raporları
-├── models/                # Eğitilmiş .json modelleri ve model meta verileri
-├── notebooks/             # EDA ve Deneme not defterleri
-├── src/                   # Kaynak kodlar
-│   ├── benchmark.py       # Genişleyen pencereli model benchmark harness
-│   ├── config.py          # Ayarlar ve özellik listeleri
-│   ├── features.py        # Teknik indikatör ve makro özellik hesaplamaları
-│   ├── fundamental_rag.py # Financial Analyst Chatbot RAG entegrasyonu
-│   ├── kap_llm.py         # LLM destekli KAP duygu ve etki analizi
-│   ├── risk_sizing.py     # Kelly Criterion dinamik pozisyon boyutlandırma
-│   ├── scanner.py         # BIST 30 piyasa taraması ve fırsat radarı
-│   ├── tune.py            # Optuna hiperparametre optimizasyonu
-│   ├── metrics.py         # Değerlendirme metrikleri ve sınıf ağırlıklandırma
-│   ├── model_metadata.py  # Model üretim meta verisi kayıt modülü
-│   └── model_train.py     # Model eğitimi ve kalite kapısı (quality gate)
-├── tests/                 # Birim ve entegrasyon testleri (313+ test)
-├── app.py                 # Streamlit arayüz kodu
-├── Dockerfile             # Docker konteyner tanımı
-├── docker-compose.yml     # Konteyner orchestration konfigürasyonu
-├── .dockerignore          # Docker imajı dışlama kuralları
-├── requirements.txt       # Kütüphane bağımlılıkları (prod)
-├── requirements-dev.txt   # Geliştirme ve test bağımlılıkları
-├── pyproject.toml         # Proje meta verisi ve ruff ayarları
-└── README.md              # Proje dokümantasyonu
+├── .github/workflows/         # CI/CD, haftalık yeniden eğitim ve günlük cron
+│   ├── ci.yml                 # Test & lint doğrulama iş akışı
+│   ├── daily_forecast.yml     # 18:30 TRT otonom günlük tahmin cron'u
+│   └── retrain.yml            # Haftalık model yeniden eğitim iş akışı
+├── assets/                    # Logo ve görsel materyaller
+├── data/
+│   ├── bist30_combined.csv    # 5 yıllık BIST 30 seans ve makro veri seti
+│   └── prediction_audit.json  # 440+ ileriye dönük tahmin denetim defteri
+├── docs/experiments/          # Benchmark ve ampirik deney raporları
+├── models/                    # Eğitilmiş CatBoost, LightGBM, XGBoost ve meta dosyaları
+├── src/                       # Modüler kaynak kod mimarisi
+│   ├── analytics.py           # Gizlilik dostu ziyaretçi analitiği (GoatCounter)
+│   ├── backtest.py            # Vektörize strateji simülatörü
+│   ├── config.py              # Konfigürasyon ve tekil kaynak listeleri
+│   ├── daily_updater.py       # Otonom günlük seans tahmin motoru
+│   ├── email_alerts.py        # HTML bülten ve fırsat radarı e-posta modülü
+│   ├── ensemble.py            # Çoklu model ve topluluk (Soft Voting) motoru
+│   ├── explain.py             # SHAP öznitelik katkıları ve açıklanabilirlik
+│   ├── features.py            # Feature Engineering 2.0 (20 teknik öznitelik)
+│   ├── fundamental_rag.py     # Bilanço analizi RAG chatbot entegrasyonu
+│   ├── hybrid_decision.py     # Kural tabanlı ve yapay zeka hibrit karar motoru
+│   ├── kap_llm.py             # LLM tabanlı KAP haber duygu analizi
+│   ├── live_data.py           # Canlı seans ve makro veri çekim motoru
+│   ├── portfolio_optimizer.py # Markowitz MPT Sharpe & Sektörel Treemap
+│   ├── risk_sizing.py         # Kelly Kriteri dinamik pozisyon boyutlandırma
+│   ├── scanner.py             # BIST 30 piyasa fırsat radarı
+│   └── tracker.py             # İleriye dönük tahmin gerçekleşme defteri
+├── tests/                     # 357 birim ve entegrasyon testi
+├── app.py                     # Ana Streamlit uygulama arayüzü
+├── Dockerfile                 # Konteyner imaj tanımı
+├── docker-compose.yml         # Konteyner orkestrasyonu
+├── pyproject.toml             # Ruff ve proje meta ayarları
+├── requirements.txt           # Üretim bağımlılıkları
+└── README.md                  # Proje dokümantasyonu
 ```
+
+---
+
+## ⚖️ Yasal Uyarı
+
+Bu platformda sunulan tüm yapay zeka yön tahminleri, olasılık hesaplamaları, teknik göstergeler ve portföy optimizasyonu çıktıları **yalnızca karar destek ve eğitim amaçlıdır**. 
+
+Hiçbir şekilde **Yatırım Tavsiyesi Değildir (YTD)**. Finansal piyasalarda işlem yapmak sermaye kaybı riski taşır; kararlarınızı kişisel risk toleransınıza göre alınız.
+
+---
+
+<div align="center">
+
+Geliştirici: **Muhammed Güler**  
+[GitHub Profil](https://github.com/themuhammedguler) • [LinkedIn](https://www.linkedin.com/in/themuhammedguler) • [Hugging Face](https://huggingface.co/themuhammedguler)
+
+BIST Trend Forecaster © 2026 · Açık Kaynak Karar Destek Platformu
+
+</div>
