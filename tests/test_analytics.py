@@ -16,6 +16,43 @@ def test_build_goatcounter_html():
     html = analytics.build_goatcounter_html("my-bist-app")
     assert 'data-goatcounter="https://my-bist-app.goatcounter.com/count"' in html
     assert "//gc.zgo.at/count.js" in html
+    assert "allow_frame: true" in html
+    assert (
+        '<img src="https://my-bist-app.goatcounter.com/count?p=/&t=BIST_Trend_Forecaster"' in html
+    )
+
+
+def test_send_server_side_beacon(monkeypatch):
+    called_url = []
+
+    class DummyResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            pass
+
+    def dummy_urlopen(req, timeout=3):
+        called_url.append(req.full_url)
+        return DummyResponse()
+
+    import urllib.request
+
+    monkeypatch.setattr(urllib.request, "urlopen", dummy_urlopen)
+    analytics._send_server_side_beacon("demo-code")
+    assert len(called_url) == 1
+    assert "https://demo-code.goatcounter.com/count?p=/&t=BIST_Trend_Forecaster" in called_url[0]
+
+
+def test_send_server_side_beacon_handles_exception(monkeypatch):
+    import urllib.request
+
+    def failing_urlopen(req, timeout=3):
+        raise OSError("Network unreachable")
+
+    monkeypatch.setattr(urllib.request, "urlopen", failing_urlopen)
+    # Should not raise exception
+    analytics._send_server_side_beacon("demo-code")
 
 
 def test_build_ga_html():
