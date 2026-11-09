@@ -13,6 +13,7 @@ import email.message
 import logging
 import os
 import smtplib
+from datetime import datetime, timezone
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -258,13 +259,20 @@ def send_email_alert(
     smtp_port: int | None = None,
     smtp_user: str | None = None,
     smtp_password: str | None = None,
+    from_email: str | None = None,
 ) -> bool:
     """Hazırlanan HTML e-posta bültenini SMTP üzerinden alıcıya ulaştırır."""
     to_email = recipient_email or os.getenv("ALERT_RECIPIENT_EMAIL", "")
-    server_host = smtp_server or os.getenv("SMTP_SERVER", "smtp.gmail.com")
-    server_port = smtp_port or int(os.getenv("SMTP_PORT", "587"))
+    server_host = smtp_server or os.getenv("SMTP_SERVER", "smtp.resend.com")
+    port_val = smtp_port or os.getenv("SMTP_PORT", "465")
+    try:
+        server_port = int(port_val)
+    except (ValueError, TypeError):
+        server_port = 465
+
     user = smtp_user or os.getenv("SMTP_USER", "")
     password = smtp_password or os.getenv("SMTP_PASSWORD", "")
+    sender_addr = from_email or os.getenv("SMTP_FROM_EMAIL", "")
 
     if not to_email or not user or not password:
         logger.warning(
@@ -273,9 +281,17 @@ def send_email_alert(
         )
         return False
 
+    if not sender_addr:
+        if user.lower() == "resend":
+            sender_addr = "onboarding@resend.dev"
+        elif "@" in user:
+            sender_addr = user
+        else:
+            sender_addr = "onboarding@resend.dev"
+
     msg = email.message.EmailMessage()
     msg["Subject"] = subject
-    msg["From"] = f"BIST Trend Forecaster <{user}>"
+    msg["From"] = f"BIST Trend Forecaster <{sender_addr}>"
     msg["To"] = to_email
     msg.set_content(
         "Bu bülteni görüntülemek için lütfen HTML destekli bir e-posta istemcisi kullanın."
@@ -283,14 +299,80 @@ def send_email_alert(
     msg.add_alternative(html_content, subtype="html")
 
     try:
-        with smtplib.SMTP(server_host, server_port, timeout=15) as server:
-            server.ehlo()
-            server.starttls()
-            server.ehlo()
-            server.login(user, password)
-            server.send_message(msg)
-            logger.info("E-posta bülteni başarıyla gönderildi: %s", to_email)
-            return True
+        if server_port == 465:
+            with smtplib.SMTP_SSL(server_host, server_port, timeout=15) as server:
+                server.login(user, password)
+                server.send_message(msg)
+        else:
+            with smtplib.SMTP(server_host, server_port, timeout=15) as server:
+                server.ehlo()
+                server.starttls()
+                server.ehlo()
+                server.login(user, password)
+                server.send_message(msg)
+        logger.info("E-posta bülteni başarıyla gönderildi: %s", to_email)
+        return True
     except Exception as exc:
         logger.error("E-posta gönderilirken hata oluştu: %s", exc)
         return False
+
+
+def send_test_email(recipient_email: str | None = None) -> bool:
+    """Hızlı bağlantı testi için örnek BIST 30 verisiyle test bülteni gönderir."""
+    target_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    sample_picks = [
+        {
+            "ticker": "THYAO",
+            "price": 314.50,
+            "prob_1d": 64.8,
+            "prob_5d": 68.2,
+            "prob_20d": 72.0,
+            "verdict": "🏛️ GÜÇLÜ BOĞA",
+            "confluence": "🏛️ GÜÇLÜ BOĞA",
+            "corridor_1d": "302.00 TL — 328.00 TL",
+            "allocation_pct": 14.0,
+            "sector": "Ulaştırma",
+            "adx_text": "ADX: 29.4 (Güçlü Trend)",
+        },
+        {
+            "ticker": "ASELS",
+            "price": 68.40,
+            "prob_1d": 59.2,
+            "prob_5d": 62.5,
+            "prob_20d": 65.0,
+            "verdict": "🚀 YÜKSELİŞ",
+            "confluence": "🚀 YÜKSELİŞ",
+            "corridor_1d": "66.00 TL — 71.50 TL",
+            "allocation_pct": 10.0,
+            "sector": "Savunma",
+            "adx_text": "ADX: 24.1 (Yükseliş)",
+        },
+        {
+            "ticker": "BIMAS",
+            "price": 492.00,
+            "prob_1d": 56.4,
+            "prob_5d": 58.0,
+            "prob_20d": 61.2,
+            "verdict": "📈 ALIM YÖNLÜ",
+            "confluence": "📈 ALIM YÖNLÜ",
+            "corridor_1d": "480.00 TL — 505.00 TL",
+            "allocation_pct": 6.0,
+            "sector": "Perakende",
+            "adx_text": "ADX: 21.0 (Ilımlı Trend)",
+        },
+    ]
+    html = build_newsletter_html(
+        top_picks=sample_picks,
+        report_date=target_date,
+        model_version="v2.1-ensemble (Test Modu)",
+        model_accuracy=0.5213,
+        market_summary=(
+            "Bu bir test e-postasıdır. BIST Trend Forecaster e-posta bildirim servisinin ve "
+            "SMTP yapılandırmasının sorunsuz çalıştığını doğrulamak amacıyla gönderilmiştir."
+        ),
+    )
+    return send_email_alert(
+        subject=f"🧪 [TEST] BIST Trend Forecaster Bülten Bağlantı Testi ({target_date})",
+        html_content=html,
+        recipient_email=recipient_email,
+    )

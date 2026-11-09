@@ -6,6 +6,11 @@ on:
     - cron: '30 15 * * 1-5'
   workflow_dispatch:
     inputs:
+      test_email_only:
+        description: "Yalnızca test e-postası gönder (piyasa taramasını atla)"
+        type: boolean
+        required: false
+        default: false
       dry_run:
         description: "Dry run (tahminleri hesapla fakat dosyaya kaydetme)"
         type: boolean
@@ -52,8 +57,13 @@ jobs:
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          SMTP_FROM_EMAIL: ${{ secrets.SMTP_FROM_EMAIL }}
           ALERT_RECIPIENT_EMAIL: ${{ secrets.ALERT_RECIPIENT_EMAIL }}
         run: |
+          if [ "${{ inputs.test_email_only }}" = "true" ]; then
+            python -m src.daily_updater --test-email
+            exit 0
+          fi
           FLAGS=""
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             FLAGS="$FLAGS --dry-run"

@@ -93,11 +93,76 @@ def test_send_email_alert_handles_smtp_exception():
             subject="Hata Testi",
             html_content="<p>Hata</p>",
             recipient_email="investor@example.com",
+            smtp_port=587,
             smtp_user="bot@example.com",
             smtp_password="password",
         )
 
         assert success is False
+
+
+def test_send_email_alert_ssl_port_465_resend():
+    mock_ssl_instance = MagicMock()
+    mock_ssl_class = MagicMock(return_value=mock_ssl_instance)
+    mock_ssl_instance.__enter__.return_value = mock_ssl_instance
+
+    with patch("smtplib.SMTP_SSL", mock_ssl_class):
+        success = email_alerts.send_email_alert(
+            subject="Resend SSL Test",
+            html_content="<h1>Resend Test</h1>",
+            recipient_email="target@example.com",
+            smtp_server="smtp.resend.com",
+            smtp_port=465,
+            smtp_user="resend",
+            smtp_password="re_secret_key",
+        )
+
+        assert success is True
+        mock_ssl_class.assert_called_once_with("smtp.resend.com", 465, timeout=15)
+        mock_ssl_instance.login.assert_called_once_with("resend", "re_secret_key")
+        mock_ssl_instance.send_message.assert_called_once()
+        msg = mock_ssl_instance.send_message.call_args[0][0]
+        assert "onboarding@resend.dev" in msg["From"]
+        assert msg["To"] == "target@example.com"
+
+
+def test_send_email_alert_custom_from_email(monkeypatch):
+    mock_ssl_instance = MagicMock()
+    mock_ssl_class = MagicMock(return_value=mock_ssl_instance)
+    mock_ssl_instance.__enter__.return_value = mock_ssl_instance
+    monkeypatch.setenv("SMTP_FROM_EMAIL", "custom_sender@mybist.com")
+
+    with patch("smtplib.SMTP_SSL", mock_ssl_class):
+        success = email_alerts.send_email_alert(
+            subject="Custom From Test",
+            html_content="<h1>Custom From</h1>",
+            recipient_email="target@example.com",
+            smtp_server="smtp.resend.com",
+            smtp_port=465,
+            smtp_user="resend",
+            smtp_password="re_secret_key",
+        )
+
+        assert success is True
+        msg = mock_ssl_instance.send_message.call_args[0][0]
+        assert "custom_sender@mybist.com" in msg["From"]
+
+
+def test_send_test_email(monkeypatch):
+    sent_args = {}
+
+    def mock_send_email_alert(**kwargs):
+        sent_args.update(kwargs)
+        return True
+
+    monkeypatch.setattr(email_alerts, "send_email_alert", mock_send_email_alert)
+    success = email_alerts.send_test_email(recipient_email="test_investor@example.com")
+
+    assert success is True
+    assert "TEST" in sent_args["subject"]
+    assert sent_args["recipient_email"] == "test_investor@example.com"
+    assert "<!DOCTYPE html>" in sent_args["html_content"]
+    assert "THYAO" in sent_args["html_content"]
 
 
 def test_build_newsletter_html_with_multi_horizon_data():
