@@ -126,6 +126,27 @@ def test_send_email_alert_ssl_port_465_resend():
         assert msg["To"] == "target@example.com"
 
 
+def test_send_email_alert_cleans_url_and_whitespace():
+    mock_ssl_instance = MagicMock()
+    mock_ssl_class = MagicMock(return_value=mock_ssl_instance)
+    mock_ssl_instance.__enter__.return_value = mock_ssl_instance
+
+    with patch("smtplib.SMTP_SSL", mock_ssl_class):
+        success = email_alerts.send_email_alert(
+            subject="Clean URL Test",
+            html_content="<h1>Clean URL</h1>",
+            recipient_email=" target@example.com ",
+            smtp_server="  https://smtp.resend.com/v1  ",
+            smtp_port=465,
+            smtp_user=" resend ",
+            smtp_password=" re_secret_key ",
+        )
+
+        assert success is True
+        mock_ssl_class.assert_called_once_with("smtp.resend.com", 465, timeout=15)
+        mock_ssl_instance.login.assert_called_once_with("resend", "re_secret_key")
+
+
 def test_send_email_alert_custom_from_email(monkeypatch):
     mock_ssl_instance = MagicMock()
     mock_ssl_class = MagicMock(return_value=mock_ssl_instance)
