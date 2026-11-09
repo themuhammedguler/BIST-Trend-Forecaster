@@ -1,17 +1,8 @@
----
-title: BIST Trend Forecaster
-emoji: 📈
-colorFrom: green
-colorTo: blue
-sdk: streamlit
-sdk_version: 1.39.0
-app_file: app.py
-pinned: false
----
-
 <div align="center">
 
-# 📈 BIST Trend Forecaster
+<img src="assets/logo.png" alt="BIST Trend Forecaster Logo" width="120" />
+
+# BIST Trend Forecaster
 ### Borsa İstanbul (BIST 30) Yapay Zeka Tabanlı Yön Tahmin & Portföy Karar Destek Platformu
 
 [![CI Pipeline](https://img.shields.io/github/actions/workflow/status/themuhammedguler/BIST-Trend-Forecaster/ci.yml?branch=main&label=CI%20Pipeline&logo=github&style=for-the-badge)](https://github.com/themuhammedguler/BIST-Trend-Forecaster/actions)
