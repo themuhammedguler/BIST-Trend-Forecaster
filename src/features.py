@@ -1,4 +1,6 @@
 # src/features.py
+from typing import Any
+
 import numpy as np  # type: ignore
 import pandas as pd  # type: ignore
 import ta  # type: ignore  # Technical Analysis Library
@@ -237,3 +239,34 @@ def _ticker_features(df):
     out["next_close"] = close.shift(-1)
     out["target"] = (out["next_close"] > close).astype(int)
     return pd.DataFrame(out, index=df.index)
+
+
+def align_model_features(model: Any, df: pd.DataFrame) -> pd.DataFrame:
+    """Modelin eğitildiği öznitelikleri DataFrame sütunlarıyla dinamik olarak hizalar.
+
+    Model sürüm geçişlerinde (örn. 14 öznitelik -> 20 öznitelik) veya önbellek
+    uyumsuzluklarında oluşabilecek 'feature_names mismatch' hatalarını önler.
+    """
+    try:
+        booster = getattr(model, "get_booster", lambda: None)()
+        expected = getattr(model, "feature_names_in_", None)
+        if expected is None and booster and hasattr(booster, "feature_names"):
+            expected = booster.feature_names
+
+        if expected is not None and len(expected) > 0:
+            cols = [c for c in expected if c in df.columns]
+            if len(cols) == len(expected):
+                return df[list(expected)]
+    except Exception:
+        pass
+
+    try:
+        from src import config
+
+        cols = [c for c in config.FEATURES if c in df.columns]
+        if cols:
+            return df[cols]
+    except Exception:
+        pass
+
+    return df

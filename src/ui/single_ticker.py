@@ -9,6 +9,7 @@ from src import (
     config,
     drift,
     explain,
+    features,
     fundamental_rag,
     hybrid_decision,
     kap_llm,
@@ -32,7 +33,7 @@ def render_backtest(model, df_processed, threshold=config.PROB_THRESHOLD_HIGH, c
         help="Sermayeyi sabit %100 yerine güven skoru ve oynaklığa göre dinamik tahsis eder (#71).",
     )
     window = backtest.recent_window(df_processed, months=BACKTEST_MONTHS)
-    probs = model.predict_proba(window.drop(columns=["Date", "close"]))[:, 1]
+    probs = model.predict_proba(features.align_model_features(model, window))[:, 1]
     result = backtest.run_backtest(window, probs, threshold=threshold, cost=cost)
 
     fig = go.Figure()
@@ -492,8 +493,8 @@ def render_single_ticker_tab(
         # Sadece en son günü al (Yarın için tahmin yapacağız)
         input_data = df_processed.iloc[[-1]]
 
-        # Gerekli Featurelar
-        X_pred = input_data[config.FEATURES]
+        # Gerekli Featurelar (Modele dinamik hizalanır)
+        X_pred = features.align_model_features(model, input_data)
 
         # Tahmin
         prob = model.predict_proba(X_pred)[0][1]  # Artış olasılığı
