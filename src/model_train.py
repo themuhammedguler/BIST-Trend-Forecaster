@@ -10,12 +10,13 @@ from sklearn.metrics import classification_report
 
 try:
     import config  # type: ignore
+    import ensemble  # type: ignore
     import features  # type: ignore
     import metrics  # type: ignore
     import model_metadata  # type: ignore
     import tune as tune_module  # type: ignore
 except ImportError:
-    from src import config, features, metrics, model_metadata
+    from src import config, ensemble, features, metrics, model_metadata
     from src import tune as tune_module
 
 
@@ -49,7 +50,12 @@ def get_temporal_split(df_processed, features_list, train_ratio=0.9):
 
 
 def train_model(
-    tune=False, n_trials=50, metric="accuracy", balance_classes=False, min_accuracy=None
+    tune=False,
+    n_trials=50,
+    metric="accuracy",
+    balance_classes=False,
+    min_accuracy=None,
+    model_type="xgb",
 ):
     # 1. Veriyi Yükle
     print("Veri yükleniyor...")
@@ -79,30 +85,51 @@ def train_model(
         dist = metrics.class_distribution(y_part)
         print(f"{name} Sınıf Dağılımı: Yükseliş %{dist[1] * 100:.1f} / Düşüş %{dist[0] * 100:.1f}")
 
-    # 4. Model Tanımlama ve Eğitim (XGBoost)
-    # Varsayılan: manuel parametreler. --tune ile Optuna optimizasyonu yapılır.
-    params = dict(tune_module.DEFAULT_PARAMS)
-    if tune:
-        print(f"Optuna ile hiperparametre optimizasyonu ({n_trials} deneme, hedef: {metric})...")
-        study = tune_module.run_study(
-            X_train,
-            y_train,
-            dates_train,
-            n_trials=n_trials,
-            metric=metric,
-            balance_classes=balance_classes,
+    # 4. Model Tanımlama ve Eğitim (XGBoost / LightGBM / CatBoost / Ensemble)
+    if model_type == "ensemble":
+        print("Çoklu model ve topluluk (XGBoost + LightGBM + CatBoost) eğitiliyor...")
+        trained_models, df_comparison = ensemble.evaluate_models_comparison(
+            X_train, y_train, X_test, y_test
         )
-        print(f"En iyi CV skoru ({metric}): {study.best_value:.4f}")
-        print(f"En iyi parametreler: {study.best_params}")
-        params = study.best_params
+        print("\n📊 Çoklu Model Karşılaştırma Karnesi:")
+        print(df_comparison.to_string(index=False))
+        model = trained_models["xgboost"]
+    elif model_type == "lgbm":
+        print("LightGBM modeli eğitiliyor...")
+        model = ensemble.build_lgbm_classifier()
+        model.fit(X_train, y_train)
+    elif model_type == "catboost":
+        print("CatBoost modeli eğitiliyor...")
+        model = ensemble.build_catboost_classifier()
+        model.fit(X_train, y_train)
+    else:
+        # Varsayılan: XGBoost
+        params = dict(tune_module.DEFAULT_PARAMS)
+        if tune:
+            print(
+                f"Optuna ile hiperparametre optimizasyonu ({n_trials} deneme, hedef: {metric})..."
+            )
+            study = tune_module.run_study(
+                X_train,
+                y_train,
+                dates_train,
+                n_trials=n_trials,
+                metric=metric,
+                balance_classes=balance_classes,
+            )
+            print(f"En iyi CV skoru ({metric}): {study.best_value:.4f}")
+            print(f"En iyi parametreler: {study.best_params}")
+            params = study.best_params
 
-    weight_params = tune_module.class_weight_params(y_train, balance_classes)
-    if weight_params:
-        print(f"Sınıf ağırlıklandırma: scale_pos_weight={weight_params['scale_pos_weight']:.4f}")
-    model = xgb.XGBClassifier(**params, **tune_module.FIXED_PARAMS, **weight_params)
+        weight_params = tune_module.class_weight_params(y_train, balance_classes)
+        if weight_params:
+            print(
+                f"Sınıf ağırlıklandırma: scale_pos_weight={weight_params['scale_pos_weight']:.4f}"
+            )
+        model = xgb.XGBClassifier(**params, **tune_module.FIXED_PARAMS, **weight_params)
 
-    print("Model eğitiliyor...")
-    model.fit(X_train, y_train)
+        print("XGBoost modeli eğitiliyor...")
+        model.fit(X_train, y_train)
 
     # 5. Değerlendirme
     proba = model.predict_proba(X_test)[:, 1]
@@ -134,9 +161,14 @@ def train_model(
     if not os.path.exists(os.path.dirname(config.MODEL_PATH)):
         os.makedirs(os.path.dirname(config.MODEL_PATH))
 
-    model.save_model(config.MODEL_PATH)
+    if hasattr(model, "save_model"):
+        model.save_model(config.MODEL_PATH)
+    elif hasattr(model, "booster_") and hasattr(model.booster_, "save_model"):
+        model.booster_.save_model(config.MODEL_PATH)
+
     print(f"\n✅ Model kaydedildi: {config.MODEL_PATH}")
 
+    model_params = params if "params" in locals() else {"model_type": model_type}
     meta = model_metadata.build_metadata(
         cutoff_date=cutoff_str,
         train_rows=len(X_train),
@@ -144,7 +176,7 @@ def train_model(
         test_accuracy=acc,
         metrics=scores,
         features=config.FEATURES,
-        best_params=params,
+        best_params=model_params,
         version="1.0",
     )
     model_metadata.save_metadata(meta, config.MODEL_META_PATH)
@@ -161,7 +193,13 @@ if __name__ == "__main__":
         except Exception:
             pass
 
-    parser = argparse.ArgumentParser(description="BIST XGBoost model eğitimi")
+    parser = argparse.ArgumentParser(description="BIST Makine Öğrenmesi Model Eğitimi")
+    parser.add_argument(
+        "--model",
+        choices=["xgb", "lgbm", "catboost", "ensemble"],
+        default="xgb",
+        help="Eğitilecek model mimarisi (xgb, lgbm, catboost, ensemble)",
+    )
     parser.add_argument(
         "--tune", action="store_true", help="Optuna ile hiperparametre optimizasyonu yap"
     )
@@ -190,4 +228,5 @@ if __name__ == "__main__":
         metric=args.metric,
         balance_classes=args.balance_classes,
         min_accuracy=args.min_accuracy,
+        model_type=args.model,
     )

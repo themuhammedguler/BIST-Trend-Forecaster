@@ -16,6 +16,7 @@ from src import (
     risk_sizing,
     session_calendar,
     signals,
+    tracker,
 )
 from src.ui.components import get_prediction_data, load_model
 
@@ -388,6 +389,95 @@ def render_hybrid_decision_card(decision: hybrid_decision.HybridDecision) -> Non
     st.markdown(card_html, unsafe_allow_html=True)
 
 
+def render_forward_tracking_section(selected_ticker: str, full_df: pd.DataFrame):
+    """Kayıtlı tahminlerin gerçekleşen piyasa fiyatlarıyla başarı karnesini gösterir (#53)."""
+    with st.expander(
+        "🎯 Gerçekleşen Model Başarısı & İleriye Dönük Takip (Forward Tracking)",
+        expanded=False,
+    ):
+        all_preds = tracker.load_predictions()
+        ticker_preds = [p for p in all_preds if p.get("ticker") == selected_ticker]
+
+        if not ticker_preds:
+            st.info(
+                f"ℹ️ {selected_ticker} için ilk tahmin kaydı bugünkü seans ile oluşturuldu. "
+                "Sonraki seans kapanışlarında gerçekleşen getiri ve isabet oranları bu "
+                "tabloda otomatik güncellenecektir."
+            )
+            return
+
+        evaluated_df = tracker.evaluate_realization(ticker_preds, full_df, horizons=(1, 3, 5))
+        if evaluated_df.empty:
+            st.info(f"ℹ️ {selected_ticker} için geçmiş seans gerçekleşmeleri hesaplanıyor...")
+            return
+
+        summary = tracker.summarize_performance(evaluated_df, horizons=(1, 3, 5))
+        horizons_info = summary.get("horizons", {})
+
+        # KPI Rozetleri (len(at.metric) == 1 kuralını korumak için HTML ile)
+        kpi_cols = st.columns(3)
+        labels = [("1G", "1 Seans"), ("3G", "3 Seans"), ("1H (5G)", "1 Hafta (5 Seans)")]
+
+        badge_box_style = (
+            "background-color: #1E293B; border: 1px solid #334155; border-radius: 6px; "
+            "padding: 10px 14px; text-align: center; margin-bottom: 12px;"
+        )
+
+        for col, (h_key, h_title) in zip(kpi_cols, labels):
+            h_data = horizons_info.get(h_key, {})
+            completed = h_data.get("completed_count", 0)
+            hit_rate = h_data.get("hit_rate_pct", 0.0)
+            avg_ret = h_data.get("avg_return_pct", 0.0)
+
+            ret_color = "#10B981" if avg_ret >= 0 else "#EF4444"
+            title_div = (
+                f'<div style="font-size: 0.75rem; color: #94A3B8; font-weight: 600;">'
+                f"{h_title} İsabet</div>"
+            )
+            if completed > 0:
+                rate_div = (
+                    f'<div style="font-size: 1.25rem; font-weight: 800; color: #F8FAFC; '
+                    f'margin: 2px 0;">%{hit_rate:.1f}</div>'
+                )
+                ret_div = (
+                    f'<div style="font-size: 0.75rem; color: {ret_color};">'
+                    f"Ort. Getiri: %{avg_ret:+.2f} ({completed} seans)</div>"
+                )
+                html = f'<div style="{badge_box_style}">{title_div}{rate_div}{ret_div}</div>'
+            else:
+                pending_div = (
+                    '<div style="font-size: 1.05rem; font-weight: 700; color: #F59E0B; '
+                    'margin: 4px 0;">⏳ Bekleniyor</div>'
+                )
+                wait_div = (
+                    '<div style="font-size: 0.75rem; color: #64748B;">Seans tamamlanmadı</div>'
+                )
+                html = f'<div style="{badge_box_style}">{title_div}{pending_div}{wait_div}</div>'
+            col.markdown(html, unsafe_allow_html=True)
+
+        st.caption(
+            "Modelin geçmişte verdiği yön tahminlerinin 1 gün, 3 gün ve 1 hafta (5 işlem günü) "
+            "sonraki gerçekleşen fiyat karşılıkları ve başarı karnesi:"
+        )
+
+        display_df = evaluated_df.iloc[::-1].reset_index(drop=True)
+        st.dataframe(
+            display_df,
+            column_config={
+                "Giriş Fiyatı (TL)": st.column_config.NumberColumn(format="%.2f"),
+                "1G Fiyat (TL)": st.column_config.NumberColumn(format="%.2f"),
+                "1G Getiri (%)": st.column_config.NumberColumn(format="%+.2f"),
+                "3G Fiyat (TL)": st.column_config.NumberColumn(format="%.2f"),
+                "3G Getiri (%)": st.column_config.NumberColumn(format="%+.2f"),
+                "1H (5G) Fiyat (TL)": st.column_config.NumberColumn(format="%.2f"),
+                "1H (5G) Getiri (%)": st.column_config.NumberColumn(format="%+.2f"),
+                "1G 100k TL Bakiye": st.column_config.NumberColumn(format="%.2f TL"),
+                "3G 100k TL Bakiye": st.column_config.NumberColumn(format="%.2f TL"),
+                "1H (5G) 100k TL Bakiye": st.column_config.NumberColumn(format="%.2f TL"),
+            },
+        )
+
+
 def render_single_ticker_tab(
     selected_ticker: str,
     selected_ticker_full: str,
@@ -463,6 +553,16 @@ def render_single_ticker_tab(
             prob_low=prob_low,
         )
         render_hybrid_decision_card(decision)
+
+        # Günlük Tahmin Kaydı (Forward Tracking Denetim Defteri) (#53)
+        last_date_str = str(input_data["Date"].iloc[-1]).split()[0]
+        tracker.record_prediction(
+            date=last_date_str,
+            ticker=selected_ticker,
+            signal=1 if prob >= 0.50 else 0,
+            prob=prob,
+            entry_price=current_price,
+        )
 
         # Makro ve Piyasa Göstergeleri (#10)
         macro_cols = ["xu100_ret", "rel_strength_bist", "usdtry_change"]
@@ -541,6 +641,7 @@ def render_single_ticker_tab(
             threshold=prob_high,
             cost=cost,
         )
+        render_forward_tracking_section(selected_ticker, full_df)
         render_drift_section(df_processed[config.FEATURES])
         render_kap_llm_section(selected_ticker)
         render_fundamental_rag_section(selected_ticker, report=report)
