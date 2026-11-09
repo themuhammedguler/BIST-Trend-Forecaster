@@ -3,7 +3,7 @@ import os
 
 import streamlit as st
 
-from src import config, model_metadata, signals
+from src import analytics, config, model_metadata, signals
 from src.ui import (
     get_cached_macro_data,
     get_cached_market_scan,
@@ -32,6 +32,10 @@ st.set_page_config(
     page_icon=PAGE_ICON,
     layout="wide",
 )
+
+# Ziyaretçi ve Oturum Takibi (GoatCounter / Dahili Sayaç)
+analytics.record_session()
+analytics.inject_tracking_script()
 
 st.title("📈 Borsa İstanbul Yapay Zeka Yön Tahmini", anchor=False)
 st.markdown("""
@@ -97,9 +101,10 @@ commission_rate = st.sidebar.slider(
 )
 cost = commission_rate / 100.0
 
-# Yan Menü: Model Bilgisi (#13, #45)
+# Yan Menü: Model Bilgisi (#13, #45) & Analitik Durumu
 model_meta = model_metadata.load_metadata(config.MODEL_META_PATH)
 render_sidebar_model_info(model_meta)
+analytics.render_analytics_status()
 
 # Ana Akış
 if not os.path.exists(config.MODEL_PATH):

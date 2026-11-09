@@ -10,6 +10,7 @@ from src import (
     drift,
     explain,
     fundamental_rag,
+    hybrid_decision,
     kap_llm,
     kap_news,
     risk_sizing,
@@ -219,10 +220,13 @@ def render_kap_llm_section(selected_ticker: str):
             st.dataframe(disc_table)
 
 
-def render_fundamental_rag_section(selected_ticker: str):
+def render_fundamental_rag_section(
+    selected_ticker: str, report: fundamental_rag.FundamentalReport | None = None
+):
     """Financial Analyst ChatBot Project temel analiz ve bilanço özetini gösterir."""
     with st.expander("💬 Kurumsal Temel Analiz & Bilanço Chatbot'u (RAG)", expanded=False):
-        report = fundamental_rag.fetch_fundamental_report(selected_ticker)
+        if report is None:
+            report = fundamental_rag.fetch_fundamental_report(selected_ticker)
         chatbot_link = fundamental_rag.build_chatbot_deeplink(selected_ticker)
 
         box_style = (
@@ -291,6 +295,99 @@ def render_fundamental_rag_section(selected_ticker: str):
             )
 
 
+def render_hybrid_decision_card(decision: hybrid_decision.HybridDecision) -> None:
+    """Teknik ve temel analizi birleştiren hibrit karar rozetini ve özetini render eder."""
+    verdict_colors = {
+        "STRONG_BUY": {
+            "border": "#10B981",
+            "badge_bg": "rgba(16, 185, 129, 0.15)",
+            "text": "#34D399",
+        },
+        "VALUE_DIP": {
+            "border": "#38BDF8",
+            "badge_bg": "rgba(56, 189, 248, 0.15)",
+            "text": "#38BDF8",
+        },
+        "SPECULATIVE_MOMENTUM": {
+            "border": "#F59E0B",
+            "badge_bg": "rgba(245, 158, 11, 0.15)",
+            "text": "#FBBF24",
+        },
+        "STRONG_SELL": {
+            "border": "#EF4444",
+            "badge_bg": "rgba(239, 68, 68, 0.15)",
+            "text": "#F87171",
+        },
+        "TECHNICAL_UP": {
+            "border": "#10B981",
+            "badge_bg": "rgba(16, 185, 129, 0.15)",
+            "text": "#34D399",
+        },
+        "TECHNICAL_DOWN": {
+            "border": "#EF4444",
+            "badge_bg": "rgba(239, 68, 68, 0.15)",
+            "text": "#F87171",
+        },
+    }
+    theme = verdict_colors.get(
+        decision.verdict,
+        {"border": "#64748B", "badge_bg": "rgba(100, 116, 139, 0.15)", "text": "#94A3B8"},
+    )
+
+    fund_text = (
+        f"{decision.fundamental_score:+.2f}"
+        if decision.fundamental_score is not None
+        else "Rapor Yok"
+    )
+
+    card_style = (
+        f"background-color: #1E293B; border-left: 5px solid {theme['border']}; "
+        "border-radius: 8px; padding: 14px 18px; margin: 14px 0 16px 0; "
+        "border-top: 1px solid #334155; border-right: 1px solid #334155; "
+        "border-bottom: 1px solid #334155;"
+    )
+    badge_style = (
+        f"background-color: {theme['badge_bg']}; color: {theme['text']}; "
+        f"font-size: 0.78rem; font-weight: 700; padding: 3px 8px; border-radius: 4px; "
+        f"border: 1px solid {theme['border']};"
+    )
+    meta_style = (
+        "font-size: 0.78rem; color: #64748B; border-top: 1px solid #334155; "
+        "padding-top: 8px; display: flex; gap: 16px; flex-wrap: wrap;"
+    )
+    header_style = (
+        "display: flex; justify-content: space-between; align-items: center; "
+        "flex-wrap: wrap; gap: 8px; margin-bottom: 8px;"
+    )
+
+    card_html = f"""
+    <div style="{card_style}">
+        <div style="{header_style}">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 1.02rem; font-weight: 700; color: #FFFFFF;">
+                    {decision.badge}
+                </span>
+                <span style="{badge_style}">
+                    Kompozit Skor: {decision.composite_score:.1f} / 100
+                </span>
+            </div>
+            <div style="font-size: 0.82rem; color: #94A3B8;">
+                Uyum Düzeyi: <strong style="color: #F8FAFC;">{decision.alignment}</strong>
+            </div>
+        </div>
+        <p style="color: #CBD5E1; font-size: 0.88rem; line-height: 1.45; margin: 0 0 10px 0;">
+            {decision.summary}
+        </p>
+        <div style="{meta_style}">
+            <span>🤖 <strong>Teknik Olasılık:</strong> %{decision.technical_prob * 100:.1f}</span>
+            <span>📑 <strong>KAP Temel Duygu:</strong> {fund_text}</span>
+            <span>⚖️ <strong>Ağırlık:</strong> %55 Teknik + %45 Temel</span>
+        </div>
+    </div>
+    """
+    st.markdown(card_html, unsafe_allow_html=True)
+
+
 def render_single_ticker_tab(
     selected_ticker: str,
     selected_ticker_full: str,
@@ -354,6 +451,18 @@ def render_single_ticker_tab(
         with col3:
             st.write("📊 **Güven Skoru:**")
             signal_box(f"%{prob * 100:.1f} Olasılıkla Yükseliş")
+
+        # Hibrit Karar Motoru (Teknik ML + RAG Temel Analiz Sentezi)
+        report = fundamental_rag.fetch_fundamental_report(selected_ticker)
+        f_score = report.sentiment_score if report is not None else None
+        decision = hybrid_decision.evaluate_hybrid_decision(
+            ticker=selected_ticker,
+            technical_prob=prob,
+            fundamental_score=f_score,
+            prob_high=prob_high,
+            prob_low=prob_low,
+        )
+        render_hybrid_decision_card(decision)
 
         # Makro ve Piyasa Göstergeleri (#10)
         macro_cols = ["xu100_ret", "rel_strength_bist", "usdtry_change"]
@@ -434,4 +543,4 @@ def render_single_ticker_tab(
         )
         render_drift_section(df_processed[config.FEATURES])
         render_kap_llm_section(selected_ticker)
-        render_fundamental_rag_section(selected_ticker)
+        render_fundamental_rag_section(selected_ticker, report=report)

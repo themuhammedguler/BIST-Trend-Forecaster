@@ -119,6 +119,10 @@ FINANCIAL_CHATBOT_RAW_REPO = os.getenv(
 )
 FINANCIAL_CHATBOT_TIMEOUT_SECONDS = float(os.getenv("FINANCIAL_CHATBOT_TIMEOUT_SECONDS", "3.0"))
 
+# Ziyaretçi & Trafik Analitiği (Gizlilik dostu GoatCounter & Google Analytics)
+GOATCOUNTER_CODE = os.getenv("GOATCOUNTER_CODE", "")
+GA_TRACKING_ID = os.getenv("GA_TRACKING_ID", "")
+
 # Makro ve piyasa göstergeleri (BIST 100 endeksi ve USD/TRY kuru) (#10)
 INDEX_TICKER = "XU100.IS"
 FX_TICKER = "USDTRY=X"
