@@ -233,13 +233,13 @@ def render_fundamental_rag_section(
         chatbot_link = fundamental_rag.build_chatbot_deeplink(selected_ticker)
 
         box_style = (
-            "background-color: #152238; border: 1px solid #1E3A5F; "
+            "background-color: #0F131D; border: 1px solid #1A2233; "
             "border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; "
             "display: flex; justify-content: space-between; align-items: center; "
             "flex-wrap: wrap; gap: 8px;"
         )
         btn_style = (
-            "background-color: #1D4ED8; color: #FFFFFF; font-weight: 600; "
+            "background-color: #2563EB; color: #FFFFFF; font-weight: 600; "
             "font-size: 0.82rem; padding: 6px 14px; border-radius: 6px; "
             "text-decoration: none; display: inline-block;"
         )
@@ -334,7 +334,7 @@ def render_hybrid_decision_card(decision: hybrid_decision.HybridDecision) -> Non
     }
     theme = verdict_colors.get(
         decision.verdict,
-        {"border": "#1E3A5F", "badge_bg": "rgba(30, 58, 95, 0.20)", "text": "#94A3B8"},
+        {"border": "#1A2233", "badge_bg": "rgba(26, 34, 51, 0.25)", "text": "#94A3B8"},
     )
 
     fund_text = (
@@ -344,10 +344,10 @@ def render_hybrid_decision_card(decision: hybrid_decision.HybridDecision) -> Non
     )
 
     card_style = (
-        f"background-color: #152238; border-left: 5px solid {theme['border']}; "
+        f"background-color: #0F131D; border-left: 5px solid {theme['border']}; "
         "border-radius: 8px; padding: 14px 18px; margin: 14px 0 16px 0; "
-        "border-top: 1px solid #1E3A5F; border-right: 1px solid #1E3A5F; "
-        "border-bottom: 1px solid #1E3A5F;"
+        "border-top: 1px solid #1A2233; border-right: 1px solid #1A2233; "
+        "border-bottom: 1px solid #1A2233;"
     )
     badge_style = (
         f"background-color: {theme['badge_bg']}; color: {theme['text']}; "
@@ -355,7 +355,7 @@ def render_hybrid_decision_card(decision: hybrid_decision.HybridDecision) -> Non
         f"border: 1px solid {theme['border']};"
     )
     meta_style = (
-        "font-size: 0.78rem; color: #64748B; border-top: 1px solid #1E3A5F; "
+        "font-size: 0.78rem; color: #64748B; border-top: 1px solid #1A2233; "
         "padding-top: 8px; display: flex; gap: 16px; flex-wrap: wrap;"
     )
     header_style = (
@@ -421,7 +421,7 @@ def render_forward_tracking_section(selected_ticker: str, full_df: pd.DataFrame)
         labels = [("1G", "1 Seans"), ("3G", "3 Seans"), ("1H (5G)", "1 Hafta (5 Seans)")]
 
         badge_box_style = (
-            "background-color: #152238; border: 1px solid #1E3A5F; border-radius: 6px; "
+            "background-color: #0F131D; border: 1px solid #1A2233; border-radius: 6px; "
             "padding: 10px 14px; text-align: center; margin-bottom: 12px;"
         )
 
@@ -502,7 +502,7 @@ def render_multi_horizon_matrix(
 
     st.markdown("#### 🎯 Çoklu Vade Trend Matrisi (1 Gün • 1 Hafta • 1 Ay)")
 
-    # 3 Vade Kartı (Kamusal Kurumsal Renk Paleti: #152238 zemin, #1E3A5F sınır)
+    # 3 Vade Kartı (Derin Obsidyen Kurumsal Palet: #0F131D zemin, #1A2233 sınır)
     m_col1, m_col2, m_col3 = st.columns(3)
     cards = [
         ("1d", "📅 Yarınki Seans (1 Gün)", m_col1),
@@ -519,23 +519,23 @@ def render_multi_horizon_matrix(
             continue
 
         if fc.signal == 1:
-            bg_badge = "rgba(5, 150, 105, 0.20)"
+            bg_badge = "rgba(5, 150, 105, 0.18)"
             border_color = "#059669"
             text_color = "#34D399"
             icon = "🚀"
         elif fc.signal == -1:
-            bg_badge = "rgba(220, 38, 38, 0.20)"
+            bg_badge = "rgba(220, 38, 38, 0.18)"
             border_color = "#DC2626"
             text_color = "#F87171"
             icon = "🔻"
         else:
-            bg_badge = "rgba(217, 119, 6, 0.20)"
+            bg_badge = "rgba(217, 119, 6, 0.18)"
             border_color = "#D97706"
             text_color = "#FBBF24"
             icon = "⏸️"
 
         card_html = (
-            f'<div style="background-color: #152238; border: 1px solid #1E3A5F; '
+            f'<div style="background-color: #0F131D; border: 1px solid #1A2233; '
             f"border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; "
             f'border-top: 3px solid {border_color};">'
             f'<div style="font-size: 0.80rem; color: #94A3B8; font-weight: 600; '
@@ -548,7 +548,7 @@ def render_multi_horizon_matrix(
             f"font-size: 0.75rem; font-weight: 700; padding: 2px 8px; "
             f'border-radius: 4px; border: 1px solid {border_color};">'
             f"{icon} {fc.label}</span></div>"
-            f'<div style="font-size: 0.76rem; color: #64748B; border-top: 1px solid #1E3A5F; '
+            f'<div style="font-size: 0.76rem; color: #64748B; border-top: 1px solid #1A2233; '
             f'padding-top: 6px;">%95 Fiyat Koridoru (±%{corr["pct"]:.1f}):<br/>'
             f'<strong style="color: #CBD5E1;">{corr["min"]:.2f} TL — '
             f"{corr['max']:.2f} TL</strong></div></div>"
@@ -559,7 +559,7 @@ def render_multi_horizon_matrix(
     c_score = horizon_res.confluence_score
     c_color = "#059669" if c_score > 0.2 else ("#DC2626" if c_score < -0.2 else "#D97706")
     confluence_html = (
-        f'<div style="background-color: #152238; border: 1px solid #1E3A5F; '
+        f'<div style="background-color: #0F131D; border: 1px solid #1A2233; '
         f"border-left: 4px solid {c_color}; border-radius: 6px; padding: 10px 14px; "
         f"margin-bottom: 14px; display: flex; justify-content: space-between; "
         f'align-items: center; flex-wrap: wrap; gap: 8px;">'

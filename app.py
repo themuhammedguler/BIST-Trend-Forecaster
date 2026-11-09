@@ -62,7 +62,7 @@ if os.path.exists(LOGO_PATH):
             unsafe_allow_html=True,
         )
     st.sidebar.markdown(
-        "<hr style='margin: 10px 0 16px 0; border: none; border-top: 1px solid #1E3A5F;'/>",
+        "<hr style='margin: 10px 0 16px 0; border: none; border-top: 1px solid #1A2233;'/>",
         unsafe_allow_html=True,
     )
 st.sidebar.header("Hisse Seçimi")
