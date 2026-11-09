@@ -681,3 +681,12 @@ def test_app_respects_url_query_parameter_for_ticker(patched_download):
     at.run()
     assert list(at.exception) == []
     assert at.sidebar.selectbox[0].value == "THYAO"
+
+
+def test_backtest_renders_explanation_expander(patched_download):
+    """Backtest grafiğinin nasıl okunacağını açıklayan rehber expander'ı render edilmeli."""
+    at = AppTest.from_file(APP_PATH, default_timeout=30)
+    at.run()
+    assert list(at.exception) == []
+    expander_labels = [e.label for e in at.expander]
+    assert any("Bu Kıyaslama Grafiği Nasıl Okunmalı" in label for label in expander_labels)
