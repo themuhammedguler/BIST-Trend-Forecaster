@@ -39,8 +39,8 @@ analytics.inject_tracking_script()
 
 st.title("📈 Borsa İstanbul Yapay Zeka Yön Tahmini", anchor=False)
 st.markdown("""
-Bu proje **XGBoost** algoritması kullanarak BIST 30 hisselerinin
-bir sonraki günkü kapanış yönünü (Artış/Düşüş) tahmin eder.
+Bu platform; **CatBoost, LightGBM ve XGBoost** topluluk modelleri ile BIST 30
+hisselerinin **1 Günlük, 1 Haftalık ve 1 Aylık** yön eğilimlerini ve risk analizini sunar.
 """)
 
 # Yan Menü: Logo ve Hisse Seçimi & Deep-Linking Desteği

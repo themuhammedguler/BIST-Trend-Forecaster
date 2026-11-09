@@ -7,7 +7,12 @@ import pytest
 from src.multi_horizon import (
     HorizonForecast,
     add_multi_horizon_targets,
+    calculate_expected_price_corridor,
+    calculate_pivot_levels,
+    calculate_risk_reward,
+    calculate_trend_strength,
     compute_confluence,
+    load_multi_horizon_models,
     predict_horizons,
 )
 
@@ -114,3 +119,61 @@ def test_predict_horizons_with_models():
 def test_predict_horizons_empty_df_raises():
     with pytest.raises(ValueError, match="boş olamaz"):
         predict_horizons({}, pd.DataFrame())
+
+
+def test_calculate_pivot_levels():
+    df = pd.DataFrame(
+        {
+            "high": [105.0],
+            "low": [95.0],
+            "close": [100.0],
+        }
+    )
+    pivots = calculate_pivot_levels(df)
+    assert pivots["pivot"] == pytest.approx(100.0)
+    assert pivots["r1"] == pytest.approx(105.0)
+    assert pivots["s1"] == pytest.approx(95.0)
+    assert pivots["fib_500"] == pytest.approx(100.0)
+
+
+def test_calculate_trend_strength():
+    # En az 30 satırlık veri
+    dates = pd.bdate_range("2026-01-01", periods=35)
+    close = np.linspace(100.0, 150.0, 35)
+    df = pd.DataFrame(
+        {
+            "high": close + 2.0,
+            "low": close - 2.0,
+            "close": close,
+        },
+        index=dates,
+    )
+    trend = calculate_trend_strength(df)
+    assert "adx" in trend
+    assert trend["adx"] >= 0.0
+    assert "trend_strength" in trend
+
+
+def test_calculate_expected_price_corridor():
+    corridor = calculate_expected_price_corridor(current_price=100.0, daily_volatility=0.02)
+    assert "1d" in corridor
+    assert "5d" in corridor
+    assert "20d" in corridor
+    assert corridor["1d"]["min"] < 100.0 < corridor["1d"]["max"]
+    assert corridor["5d"]["min"] < corridor["1d"]["min"]
+    assert corridor["20d"]["min"] < corridor["5d"]["min"]
+
+
+def test_calculate_risk_reward():
+    rr = calculate_risk_reward(current_price=100.0, s1=95.0, r1=110.0)
+    # Gain: 10, Risk: 5 -> Ratio = 2.0
+    assert rr["ratio"] == pytest.approx(2.0)
+    assert rr["is_favorable"] is True
+    assert "CAZİP" in rr["label"]
+
+
+def test_load_multi_horizon_models():
+    models = load_multi_horizon_models()
+    assert "1d" in models
+    assert "5d" in models
+    assert "20d" in models
