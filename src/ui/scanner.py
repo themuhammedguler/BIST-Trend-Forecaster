@@ -1,8 +1,19 @@
 """BIST 30 Piyasa Fırsat Radarı ve sektör tarayıcı arayüz modülü."""
 
-import streamlit as st
+import os
 
-from src import config, portfolio_optimizer, risk_sizing, scanner
+import pandas as pd
+import streamlit as st
+import streamlit.components.v1 as components
+
+from src import (
+    config,
+    daily_updater,
+    email_alerts,
+    portfolio_optimizer,
+    risk_sizing,
+    scanner,
+)
 from src.ui.components import SCAN_COLUMN_CONFIG, get_cached_market_scan
 
 
@@ -180,6 +191,9 @@ def render_market_scanner_tab():
                     else:
                         st.caption("Eşik üzeri yükseliş sinyali veren hisse bulunamadı.")
 
+            # Otonom Seans Kapanış E-Posta Alarm Robotu (#71, #80)
+            render_email_alert_section(filtered_scan_df)
+
             st.markdown("### 📋 Tüm BIST 30 Liderlik Tablosu")
             st.dataframe(
                 filtered_scan_df[
@@ -197,3 +211,83 @@ def render_market_scanner_tab():
             )
         else:
             st.warning("Piyasa verileri taranırken veri alınamadı.")
+
+
+def render_email_alert_section(filtered_scan_df: pd.DataFrame) -> None:
+    """Otonom seans kapanış e-posta bülteni test ve önizleme bileşeni."""
+    with st.expander("📬 Otonom Seans Kapanış E-Posta Alarm Robotu", expanded=False):
+        st.markdown(
+            """
+            **BIST Trend Forecaster Otonom Alarm Robotu**, her iş günü BIST seansı kapandıktan sonra
+            (**18:30 TRT / 15:30 UTC**) GitHub Actions üzerinde otomatik olarak devreye girer.
+
+            * 🌲 **Çoklu Vade Taraması:** 1 Günlük, 1 Haftalık ve 1 Aylık modelleri çalıştırır.
+            * 🏛️ **Vade Konsensüsü:** *GÜÇLÜ BOĞA* ve *DİP ALIM FIRSATI* veren hisseleri filtreler.
+            * 🛡️ **Risk & Fiyat Koridoru:** %95 fiyat koridorunu ve Kelly sermaye payını hesaplar.
+            * ✉️ **Yönetici Bülteni:** Derin Obsidyen temalı raporu e-posta adresinize ulaştırır.
+            """
+        )
+
+        c_prev, c_send = st.columns([1, 1], gap="medium")
+
+        with c_prev:
+            st.markdown("#### 👁️ Canlı Bülten Önizleme")
+            st.caption(
+                "Bugünün piyasa tarama verileriyle hazırlanan e-posta bülteninin tam görünümü:"
+            )
+            if st.button("📄 Bugünün Bültenini Önizle", key="btn_preview_newsletter"):
+                st.session_state["show_newsletter_preview"] = True
+
+        with c_send:
+            st.markdown("#### 📨 Test E-Postası Gönder")
+            recipient_input = st.text_input(
+                "Alıcı E-Posta Adresi",
+                value=os.getenv("ALERT_RECIPIENT_EMAIL", ""),
+                placeholder="ornek@alanadi.com",
+                key="input_alert_email",
+                help="Bültenin ulaştırılacağı e-posta adresini girin.",
+            )
+            if st.button("🚀 Test Gönderimi Yap", key="btn_send_test_email"):
+                if not recipient_input:
+                    st.warning("Lütfen geçerli bir alıcı e-posta adresi giriniz.")
+                else:
+                    html_content, picks = daily_updater.build_daily_newsletter(filtered_scan_df)
+                    if not picks:
+                        st.warning("Bültene eklenebilecek yükseliş sinyalli hisse bulunamadı.")
+                    else:
+                        with st.spinner("E-posta gönderiliyor..."):
+                            success = email_alerts.send_email_alert(
+                                subject="🏛️ [TEST] BIST 30 Seans Kapanış ve Çoklu Vade Bülteni",
+                                html_content=html_content,
+                                recipient_email=recipient_input,
+                            )
+                        if success:
+                            st.success(f"✅ Test e-postası başarıyla iletildi: {recipient_input}")
+                        else:
+                            st.error(
+                                "❌ E-posta gönderilemedi! Sunucu veya SMTP yapılandırması eksik."
+                            )
+                            with st.expander("🛠️ 2 Dakikada Kolay SMTP Kurulum Rehberi"):
+                                st.markdown(
+                                    """
+                                    **Gmail ile Otomatik Gönderim Adımları:**
+                                    1. Google Hesabınıza girin &rarr; **Güvenlik** &rarr;
+                                       **2 Adımlı Doğrulama**'yı açın.
+                                    2. Sayfanın en altındaki **Uygulama Şifreleri (App Passwords)**
+                                       bölümüne gidin.
+                                    3. *"BIST Forecaster"* adında yeni şifre üretin (16 haneli kod).
+                                    4. GitHub deponuzda **Settings &rarr; Secrets and variables
+                                       &rarr; Actions** menüsüne şu secret'ları ekleyin:
+                                       * `SMTP_SERVER`: `smtp.gmail.com`
+                                       * `SMTP_PORT`: `587`
+                                       * `SMTP_USER`: `epostaniz@gmail.com`
+                                       * `SMTP_PASSWORD`: *(16 haneli uygulama şifreniz)*
+                                       * `ALERT_RECIPIENT_EMAIL`: *(Raporun gideceği adres)*
+                                    """
+                                )
+
+        if st.session_state.get("show_newsletter_preview", False):
+            html_preview, _ = daily_updater.build_daily_newsletter(filtered_scan_df)
+            st.markdown("---")
+            st.markdown("##### 📱 Bülten Önizleme Penceresi (HTML Responsive):")
+            components.html(html_preview, height=620, scrolling=True)

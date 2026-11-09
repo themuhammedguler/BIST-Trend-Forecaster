@@ -98,3 +98,41 @@ def test_send_email_alert_handles_smtp_exception():
         )
 
         assert success is False
+
+
+def test_build_newsletter_html_with_multi_horizon_data():
+    picks = [
+        {
+            "ticker": "THYAO",
+            "price": 310.50,
+            "prob_1d": 64.2,
+            "prob_5d": 68.5,
+            "prob_20d": 72.0,
+            "confluence": "🏛️ GÜÇLÜ BOĞA",
+            "verdict": "🏛️ GÜÇLÜ BOĞA",
+            "corridor_1d": "295.00 TL — 326.00 TL",
+            "allocation_pct": 14.0,
+            "sector": "Ulaştırma",
+            "adx_text": "ADX: 28.5 (Güçlü Trend)",
+        }
+    ]
+
+    html = email_alerts.build_newsletter_html(
+        top_picks=picks,
+        report_date="2026-11-09",
+        model_version="v2.1-ensemble",
+        model_accuracy=0.528,
+    )
+
+    assert "THYAO" in html
+    assert "310.50 TL" in html
+    assert "GÜÇLÜ BOĞA" in html
+    assert "1 GÜN (YARIN)" in html
+    assert "1 HAFTA (5 GÜN)" in html
+    assert "1 AY (20 GÜN)" in html
+    assert "%64.2" in html
+    assert "%68.5" in html
+    assert "%72.0" in html
+    assert "295.00 TL — 326.00 TL" in html
+    assert "ADX: 28.5" in html
+    assert "%14.0" in html
