@@ -11,14 +11,8 @@ import sys
 
 def sync():
     try:
-        tree_sha = (
-            subprocess.check_output(["git", "rev-parse", "main^{tree}"])
-            .decode()
-            .strip()
-        )
-        readme_content = subprocess.check_output(
-            ["git", "show", "main:README.md"]
-        ).decode("utf-8")
+        tree_sha = subprocess.check_output(["git", "rev-parse", "main^{tree}"]).decode().strip()
+        readme_content = subprocess.check_output(["git", "show", "main:README.md"]).decode("utf-8")
 
         frontmatter = (
             "---\n"
@@ -53,9 +47,7 @@ def sync():
 
         new_ls_data = "\n".join(new_ls_lines) + "\n"
 
-        p = subprocess.Popen(
-            ["git", "mktree"], stdin=subprocess.PIPE, stdout=subprocess.PIPE
-        )
+        p = subprocess.Popen(["git", "mktree"], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
         new_tree_sha, _ = p.communicate(input=new_ls_data.encode("utf-8"))
         new_tree_sha = new_tree_sha.decode().strip()
 
@@ -66,15 +58,17 @@ def sync():
         )
 
         commit_sha = (
-            subprocess.check_output([
-                "git",
-                "commit-tree",
-                new_tree_sha,
-                "-p",
-                space_head,
-                "-m",
-                "deploy: sync main with HF space frontmatter",
-            ])
+            subprocess.check_output(
+                [
+                    "git",
+                    "commit-tree",
+                    new_tree_sha,
+                    "-p",
+                    space_head,
+                    "-m",
+                    "deploy: sync main with HF space frontmatter",
+                ]
+            )
             .decode()
             .strip()
         )
