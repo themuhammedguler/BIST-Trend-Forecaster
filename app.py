@@ -25,7 +25,12 @@ __all__ = [
 
 # Sayfa Ayarları & Özel Favicon / Logo
 LOGO_PATH = os.path.join(os.path.dirname(__file__), "assets", "logo.png")
-PAGE_ICON = LOGO_PATH if os.path.exists(LOGO_PATH) else "📈"
+FAVICON_PATH = os.path.join(os.path.dirname(__file__), "assets", "favicon.png")
+PAGE_ICON = (
+    FAVICON_PATH
+    if os.path.exists(FAVICON_PATH)
+    else (LOGO_PATH if os.path.exists(LOGO_PATH) else "📈")
+)
 
 st.set_page_config(
     page_title="BIST Trend Forecaster | Yapay Zeka Yön Tahmini",
@@ -43,9 +48,23 @@ Bu platform; **CatBoost, LightGBM ve XGBoost** topluluk modelleri ile BIST 30
 hisselerinin **1 Günlük, 1 Haftalık ve 1 Aylık** yön eğilimlerini ve risk analizini sunar.
 """)
 
-# Yan Menü: Logo ve Hisse Seçimi & Deep-Linking Desteği
+# Yan Menü: Kurumsal Marka Başlığı ve Hisse Seçimi
 if os.path.exists(LOGO_PATH):
-    st.sidebar.image(LOGO_PATH, width=80)
+    c_logo, c_brand = st.sidebar.columns([1, 3])
+    with c_logo:
+        st.image(LOGO_PATH, width=56)
+    with c_brand:
+        st.markdown(
+            "<div style='line-height: 1.25; padding-top: 4px;'>"
+            "<strong style='color: #F8FAFC; font-size: 1.05rem;'>BIST Forecaster</strong><br/>"
+            "<span style='color: #94A3B8; font-size: 0.74rem;'>AI Karar Destek Platformu</span>"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+    st.sidebar.markdown(
+        "<hr style='margin: 10px 0 16px 0; border: none; border-top: 1px solid #1E3A5F;'/>",
+        unsafe_allow_html=True,
+    )
 st.sidebar.header("Hisse Seçimi")
 ticker_list = [t.replace(".IS", "") for t in config.TICKERS]
 
