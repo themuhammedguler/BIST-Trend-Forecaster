@@ -23,8 +23,15 @@ __all__ = [
     "load_model",
 ]
 
-# Sayfa Ayarları
-st.set_page_config(page_title="BIST Hisse Yön Tahmini", layout="wide")
+# Sayfa Ayarları & Özel Favicon / Logo
+LOGO_PATH = os.path.join(os.path.dirname(__file__), "assets", "logo.png")
+PAGE_ICON = LOGO_PATH if os.path.exists(LOGO_PATH) else "📈"
+
+st.set_page_config(
+    page_title="BIST Trend Forecaster | Yapay Zeka Yön Tahmini",
+    page_icon=PAGE_ICON,
+    layout="wide",
+)
 
 st.title("📈 Borsa İstanbul Yapay Zeka Yön Tahmini", anchor=False)
 st.markdown("""
@@ -32,7 +39,9 @@ Bu proje **XGBoost** algoritması kullanarak BIST 30 hisselerinin
 bir sonraki günkü kapanış yönünü (Artış/Düşüş) tahmin eder.
 """)
 
-# Yan Menü: Hisse Seçimi & Deep-Linking Desteği
+# Yan Menü: Logo ve Hisse Seçimi & Deep-Linking Desteği
+if os.path.exists(LOGO_PATH):
+    st.sidebar.image(LOGO_PATH, width=80)
 st.sidebar.header("Hisse Seçimi")
 ticker_list = [t.replace(".IS", "") for t in config.TICKERS]
 

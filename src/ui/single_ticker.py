@@ -107,6 +107,26 @@ def render_backtest(model, df_processed, threshold=config.PROB_THRESHOLD_HIGH, c
         "Geçmiş performans gelecekteki sonuçları garanti etmez."
     )
 
+    with st.expander("💡 Bu Kıyaslama Grafiği Nasıl Okunmalı?", expanded=False):
+        st.markdown(
+            """
+            * **🔘 Al ve Tut (Gri Çizgi - Benchmark):** Hissenin **kendi saf piyasa getirisi ve
+              doğal fiyat grafiğidir**. 6 ay önce hisseyi alıp aradaki hiçbir düşüş veya yükselişe
+              dokunmadan bugüne kadar öylece tutsaydınız portföyün nasıl değişeceğini gösterir.
+            * **🤖 Model Stratejisi (Mavi Çizgi):** Yapay zekanın yönettiği
+              **alım-satım portföyüdür**. Model *Yükseliş* öngördüğünde hissede kalarak kârı
+              hedefler; *Düşüş* veya *Belirsiz* öngördüğünde ise hisseyi satıp **TL Nakde** geçer.
+              Amaç, sert piyasa düşüşlerinden nakitte kalarak korunmak ve yalnızca yükseliş
+              dalgalarından getiri sağlamaktır.
+            * **🎯 Model (Kelly Dinamik - Yeşil Kesikli Çizgi):** Pozisyon boyutunu sabit %100
+              yapmak yerine güven skoru ve oynaklığa (volatilite) göre dinamik ayarlayan
+              risk kontrollü sermaye dağılımıdır.
+            * **📌 Özet Kuralı:** Mavi çizgi gri çizginin üzerinde kaldığı sürece; model düşüş
+              günlerinde nakde geçerek hisseye göre **daha az kaybetmiş veya daha çok kazanmış**
+              demektir.
+            """
+        )
+
 
 def render_risk_sizing_section(selected_ticker: str, prob: float, volatility: float):
     """Kelly Kriteri ve volatiliteye duyarlı pozisyon boyutlandırma kartı (#71)."""
