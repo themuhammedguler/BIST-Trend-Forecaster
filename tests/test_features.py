@@ -63,6 +63,12 @@ def test_keeping_incomplete_target_retains_most_recent_day(ohlcv_dataset):
         "lag_1_ret",
         "lag_2_ret",
         "vol_change",
+        "mfi",
+        "vol_ratio",
+        "stoch_k",
+        "williams_r",
+        "roc_5",
+        "atr_ratio",
     ]
     assert not last_rows[feature_cols].isna().any().any()
 

@@ -18,7 +18,7 @@ def test_config_defines_macro_tickers():
 
 def test_config_defines_features_list():
     assert isinstance(config.FEATURES, list)
-    assert len(config.FEATURES) == 14
+    assert len(config.FEATURES) == 20
     assert len(config.FEATURES) == len(set(config.FEATURES))
     expected = [
         "rsi",
@@ -35,6 +35,12 @@ def test_config_defines_features_list():
         "xu100_ret",
         "rel_strength_bist",
         "usdtry_change",
+        "mfi",
+        "vol_ratio",
+        "stoch_k",
+        "williams_r",
+        "roc_5",
+        "atr_ratio",
     ]
     assert config.FEATURES == expected
 

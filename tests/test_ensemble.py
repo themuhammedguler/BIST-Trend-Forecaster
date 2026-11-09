@@ -72,3 +72,18 @@ def test_evaluate_models_comparison():
     assert "Model" in df_comparison.columns
     assert "Doğruluk (Accuracy)" in df_comparison.columns
     assert "ROC-AUC" in df_comparison.columns
+
+
+def test_save_ensemble_models(tmp_path):
+    X_train, y_train, X_test, y_test = _make_dummy_dataset()
+    trained_models, df_comp = ensemble.evaluate_models_comparison(X_train, y_train, X_test, y_test)
+
+    save_dir = str(tmp_path / "models")
+    ensemble.save_ensemble_models(trained_models, save_dir, comparison_df=df_comp)
+
+    import os
+
+    assert os.path.exists(os.path.join(save_dir, "xgb_bist_model.json"))
+    assert os.path.exists(os.path.join(save_dir, "lgbm_bist_model.txt"))
+    assert os.path.exists(os.path.join(save_dir, "catboost_bist_model.cbm"))
+    assert os.path.exists(os.path.join(save_dir, "ensemble_meta.json"))

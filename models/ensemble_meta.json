@@ -1,0 +1,30 @@
+[
+  {
+    "Model": "XGBoost",
+    "Doğruluk (Accuracy)": 0.5075,
+    "Dengeli Doğruluk": 0.5039,
+    "ROC-AUC": 0.516,
+    "Log Loss": 0.6912
+  },
+  {
+    "Model": "LightGBM",
+    "Doğruluk (Accuracy)": 0.5183,
+    "Dengeli Doğruluk": 0.5141,
+    "ROC-AUC": 0.5285,
+    "Log Loss": 0.6904
+  },
+  {
+    "Model": "CatBoost",
+    "Doğruluk (Accuracy)": 0.5213,
+    "Dengeli Doğruluk": 0.5182,
+    "ROC-AUC": 0.5327,
+    "Log Loss": 0.6899
+  },
+  {
+    "Model": "Topluluk (Ensemble)",
+    "Doğruluk (Accuracy)": 0.5158,
+    "Dengeli Doğruluk": 0.5123,
+    "ROC-AUC": 0.5281,
+    "Log Loss": 0.6902
+  }
+]
