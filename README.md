@@ -76,12 +76,13 @@ flowchart LR
   `GÜÇLÜ ALIŞ` • `TEMKİNLİ ALIŞ` • `NÖTR / NAKİTTE KAL` • `TEMKİNLİ SATIŞ` • `GÜÇLÜ SATIŞ`
 
 ### 5. 🏛️ Kamusal ve Kurumsal Tasarım Kimliği
-* Cumhurbaşkanlığı Dijital Dönüşüm Ofisi Kamu Tasarım Standartları ve Borsa İstanbul kurumsal kimliğine uygun renk paleti:
-  - **Derin Kurumsal Gece Laciverti** (`#0B132B`)
-  - **Kurumsal Panel & Kart Laciverti** (`#152238`)
-  - **Kurumsal BIST Mavisi** (`#1D4ED8`)
-  - **Zümrüt Yeşili Yükseliş Vurgusu** (`#059669`)
-  - **Asil BIST Kırmızısı** (`#DC2626` / `#B91C1C`)
+* Cumhurbaşkanlığı Dijital Dönüşüm Ofisi Kamu Tasarım Standartları ve Borsa İstanbul kurumsal kimliğine uygun derin karanlık renk paleti:
+  - **Derin Obsidyen Siyahı (Gece Modu):** (`#07090E`)
+  - **Koyu Kurumsal Panel & Kart Zemin:** (`#0F131D`)
+  - **Kurumsal BIST Mavisi:** (`#2563EB`)
+  - **Zümrüt Yeşili Yükseliş Vurgusu:** (`#059669`)
+  - **Asil BIST Kırmızısı:** (`#DC2626` / `#B91C1C`)
+  - **Zarif Panel Sınırları:** (`#1A2233`)
 
 ### 6. 🌲 BIST 30 Sektörel Isı Haritası (Treemap)
 * Bankacılık, Sanayi, Holding, Havacılık vb. tüm sektörlerin yapay zeka yön eğilimini hiyerarşik interaktif bir ağaç haritasında görselleştirir.
