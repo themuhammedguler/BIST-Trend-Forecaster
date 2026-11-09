@@ -262,17 +262,26 @@ def send_email_alert(
     from_email: str | None = None,
 ) -> bool:
     """Hazırlanan HTML e-posta bültenini SMTP üzerinden alıcıya ulaştırır."""
-    to_email = recipient_email or os.getenv("ALERT_RECIPIENT_EMAIL", "")
-    server_host = smtp_server or os.getenv("SMTP_SERVER", "smtp.resend.com")
-    port_val = smtp_port or os.getenv("SMTP_PORT", "465")
+    to_email = (recipient_email or os.getenv("ALERT_RECIPIENT_EMAIL", "")).strip()
+    raw_server = (smtp_server or os.getenv("SMTP_SERVER", "smtp.resend.com")).strip()
+
+    # URL formatında girilmişse protokol ve path temizlenir
+    # (örn. https://smtp.resend.com/ -> smtp.resend.com)
+    if "://" in raw_server:
+        raw_server = raw_server.split("://")[-1]
+    server_host = raw_server.split("/")[0].split(":")[0].strip()
+    if server_host.lower() == "resend.com":
+        server_host = "smtp.resend.com"
+
+    port_val = str(smtp_port or os.getenv("SMTP_PORT", "465")).strip()
     try:
         server_port = int(port_val)
     except (ValueError, TypeError):
         server_port = 465
 
-    user = smtp_user or os.getenv("SMTP_USER", "")
-    password = smtp_password or os.getenv("SMTP_PASSWORD", "")
-    sender_addr = from_email or os.getenv("SMTP_FROM_EMAIL", "")
+    user = (smtp_user or os.getenv("SMTP_USER", "")).strip()
+    password = (smtp_password or os.getenv("SMTP_PASSWORD", "")).strip()
+    sender_addr = (from_email or os.getenv("SMTP_FROM_EMAIL", "")).strip()
 
     if not to_email or not user or not password:
         logger.warning(
@@ -288,6 +297,14 @@ def send_email_alert(
             sender_addr = user
         else:
             sender_addr = "onboarding@resend.dev"
+
+    logger.info(
+        "SMTP bağlantısı kuruluyor: host='%s', port=%d, sender='%s', recipient='%s'",
+        server_host,
+        server_port,
+        sender_addr,
+        to_email,
+    )
 
     msg = email.message.EmailMessage()
     msg["Subject"] = subject
