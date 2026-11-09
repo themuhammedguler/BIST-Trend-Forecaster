@@ -42,25 +42,39 @@ st.set_page_config(
 analytics.record_session()
 analytics.inject_tracking_script()
 
-# Özel Stil İyileştirmeleri (Sidebar Dairesel Logo ve Amblem)
+# Özel Stil İyileştirmeleri (Logoların dairesel görünümü ve tıklanınca açılmasını engelleme)
 st.markdown(
     """
     <style>
-    [data-testid="stSidebar"] img {
+    [data-testid="stImage"] {
+        pointer-events: none !important;
+        cursor: default !important;
+    }
+    [data-testid="stImage"] img {
         border-radius: 50% !important;
-        box-shadow: 0 0 14px rgba(0, 229, 255, 0.22);
+        box-shadow: 0 0 12px rgba(0, 229, 255, 0.22);
+        pointer-events: none !important;
+        cursor: default !important;
+        user-select: none !important;
+        -webkit-user-drag: none !important;
+    }
+    [data-testid="stImage"] button,
+    button[aria-label="Enlarge image"],
+    button[title="Enlarge image"] {
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
     }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-# Sayfa Başlığı ve Özel Grafik Amblemi (Emoji 📈 yerine özel grafik amblemi)
-CHART_ICON_PATH = os.path.join(os.path.dirname(__file__), "assets", "chart_icon.png")
-if os.path.exists(CHART_ICON_PATH):
+# Sayfa Başlığı ve Kurumsal Logo (Diğerleriyle aynı dairesel logo)
+if os.path.exists(LOGO_PATH):
     c_icon, c_title = st.columns([1, 16], vertical_alignment="center")
     with c_icon:
-        st.image(CHART_ICON_PATH, width=54)
+        st.image(LOGO_PATH, width=54)
     with c_title:
         st.title("Borsa İstanbul Yapay Zeka Yön Tahmini", anchor=False)
 else:
