@@ -163,6 +163,11 @@ def test_calculate_expected_price_corridor():
     assert corridor["5d"]["min"] < corridor["1d"]["min"]
     assert corridor["20d"]["min"] < corridor["5d"]["min"]
 
+    # TL cinsinden yüksek standart sapma verildiğinde savunmacı normalizasyon
+    corridor_raw = calculate_expected_price_corridor(current_price=300.0, daily_volatility=24.5)
+    assert corridor_raw["1d"]["min"] > 0
+    assert corridor_raw["1d"]["pct"] < 50.0  # Absürt %4000+ yerine gerçekçi %11 bandı
+
 
 def test_calculate_risk_reward():
     rr = calculate_risk_reward(current_price=100.0, s1=95.0, r1=110.0)
