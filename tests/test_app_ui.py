@@ -709,3 +709,12 @@ def test_app_renders_analytics_badge_in_sidebar(patched_download):
     assert list(at.exception) == []
     sidebar_captions = [c.value for c in at.sidebar.caption]
     assert any("Oturum Sayacı" in c or "Ziyaretçi Analitiği" in c for c in sidebar_captions)
+
+
+def test_app_renders_forward_tracking_expander(patched_download):
+    """Tekli hisse sekmesinde ileriye dönük takip (Forward Tracking) expander'ı render edilmeli."""
+    at = AppTest.from_file(APP_PATH, default_timeout=30)
+    at.run()
+    assert list(at.exception) == []
+    expander_labels = [e.label for e in at.expander]
+    assert any("Gerçekleşen Model Başarısı" in label for label in expander_labels)

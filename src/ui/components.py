@@ -54,6 +54,7 @@ def render_sidebar_model_info(model_meta):
                 st.write(f"**ROC-AUC:** {model_meta['metrics']['roc_auc']:.3f}")
             st.write(f"**Öznitelik Sayısı:** {len(model_meta.get('features', []))}")
             st.write("**Veri Sağlığı (PSI):** 🟢 Aktif İzleme")
+            st.write("**Model Motoru:** 🌲 XGBoost · ⚡ LightGBM · 🐱 CatBoost")
         else:
             st.write("Model meta-verisi bulunamadı.")
 

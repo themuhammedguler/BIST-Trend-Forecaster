@@ -1,3 +1,6 @@
 venv/
 __pycache__/
 .DS_Store
+.pytest_cache/
+catboost_info/
+

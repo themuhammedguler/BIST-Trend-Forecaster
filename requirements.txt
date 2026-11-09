@@ -10,3 +10,4 @@ ta
 plotly
 optuna==5.0.0
 lightgbm>=4.0.0
+catboost>=1.2.0
