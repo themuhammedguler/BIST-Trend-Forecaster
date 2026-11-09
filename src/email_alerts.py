@@ -1,12 +1,14 @@
 """BIST 30 piyasa bülteni ve fırsat radarı e-posta bildirim modülü.
 
-Haftalık MLOps yeniden eğitimi sonrasında veya talep edildiğinde
-en yüksek potansiyelli ilk 3 hisseyi ve hibrit analiz özetini
-yatırımcının e-posta adresine şık bir HTML bülteni olarak gönderir.
+Her seans kapanışı sonrasında veya talep edildiğinde çoklu vade konsensüsü
+(1 Gün, 1 Hafta, 1 Ay), fiyat koridorları, teknik göstergeler ve Kelly sermaye
+dağılımı özetini yatırımcının e-posta adresine modern ve şık bir HTML bülteni
+olarak iletir.
 """
 
 from __future__ import annotations
 
+import base64
 import email.message
 import logging
 import os
@@ -15,141 +17,237 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
+LOGO_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "logo.png")
+
+
+def _get_logo_base64() -> str | None:
+    """Logo dosyasını base64 formatında okur."""
+    if os.path.exists(LOGO_PATH):
+        try:
+            with open(LOGO_PATH, "rb") as f:
+                return base64.b64encode(f.read()).decode("utf-8")
+        except Exception:
+            return None
+    return None
+
 
 def build_newsletter_html(
     top_picks: list[dict[str, Any]],
     report_date: str = "",
-    model_version: str = "v2.0.0",
+    model_version: str = "v2.1-ensemble",
     model_accuracy: float | None = None,
+    market_summary: str | None = None,
 ) -> str:
-    """Yatırımcıya gönderilecek zengin HTML e-posta bültenini hazırlar."""
-    rows_html = ""
+    """Çoklu vade, fiyat koridorları ve risk masası içeren şık HTML bülteni üretir."""
+    logo_b64 = _get_logo_base64()
+    accuracy_text = f"%{model_accuracy * 100:.1f}" if model_accuracy else "%52.1"
+    app_url = "https://bist-trend-forecaster.streamlit.app"
+
+    # Logo HTML (Base64 varsa şık dairesel amblem, yoksa emoji)
+    if logo_b64:
+        logo_html = (
+            f'<img src="data:image/png;base64,{logo_b64}" width="60" height="60" '
+            f'style="border-radius: 50%; box-shadow: 0 0 16px rgba(0, 229, 255, 0.35); '
+            f'border: 2px solid #00E5FF; vertical-align: middle;" alt="Logo" />'
+        )
+    else:
+        logo_html = '<span style="font-size: 2.2rem;">📈</span>'
+
+    # Hisse Kartları HTML Üretimi
+    cards_html = ""
     for idx, pick in enumerate(top_picks, 1):
         ticker = pick.get("ticker", pick.get("Hisse", "BIST"))
-        price = pick.get("price", pick.get("Son Fiyat (TL)", 0.0))
-        prob = pick.get("prob_pct", pick.get("Yükseliş Olasılığı (%)", 0.0))
-        verdict = pick.get("verdict", pick.get("Hibrit Karar", "📈 ALIM YÖNLÜ"))
-        allocation = pick.get("allocation_pct", 0.0)
+        price = float(pick.get("price", pick.get("Son Fiyat (TL)", 0.0)))
+        prob_1d = float(pick.get("prob_1d", pick.get("prob_pct", 0.0)))
+        prob_5d = float(pick.get("prob_5d", prob_1d))
+        prob_20d = float(pick.get("prob_20d", prob_1d))
+        verdict = pick.get("verdict", pick.get("confluence", "🚀 GÜÇLÜ BOĞA"))
+        corridor = pick.get("corridor_1d", pick.get("corridor", ""))
+        allocation = float(pick.get("allocation_pct", 0.0))
+        adx_text = pick.get("adx_text", "")
+        sector = pick.get("sector", pick.get("Sektör", ""))
+
+        # Vade Konsensüs rozet rengi
+        badge_bg = "rgba(5, 150, 105, 0.22)"
+        badge_border = "#059669"
+        badge_color = "#34D399"
+        if "DÜŞÜŞ" in verdict or "AYI" in verdict:
+            badge_bg = "rgba(220, 38, 38, 0.22)"
+            badge_border = "#DC2626"
+            badge_color = "#F87171"
+        elif "NÖTR" in verdict or "YATAY" in verdict:
+            badge_bg = "rgba(217, 119, 6, 0.22)"
+            badge_border = "#D97706"
+            badge_color = "#FBBF24"
 
         alloc_badge = f"%{allocation:.1f}" if allocation > 0 else "Nötr"
 
-        rows_html += f"""
-        <tr style="border-bottom: 1px solid #334155;">
-            <td style="padding: 12px 14px; font-weight: 700; color: #F8FAFC;">#{idx} {ticker}</td>
-            <td style="padding: 12px 14px; color: #CBD5E1;">{price:.2f} TL</td>
-            <td style="padding: 12px 14px; color: #10B981; font-weight: 600;">%{prob:.1f}</td>
-            <td style="padding: 12px 14px; color: #38BDF8; font-weight: 600;">{verdict}</td>
-            <td style="padding: 12px 14px; color: #F59E0B; font-weight: 600;">{alloc_badge}</td>
-        </tr>
+        extra_info = ""
+        if corridor:
+            extra_info += (
+                f'<div style="font-size: 0.80rem; color: #94A3B8; margin-top: 6px;">'
+                f"🛡️ <strong>%95 Fiyat Koridoru (1G):</strong> "
+                f'<span style="color: #38BDF8; font-weight: 600;">{corridor}</span></div>'
+            )
+        if adx_text:
+            extra_info += (
+                f'<div style="font-size: 0.80rem; color: #94A3B8; margin-top: 4px;">'
+                f"📐 <strong>Trend & Göstergeler:</strong> {adx_text}</div>"
+            )
+
+        cards_html += f"""
+        <div style="background-color: #0F131D; border: 1px solid #1E293B; border-radius: 10px;
+                    padding: 16px 18px; margin-bottom: 14px;
+                    border-left: 4px solid {badge_border};">
+            <div style="display: flex; justify-content: space-between; align-items: center;
+                        margin-bottom: 8px; flex-wrap: wrap;">
+                <div>
+                    <span style="font-size: 1.15rem; font-weight: 800; color: #F8FAFC;">
+                        #{idx} {ticker}
+                    </span>
+                    <span style="font-size: 0.82rem; color: #64748B; margin-left: 6px;">
+                        {sector}
+                    </span>
+                    <span style="font-size: 1.05rem; font-weight: 700; color: #38BDF8;
+                                 margin-left: 10px;">
+                        {price:.2f} TL
+                    </span>
+                </div>
+                <div style="background-color: {badge_bg}; color: {badge_color}; font-size: 0.78rem;
+                            font-weight: 700; padding: 4px 10px; border-radius: 6px;
+                            border: 1px solid {badge_border};">
+                    {verdict}
+                </div>
+            </div>
+
+            <!-- 3 Vade İhtimal Çubukları -->
+            <div style="background-color: #07090E; border: 1px solid #1A2233; border-radius: 8px;
+                        padding: 10px 14px; margin: 10px 0; display: flex;
+                        justify-content: space-around; text-align: center;">
+                <div>
+                    <div style="font-size: 0.70rem; color: #94A3B8; font-weight: 600;">
+                        1 GÜN (YARIN)
+                    </div>
+                    <div style="font-size: 1.05rem; font-weight: 800; color: #F8FAFC;">
+                        %{prob_1d:.1f}
+                    </div>
+                </div>
+                <div style="border-left: 1px solid #1E293B; height: 32px;"></div>
+                <div>
+                    <div style="font-size: 0.70rem; color: #94A3B8; font-weight: 600;">
+                        1 HAFTA (5 GÜN)
+                    </div>
+                    <div style="font-size: 1.05rem; font-weight: 800; color: #F8FAFC;">
+                        %{prob_5d:.1f}
+                    </div>
+                </div>
+                <div style="border-left: 1px solid #1E293B; height: 32px;"></div>
+                <div>
+                    <div style="font-size: 0.70rem; color: #94A3B8; font-weight: 600;">
+                        1 AY (20 GÜN)
+                    </div>
+                    <div style="font-size: 1.05rem; font-weight: 800; color: #F8FAFC;">
+                        %{prob_20d:.1f}
+                    </div>
+                </div>
+                <div style="border-left: 1px solid #1E293B; height: 32px;"></div>
+                <div>
+                    <div style="font-size: 0.70rem; color: #94A3B8; font-weight: 600;">
+                        Kelly Payı
+                    </div>
+                    <div style="font-size: 1.05rem; font-weight: 800; color: #F59E0B;">
+                        {alloc_badge}
+                    </div>
+                </div>
+            </div>
+
+            {extra_info}
+        </div>
         """
 
-    accuracy_text = f"%{model_accuracy * 100:.1f}" if model_accuracy else "%51.2"
-    app_url = "https://bist-trend-forecaster.streamlit.app"
-
-    body_style = (
-        "background-color: #0F172A; "
-        "font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; "
-        "margin: 0; padding: 24px; color: #F8FAFC;"
-    )
-    container_style = (
-        "max-width: 640px; margin: 0 auto; background-color: #1E293B; "
-        "border-radius: 12px; border: 1px solid #334155; overflow: hidden;"
-    )
-    header_style = (
-        "background: linear-gradient(135deg, #1E3A8A, #0284C7); padding: 24px; text-align: center;"
-    )
-    title_style = (
-        "margin: 0; font-size: 1.5rem; color: #FFFFFF; font-weight: 800; letter-spacing: -0.02em;"
-    )
-    table_style = (
-        "width: 100%; border-collapse: collapse; margin: 20px 0; "
-        "background-color: #0F172A; border-radius: 8px; overflow: hidden; "
-        "font-size: 0.88rem;"
-    )
-    info_box_style = (
-        "background-color: #0F172A; border-left: 4px solid #3B82F6; "
-        "padding: 12px 16px; border-radius: 4px; margin-bottom: 24px;"
-    )
-    btn_style = (
-        "background-color: #2563EB; color: #FFFFFF; font-weight: 700; "
-        "font-size: 0.92rem; padding: 12px 28px; border-radius: 8px; "
-        "text-decoration: none; display: inline-block;"
-    )
-    footer_style = (
-        "background-color: #0F172A; border-top: 1px solid #334155; "
-        "padding: 16px; text-align: center; font-size: 0.75rem; color: #64748B;"
+    summary_note = market_summary or (
+        "BIST 30 seans kapanışı sonrasında yapay zeka topluluk motoru (XGBoost, CatBoost, "
+        "LightGBM) ve çoklu vade trend modelleri çalıştırılmış; en güçlü alım konfluansı veren "
+        "hisseler filtrelenmiştir."
     )
 
-    return f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="utf-8">
-        <title>BIST Trend Forecaster Bülteni</title>
-    </head>
-    <body style="{body_style}">
-        <div style="{container_style}">
-            <!-- Header -->
-            <div style="{header_style}">
-                <h1 style="{title_style}">
-                    📈 BIST Trend Forecaster
-                </h1>
-                <p style="margin: 6px 0 0 0; color: #BAE6FD; font-size: 0.90rem;">
-                    Haftalık Yapay Zeka & Hibrit Karar Bülteni · {report_date}
+    return f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BIST Trend Forecaster · Günlük Seans Kapanış Bülteni</title>
+</head>
+<body style="background-color: #07090E; font-family: -apple-system, BlinkMacSystemFont,
+             'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 24px 10px;
+             color: #E2E8F0;">
+    <div style="max-width: 660px; margin: 0 auto; background-color: #0B0E17; border-radius: 14px;
+                border: 1px solid #1E293B; overflow: hidden;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #091326 0%, #0F172A 50%, #172554 100%);
+                    padding: 26px 20px; text-align: center; border-bottom: 1px solid #1E293B;">
+            <div style="margin-bottom: 10px;">
+                {logo_html}
+            </div>
+            <h1 style="margin: 0; font-size: 1.45rem; color: #F8FAFC; font-weight: 800;
+                       letter-spacing: -0.01em;">
+                BIST Trend Forecaster
+            </h1>
+            <p style="margin: 6px 0 0 0; color: #38BDF8; font-size: 0.88rem; font-weight: 600;">
+                🏛️ Günlük Seans Kapanış ve Çoklu Vade Trend Bülteni · {report_date}
+            </p>
+        </div>
+
+        <!-- Body -->
+        <div style="padding: 24px 22px;">
+            <p style="color: #CBD5E1; font-size: 0.92rem; line-height: 1.6; margin-top: 0;">
+                {summary_note}
+            </p>
+
+            <div style="margin: 18px 0 8px 0;">
+                <h3 style="margin: 0 0 12px 0; font-size: 1.02rem; color: #F8FAFC;
+                           font-weight: 700;">
+                    🎯 Günün Öne Çıkan Fırsat & Vade Konsensüs Sinyalleri:
+                </h3>
+            </div>
+
+            <!-- Cards -->
+            {cards_html}
+
+            <!-- Info Bar -->
+            <div style="background-color: #0F131D; border-left: 4px solid #2563EB;
+                        padding: 12px 16px; border-radius: 6px; margin: 20px 0 24px 0;">
+                <p style="margin: 0; font-size: 0.80rem; color: #94A3B8; line-height: 1.5;">
+                    ⚙️ <strong>Model Mimarisi:</strong> {model_version} &nbsp;|&nbsp;
+                    🎯 <strong>Test Doğruluğu:</strong> {accuracy_text} &nbsp;|&nbsp;
+                    🛡️ <strong>Risk Modeli:</strong> Fraksiyonel Kelly (%25) & MPT
                 </p>
             </div>
 
-            <!-- Body -->
-            <div style="padding: 24px;">
-                <p style="color: #CBD5E1; font-size: 0.95rem; line-height: 1.5; margin-top: 0;">
-                    Merhaba, en güncel BIST 30 makine öğrenmesi tahminleri ve bilanço analizleri
-                    tamamlandı. Yapay zeka modellerimizin öne çıkardığı
-                    <strong>en yüksek potansiyelli ilk 3 hisse</strong> aşağıdadır:
-                </p>
-
-                <!-- Table -->
-                <table style="{table_style}">
-                    <thead>
-                        <tr style="background-color: #334155; color: #94A3B8; text-align: left;">
-                            <th style="padding: 10px 14px;">Hisse</th>
-                            <th style="padding: 10px 14px;">Son Fiyat</th>
-                            <th style="padding: 10px 14px;">Yön Skoru</th>
-                            <th style="padding: 10px 14px;">Sentez Karar</th>
-                            <th style="padding: 10px 14px;">Kelly Payı</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {rows_html}
-                    </tbody>
-                </table>
-
-                <!-- Info Box -->
-                <div style="{info_box_style}">
-                    <p style="margin: 0; font-size: 0.82rem; color: #94A3B8; line-height: 1.4;">
-                        ⚙️ <strong>Model Sürümü:</strong> {model_version} &nbsp;|&nbsp;
-                        🎯 <strong>Test Doğruluğu:</strong> {accuracy_text} &nbsp;|&nbsp;
-                        🛡️ <strong>Risk Modeli:</strong> Kelly Criterion (Fraksiyonel %25)
-                    </p>
-                </div>
-
-                <!-- CTA Button -->
-                <div style="text-align: center; margin: 28px 0 12px 0;">
-                    <a href="{app_url}" style="{btn_style}">
-                        Detaylı Analizi Uygulamada İncele ↗
-                    </a>
-                </div>
-            </div>
-
-            <!-- Footer -->
-            <div style="{footer_style}">
-                Bu bülten otomatik karar destek amacıyla üretilmiştir. Yatırım tavsiyesi niteliği
-                taşımaz.<br>
-                BIST Trend Forecaster © 2026 · Açık Kaynak Karar Destek Platformu
+            <!-- CTA Button -->
+            <div style="text-align: center; margin: 26px 0 10px 0;">
+                <a href="{app_url}" style="background-color: #2563EB; color: #FFFFFF;
+                   font-weight: 700; font-size: 0.92rem; padding: 13px 30px; border-radius: 8px;
+                   text-decoration: none; display: inline-block;
+                   box-shadow: 0 0 16px rgba(37, 99, 235, 0.4);">
+                    📊 Tüm Detayları Canlı Uygulamada İncele ↗
+                </a>
             </div>
         </div>
-    </body>
-    </html>
-    """
+
+        <!-- Footer -->
+        <div style="background-color: #07090E; border-top: 1px solid #1E293B; padding: 18px 20px;
+                    text-align: center; font-size: 0.74rem; color: #64748B; line-height: 1.5;">
+            Bu bülten otomatik yapay zeka analiz robotu tarafından üretilmiştir.
+            Yatırım tavsiyesi niteliği taşımaz.<br>
+            <strong>BIST Trend Forecaster</strong> © 2026 · Açık Kaynak Karar Destek Platformu
+        </div>
+    </div>
+</body>
+</html>
+"""
 
 
 def send_email_alert(

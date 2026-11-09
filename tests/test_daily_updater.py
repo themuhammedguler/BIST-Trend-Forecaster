@@ -113,3 +113,13 @@ def test_run_daily_forecast_sends_email_when_configured(monkeypatch, mock_scan_r
     assert result["success"] is True
     assert result["email_sent"] is True
     assert len(sent_emails) == 1
+
+
+def test_build_daily_newsletter_and_picks(mock_scan_results):
+    html, picks = daily_updater.build_daily_newsletter(mock_scan_results, report_date="2026-11-09")
+    assert "<!DOCTYPE html>" in html
+    assert len(picks) == 2  # prob >= 0.52 (THYAO %65, KCHOL %58)
+    assert picks[0]["ticker"] == "THYAO"
+    assert picks[0]["prob_1d"] == 65.0
+    assert "corridor_1d" in picks[0]
+    assert "confluence" in picks[0]

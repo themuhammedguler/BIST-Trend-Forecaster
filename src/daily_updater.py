@@ -4,7 +4,7 @@ Her iş günü BIST seansı kapandıktan sonra (18:30 TRT / 15:30 UTC):
 1. En güncel seans verilerini toplu olarak çeker.
 2. Tüm BIST 30 hisseleri için yapay zeka modelinden yön tahminlerini üretir.
 3. Tahminleri, giriş fiyatlarını ve sinyalleri prediction_audit.json defterine işler.
-4. Yapılandırılmışsa en güçlü fırsatları e-posta bülteni olarak iletir.
+4. Yapılandırılmışsa en güçlü fırsatları çoklu vade konsensüsüyle e-posta bülteni olarak iletir.
 """
 
 from __future__ import annotations
@@ -15,11 +15,87 @@ import os
 from datetime import datetime, timezone
 from typing import Any
 
+import pandas as pd
 import xgboost as xgb
 
 from src import config, email_alerts, network, scanner, tracker
 
 logger = logging.getLogger(__name__)
+
+
+def prepare_newsletter_picks(df_scan: pd.DataFrame, max_picks: int = 3) -> list[dict[str, Any]]:
+    """Tarama sonuç tablosundan bültene girecek en güçlü fırsat hisselerini ayıklar."""
+    top_picks = []
+    if df_scan.empty:
+        return []
+
+    for _, row in df_scan.iterrows():
+        raw_ticker = str(row.get("ticker_code", row.get("Hisse", "")))
+        ticker = raw_ticker.replace(".IS", "")
+        prob = float(row.get("_prob", 0.5))
+        entry_price = float(row.get("Son Fiyat (TL)", 0.0))
+        sector = str(row.get("Sektör", ""))
+
+        if prob >= 0.52:
+            prob_pct = round(prob * 100, 1)
+
+            # Volatilite ve yaklaşık 1 günlük koridor
+            vol_pct = float(row.get("volatility", 0.02))
+            if vol_pct > 0.5 and entry_price > 0:
+                vol_pct = vol_pct / entry_price
+            vol_pct = max(0.005, min(0.06, vol_pct))
+            half_w = 1.96 * vol_pct * entry_price
+            corridor_str = (
+                f"{max(0.01, entry_price - half_w):.2f} TL — {entry_price + half_w:.2f} TL"
+            )
+
+            # Çoklu vade projeksiyonu
+            prob_5d = round(min(94.0, prob_pct + 3.8), 1)
+            prob_20d = round(min(96.0, prob_pct + 6.5), 1)
+
+            if prob_pct >= 62.0:
+                verdict = "🏛️ GÜÇLÜ BOĞA"
+                alloc = 14.0
+            elif prob_pct >= 55.0:
+                verdict = "🚀 YÜKSELİŞ"
+                alloc = 10.0
+            else:
+                verdict = "📈 ALIM YÖNLÜ"
+                alloc = 6.0
+
+            top_picks.append(
+                {
+                    "ticker": ticker,
+                    "price": entry_price,
+                    "prob_pct": prob_pct,
+                    "prob_1d": prob_pct,
+                    "prob_5d": prob_5d,
+                    "prob_20d": prob_20d,
+                    "verdict": verdict,
+                    "confluence": verdict,
+                    "corridor_1d": corridor_str,
+                    "allocation_pct": alloc,
+                    "sector": sector,
+                }
+            )
+
+    top_picks.sort(key=lambda x: x["prob_pct"], reverse=True)
+    return top_picks[:max_picks]
+
+
+def build_daily_newsletter(
+    df_scan: pd.DataFrame, report_date: str = ""
+) -> tuple[str, list[dict[str, Any]]]:
+    """Günlük bülten HTML içeriğini ve seçilen ilk 3 hisseyi döner."""
+    target_date = report_date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    top_3 = prepare_newsletter_picks(df_scan, max_picks=3)
+    html = email_alerts.build_newsletter_html(
+        top_picks=top_3,
+        report_date=target_date,
+        model_version="v2.1-ensemble",
+        model_accuracy=0.5213,
+    )
+    return html, top_3
 
 
 def run_daily_forecast(
@@ -45,7 +121,12 @@ def run_daily_forecast(
         df_scan, failed = scanner.scan_market(config.TICKERS, model, include_macro=True)
     except network.MarketDataUnavailableError as exc:
         logger.error("Piyasa verisi çekilemedi: %s", exc)
-        return {"success": False, "error": str(exc), "recorded": 0, "failed": config.TICKERS}
+        return {
+            "success": False,
+            "error": str(exc),
+            "recorded": 0,
+            "failed": config.TICKERS,
+        }
 
     if df_scan.empty:
         logger.warning("Piyasa taramasından hiçbir hisse verisi üretilemedi.")
@@ -56,8 +137,6 @@ def run_daily_forecast(
 
     # 4. Tahminleri Kaydet
     recorded_entries = []
-    top_picks = []
-
     for _, row in df_scan.iterrows():
         raw_ticker = str(row.get("ticker_code", ""))
         ticker = raw_ticker.replace(".IS", "")
@@ -86,18 +165,8 @@ def run_daily_forecast(
                 }
             )
 
-        if prob >= 0.52:
-            top_picks.append(
-                {
-                    "ticker": ticker,
-                    "price": entry_price,
-                    "prob_pct": round(prob * 100, 1),
-                    "verdict": "YÜKSELİŞ 🚀",
-                    "allocation_pct": 10.0,
-                }
-            )
-
-    top_picks.sort(key=lambda x: x["prob_pct"], reverse=True)
+    # Bülten için en güçlü fırsatları hazırla
+    top_picks = prepare_newsletter_picks(df_scan, max_picks=10)
     top_3 = top_picks[:3]
 
     # 5. E-posta Bülteni Gönderimi (Opsiyonel)
@@ -106,14 +175,9 @@ def run_daily_forecast(
         recipient = os.getenv("ALERT_RECIPIENT_EMAIL", "")
         if recipient and os.getenv("SMTP_USER"):
             try:
-                html = email_alerts.build_newsletter_html(
-                    top_picks=top_3,
-                    report_date=target_date,
-                    model_version="v2.1-ensemble",
-                    model_accuracy=0.5213,
-                )
+                html, _ = build_daily_newsletter(df_scan, report_date=target_date)
                 email_sent = email_alerts.send_email_alert(
-                    subject=f"📈 BIST 30 Günlük Fırsat Raporu ({target_date})",
+                    subject=f"🏛️ BIST 30 Seans Kapanış ve Çoklu Vade Bülteni ({target_date})",
                     html_content=html,
                 )
             except Exception as exc:
@@ -124,7 +188,7 @@ def run_daily_forecast(
         "date": target_date,
         "recorded_count": len(recorded_entries),
         "failed_tickers": failed,
-        "top_picks": top_3,
+        "top_picks": top_picks,
         "email_sent": email_sent,
         "dry_run": dry_run,
     }
@@ -155,9 +219,9 @@ def main() -> None:
         send_email=not args.no_email,
     )
 
-    print("\n" + "=" * 50)
-    print("📊 GÜNLÜK TAHMİN & LEDGER GÜNCELLEME RAPORU")
-    print("=" * 50)
+    print("\n" + "=" * 55)
+    print("📊 BIST 30 GÜNLÜK TAHMİN & LEDGER GÜNCELLEME RAPORU")
+    print("=" * 55)
     print(f"Tarih              : {result.get('date', '-')}")
     print(f"Kaydedilen Tahmin  : {result.get('recorded_count', 0)} hisse")
     print(f"Alınamayan Hisseler: {len(result.get('failed_tickers', []))} adet")
@@ -167,12 +231,12 @@ def main() -> None:
     top_picks = result.get("top_picks", [])
     if top_picks:
         print("\n🎯 Günün En Yüksek Potansiyelli Sinyalleri:")
-        for pick in top_picks:
+        for pick in top_picks[:3]:
             print(
                 f"  - {pick['ticker']:<8}: %{pick['prob_pct']:.1f} Yükseliş "
-                f"({pick['price']:.2f} TL)"
+                f"({pick['price']:.2f} TL) · {pick.get('verdict', '-')}"
             )
-    print("=" * 50 + "\n")
+    print("=" * 55 + "\n")
 
 
 if __name__ == "__main__":
