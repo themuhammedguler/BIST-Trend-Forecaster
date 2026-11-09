@@ -663,3 +663,21 @@ def test_scanner_renders_portfolio_allocation_expander(patched_download):
     assert list(at.exception) == []
     expander_labels = [e.label for e in at.expander]
     assert any("Önerilen Portföy Sermaye Dağılımı" in label for label in expander_labels)
+
+
+def test_app_renders_fundamental_rag_chatbot_expander(patched_download):
+    """Tekli hisse sekmesinde Financial Analyst Chatbot RAG expander'ı render edilmeli."""
+    at = AppTest.from_file(APP_PATH, default_timeout=30)
+    at.run()
+    assert list(at.exception) == []
+    expander_labels = [e.label for e in at.expander]
+    assert any("Kurumsal Temel Analiz & Bilanço Chatbot'u" in label for label in expander_labels)
+
+
+def test_app_respects_url_query_parameter_for_ticker(patched_download):
+    """URL ?ticker=THYAO query parametresi ile başlatıldığında THYAO otomatik seçilmeli."""
+    at = AppTest.from_file(APP_PATH, default_timeout=30)
+    at.query_params["ticker"] = "THYAO"
+    at.run()
+    assert list(at.exception) == []
+    assert at.sidebar.selectbox[0].value == "THYAO"

@@ -32,15 +32,28 @@ Bu proje **XGBoost** algoritması kullanarak BIST 30 hisselerinin
 bir sonraki günkü kapanış yönünü (Artış/Düşüş) tahmin eder.
 """)
 
-# Yan Menü: Hisse Seçimi
+# Yan Menü: Hisse Seçimi & Deep-Linking Desteği
 st.sidebar.header("Hisse Seçimi")
+ticker_list = [t.replace(".IS", "") for t in config.TICKERS]
+
+query_params = st.query_params
+raw_param = query_params.get("ticker") or query_params.get("symbol")
+default_idx = 0
+if raw_param:
+    clean_param = str(raw_param).upper().strip().replace(".IS", "")
+    if clean_param in ticker_list:
+        default_idx = ticker_list.index(clean_param)
+
 selected_ticker = st.sidebar.selectbox(
     "Hisse Senedi Seçiniz",
-    [t.replace(".IS", "") for t in config.TICKERS],
+    ticker_list,
+    index=default_idx,
     format_func=lambda x: (
         f"{x} (TRALT)" if x == "KOZAL" else (f"{x} (TRMET)" if x == "KOZAA" else x)
     ),
 )
+# Tarayıcı URL'sini seçili hisseyle senkronize et (paylaşılabilir derin bağlantı)
+st.query_params["ticker"] = selected_ticker
 selected_ticker_full = selected_ticker + ".IS"
 
 # Veriler 15 dk önbellekte tutulur; buton yalnızca seçili hissenin kaydını temizler (#11)

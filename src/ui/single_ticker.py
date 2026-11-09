@@ -9,6 +9,7 @@ from src import (
     config,
     drift,
     explain,
+    fundamental_rag,
     kap_llm,
     kap_news,
     risk_sizing,
@@ -198,6 +199,78 @@ def render_kap_llm_section(selected_ticker: str):
             st.dataframe(disc_table)
 
 
+def render_fundamental_rag_section(selected_ticker: str):
+    """Financial Analyst ChatBot Project temel analiz ve bilanço özetini gösterir."""
+    with st.expander("💬 Kurumsal Temel Analiz & Bilanço Chatbot'u (RAG)", expanded=False):
+        report = fundamental_rag.fetch_fundamental_report(selected_ticker)
+        chatbot_link = fundamental_rag.build_chatbot_deeplink(selected_ticker)
+
+        box_style = (
+            "background-color: #1E293B; border: 1px solid #334155; "
+            "border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; "
+            "display: flex; justify-content: space-between; align-items: center; "
+            "flex-wrap: wrap; gap: 8px;"
+        )
+        btn_style = (
+            "background-color: #2563EB; color: #FFFFFF; font-weight: 600; "
+            "font-size: 0.82rem; padding: 6px 14px; border-radius: 6px; "
+            "text-decoration: none; display: inline-block;"
+        )
+        st.markdown(
+            f"""
+            <div style="{box_style}">
+                <span style="color: #F8FAFC; font-size: 0.90rem;">
+                    🏢 <strong>{selected_ticker}</strong> için KAP raporları, bilanço ve dipnotları
+                    analiz eden yapay zeka asistanına soru sorun.
+                </span>
+                <a href="{chatbot_link}" target="_blank" style="{btn_style}">
+                    Chatbot'a Git ↗
+                </a>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        if report is not None:
+            c1, c2, c3 = st.columns(3)
+            c1.markdown(f"**Temel Görünüm:** {report.badge}")
+            c2.markdown(f"**Rapor Tarihi:** `{report.report_date or 'Güncel'}`")
+            source_badge = (
+                "⚡ Yerel Önbellek"
+                if report.source == "local_cache"
+                else ("🌐 Chatbot API" if report.source == "api" else "🐙 GitHub Veri Deposu")
+            )
+            c3.markdown(f"**Veri Kaynağı:** `{source_badge}`")
+
+            if report.fundamental_summary:
+                st.markdown(f"**Bilanço & Faaliyet Özeti:**\n\n{report.fundamental_summary}")
+
+            km = report.key_metrics
+            r_col1, r_col2, r_col3, r_col4 = st.columns(4)
+            pe_str = f"{km.pe_ratio:.2f}" if km.pe_ratio is not None else "—"
+            pb_str = f"{km.pb_ratio:.2f}" if km.pb_ratio is not None else "—"
+            r_col1.markdown(f"**F/K Oranı:** `{pe_str}`")
+            r_col2.markdown(f"**PD/DD:** `{pb_str}`")
+            r_col3.markdown(f"**Net Kâr Trendi:** `{km.net_profit_margin_trend}`")
+            r_col4.markdown(f"**Borçluluk:** `{km.debt_to_equity}`")
+
+            if report.catalysts:
+                st.markdown("**🚀 Yukarı Yönlü Katalizörler & Büyüme Faktörleri:**")
+                for cat in report.catalysts:
+                    st.markdown(f"- {cat}")
+
+            if report.risk_factors:
+                st.markdown("**⚠️ Temel ve Finansal Risk Faktörleri:**")
+                for risk in report.risk_factors:
+                    st.markdown(f"- {risk}")
+        else:
+            st.markdown(
+                f"ℹ️ *{selected_ticker} için önceden üretilmiş statik özet rapor bulunamadı. "
+                f"Yukarıdaki butona tıklayarak **Financial Analyst ChatBot** üzerinden "
+                f"canlı RAG analizini başlatabilirsiniz.*"
+            )
+
+
 def render_single_ticker_tab(
     selected_ticker: str,
     selected_ticker_full: str,
@@ -341,3 +414,4 @@ def render_single_ticker_tab(
         )
         render_drift_section(df_processed[config.FEATURES])
         render_kap_llm_section(selected_ticker)
+        render_fundamental_rag_section(selected_ticker)

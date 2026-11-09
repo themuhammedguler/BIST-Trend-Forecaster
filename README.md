@@ -96,10 +96,15 @@ Farklı makine öğrenimi ve derin öğrenme mimarilerinin BIST 100 yön tahmini
 
 ## 4. İş Gereksinimleri ve Kullanım
 Bu model, bir yatırım tavsiyesi vermekten ziyade, yatırımcının karar destek mekanizması olarak tasarlanmıştır.
-*   **Canlıya Alma (Streamlit):** Model, `Streamlit` kullanılarak interaktif bir web arayüzüne dönüştürülmüştür:
+*   **Canlıya Alma (Streamlit):** Model, `Streamlit` kullanılarak interaktif bir web arayüzüne dönüştürülmüştür. `.streamlit/config.toml` ile kurumsal koyu tema (Dark Mode) varsayılan olarak sabitlenmiştir:
     ```bash
     streamlit run app.py
     ```
+*   **İki Yönlü RAG & Temel Analiz Entegrasyonu:**
+    Proje, [themuhammedguler/Financial-Analyst-ChatBot-Project](https://github.com/themuhammedguler/Financial-Analyst-ChatBot-Project) ile çift yönlü entegre çalışır:
+    *   **Derin Bağlantı (Deep-Linking):** URL `?ticker=THYAO` parametresiyle açıldığında seçili hisse otomatik yüklenir.
+    *   **Yapılandırılmış Çıktı:** Chatbot projesinin ürettiği temel analiz ve bilanço özetleri (`FundamentalReport`) `src/fundamental_rag.py` üzerinden arayüze taşınır.
+    *   **Çift Yönlü Köprü:** Tek tıkla hissenin bilanço dipnotlarını ve faaliyet raporlarını analiz eden RAG chatbot'una geçiş sağlanır.
 *   **Docker & Docker Compose ile Çalıştırma:**
     Herhangi bir yerel ortam kurulumu yapmadan tek bir komutla uygulamayı konteyner üzerinde çalıştırabilirsiniz:
     ```bash
@@ -112,6 +117,7 @@ Bu model, bir yatırım tavsiyesi vermekten ziyade, yatırımcının karar deste
 ```text
 BIST-TREND-FORECASTER/
 ├── .github/workflows/     # CI, CD ve periyodik yeniden eğitim iş akışları
+├── .streamlit/            # Streamlit koyu tema ve istemci yapılandırması
 ├── data/                  # Ham ve işlenmiş veriler
 ├── docs/experiments/      # Model mimarisi kıyaslama ve deney raporları
 ├── models/                # Eğitilmiş .json modelleri ve model meta verileri
@@ -120,12 +126,15 @@ BIST-TREND-FORECASTER/
 │   ├── benchmark.py       # Genişleyen pencereli model benchmark harness
 │   ├── config.py          # Ayarlar ve özellik listeleri
 │   ├── features.py        # Teknik indikatör ve makro özellik hesaplamaları
+│   ├── fundamental_rag.py # Financial Analyst Chatbot RAG entegrasyonu
+│   ├── kap_llm.py         # LLM destekli KAP duygu ve etki analizi
+│   ├── risk_sizing.py     # Kelly Criterion dinamik pozisyon boyutlandırma
 │   ├── scanner.py         # BIST 30 piyasa taraması ve fırsat radarı
 │   ├── tune.py            # Optuna hiperparametre optimizasyonu
 │   ├── metrics.py         # Değerlendirme metrikleri ve sınıf ağırlıklandırma
 │   ├── model_metadata.py  # Model üretim meta verisi kayıt modülü
 │   └── model_train.py     # Model eğitimi ve kalite kapısı (quality gate)
-├── tests/                 # Birim ve entegrasyon testleri
+├── tests/                 # Birim ve entegrasyon testleri (313+ test)
 ├── app.py                 # Streamlit arayüz kodu
 ├── Dockerfile             # Docker konteyner tanımı
 ├── docker-compose.yml     # Konteyner orchestration konfigürasyonu
