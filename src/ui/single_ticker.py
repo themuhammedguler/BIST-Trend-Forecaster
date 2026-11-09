@@ -14,6 +14,7 @@ from src import (
     hybrid_decision,
     kap_llm,
     kap_news,
+    multi_horizon,
     risk_sizing,
     session_calendar,
     signals,
@@ -232,13 +233,13 @@ def render_fundamental_rag_section(
         chatbot_link = fundamental_rag.build_chatbot_deeplink(selected_ticker)
 
         box_style = (
-            "background-color: #1E293B; border: 1px solid #334155; "
+            "background-color: #152238; border: 1px solid #1E3A5F; "
             "border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; "
             "display: flex; justify-content: space-between; align-items: center; "
             "flex-wrap: wrap; gap: 8px;"
         )
         btn_style = (
-            "background-color: #2563EB; color: #FFFFFF; font-weight: 600; "
+            "background-color: #1D4ED8; color: #FFFFFF; font-weight: 600; "
             "font-size: 0.82rem; padding: 6px 14px; border-radius: 6px; "
             "text-decoration: none; display: inline-block;"
         )
@@ -301,39 +302,39 @@ def render_hybrid_decision_card(decision: hybrid_decision.HybridDecision) -> Non
     """Teknik ve temel analizi birleştiren hibrit karar rozetini ve özetini render eder."""
     verdict_colors = {
         "STRONG_BUY": {
-            "border": "#10B981",
-            "badge_bg": "rgba(16, 185, 129, 0.15)",
+            "border": "#059669",
+            "badge_bg": "rgba(5, 150, 105, 0.15)",
             "text": "#34D399",
         },
         "VALUE_DIP": {
-            "border": "#38BDF8",
-            "badge_bg": "rgba(56, 189, 248, 0.15)",
-            "text": "#38BDF8",
+            "border": "#1D4ED8",
+            "badge_bg": "rgba(29, 78, 216, 0.15)",
+            "text": "#60A5FA",
         },
         "SPECULATIVE_MOMENTUM": {
-            "border": "#F59E0B",
-            "badge_bg": "rgba(245, 158, 11, 0.15)",
+            "border": "#D97706",
+            "badge_bg": "rgba(217, 119, 6, 0.15)",
             "text": "#FBBF24",
         },
         "STRONG_SELL": {
-            "border": "#EF4444",
-            "badge_bg": "rgba(239, 68, 68, 0.15)",
+            "border": "#B91C1C",
+            "badge_bg": "rgba(185, 28, 28, 0.20)",
             "text": "#F87171",
         },
         "TECHNICAL_UP": {
-            "border": "#10B981",
-            "badge_bg": "rgba(16, 185, 129, 0.15)",
+            "border": "#059669",
+            "badge_bg": "rgba(5, 150, 105, 0.15)",
             "text": "#34D399",
         },
         "TECHNICAL_DOWN": {
-            "border": "#EF4444",
-            "badge_bg": "rgba(239, 68, 68, 0.15)",
+            "border": "#DC2626",
+            "badge_bg": "rgba(220, 38, 38, 0.15)",
             "text": "#F87171",
         },
     }
     theme = verdict_colors.get(
         decision.verdict,
-        {"border": "#64748B", "badge_bg": "rgba(100, 116, 139, 0.15)", "text": "#94A3B8"},
+        {"border": "#1E3A5F", "badge_bg": "rgba(30, 58, 95, 0.20)", "text": "#94A3B8"},
     )
 
     fund_text = (
@@ -343,10 +344,10 @@ def render_hybrid_decision_card(decision: hybrid_decision.HybridDecision) -> Non
     )
 
     card_style = (
-        f"background-color: #1E293B; border-left: 5px solid {theme['border']}; "
+        f"background-color: #152238; border-left: 5px solid {theme['border']}; "
         "border-radius: 8px; padding: 14px 18px; margin: 14px 0 16px 0; "
-        "border-top: 1px solid #334155; border-right: 1px solid #334155; "
-        "border-bottom: 1px solid #334155;"
+        "border-top: 1px solid #1E3A5F; border-right: 1px solid #1E3A5F; "
+        "border-bottom: 1px solid #1E3A5F;"
     )
     badge_style = (
         f"background-color: {theme['badge_bg']}; color: {theme['text']}; "
@@ -354,7 +355,7 @@ def render_hybrid_decision_card(decision: hybrid_decision.HybridDecision) -> Non
         f"border: 1px solid {theme['border']};"
     )
     meta_style = (
-        "font-size: 0.78rem; color: #64748B; border-top: 1px solid #334155; "
+        "font-size: 0.78rem; color: #64748B; border-top: 1px solid #1E3A5F; "
         "padding-top: 8px; display: flex; gap: 16px; flex-wrap: wrap;"
     )
     header_style = (
@@ -420,7 +421,7 @@ def render_forward_tracking_section(selected_ticker: str, full_df: pd.DataFrame)
         labels = [("1G", "1 Seans"), ("3G", "3 Seans"), ("1H (5G)", "1 Hafta (5 Seans)")]
 
         badge_box_style = (
-            "background-color: #1E293B; border: 1px solid #334155; border-radius: 6px; "
+            "background-color: #152238; border: 1px solid #1E3A5F; border-radius: 6px; "
             "padding: 10px 14px; text-align: center; margin-bottom: 12px;"
         )
 
@@ -430,7 +431,7 @@ def render_forward_tracking_section(selected_ticker: str, full_df: pd.DataFrame)
             hit_rate = h_data.get("hit_rate_pct", 0.0)
             avg_ret = h_data.get("avg_return_pct", 0.0)
 
-            ret_color = "#10B981" if avg_ret >= 0 else "#EF4444"
+            ret_color = "#059669" if avg_ret >= 0 else "#DC2626"
             title_div = (
                 f'<div style="font-size: 0.75rem; color: #94A3B8; font-weight: 600;">'
                 f"{h_title} İsabet</div>"
@@ -477,6 +478,147 @@ def render_forward_tracking_section(selected_ticker: str, full_df: pd.DataFrame)
                 "1H (5G) 100k TL Bakiye": st.column_config.NumberColumn(format="%.2f TL"),
             },
         )
+
+
+def render_multi_horizon_matrix(
+    selected_ticker: str,
+    input_data: pd.DataFrame,
+    full_df: pd.DataFrame,
+    current_price: float,
+    prob_low: float,
+    prob_high: float,
+) -> None:
+    """1 Gün, 1 Hafta (5G) ve 1 Ay (20G) vadeli tahmin matrisi ve trend uyumunu render eder."""
+    models = multi_horizon.load_multi_horizon_models()
+    horizon_res = multi_horizon.predict_horizons(
+        models,
+        input_data,
+        prob_low=prob_low,
+        prob_high=prob_high,
+    )
+
+    vol = float(input_data["volatility"].iloc[-1]) if "volatility" in input_data.columns else 0.02
+    corridors = multi_horizon.calculate_expected_price_corridor(current_price, vol)
+
+    st.markdown("#### 🎯 Çoklu Vade Trend Matrisi (1 Gün • 1 Hafta • 1 Ay)")
+
+    # 3 Vade Kartı (Kamusal Kurumsal Renk Paleti: #152238 zemin, #1E3A5F sınır)
+    m_col1, m_col2, m_col3 = st.columns(3)
+    cards = [
+        ("1d", "📅 Yarınki Seans (1 Gün)", m_col1),
+        ("5d", "📅 Bu Hafta (5 Gün)", m_col2),
+        ("20d", "📅 Bu Ay (20 Gün)", m_col3),
+    ]
+
+    for key, title, col in cards:
+        fc = horizon_res.forecasts.get(key)
+        corr = corridors.get(
+            key, {"min": current_price * 0.98, "max": current_price * 1.02, "pct": 2.0}
+        )
+        if fc is None:
+            continue
+
+        if fc.signal == 1:
+            bg_badge = "rgba(5, 150, 105, 0.20)"
+            border_color = "#059669"
+            text_color = "#34D399"
+            icon = "🚀"
+        elif fc.signal == -1:
+            bg_badge = "rgba(220, 38, 38, 0.20)"
+            border_color = "#DC2626"
+            text_color = "#F87171"
+            icon = "🔻"
+        else:
+            bg_badge = "rgba(217, 119, 6, 0.20)"
+            border_color = "#D97706"
+            text_color = "#FBBF24"
+            icon = "⏸️"
+
+        card_html = (
+            f'<div style="background-color: #152238; border: 1px solid #1E3A5F; '
+            f"border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; "
+            f'border-top: 3px solid {border_color};">'
+            f'<div style="font-size: 0.80rem; color: #94A3B8; font-weight: 600; '
+            f'margin-bottom: 6px;">{title}</div>'
+            f'<div style="display: flex; justify-content: space-between; '
+            f'align-items: center; margin-bottom: 8px;">'
+            f'<span style="font-size: 1.15rem; font-weight: 800; color: #F8FAFC;">'
+            f"%{fc.probability * 100:.1f}</span>"
+            f'<span style="background-color: {bg_badge}; color: {text_color}; '
+            f"font-size: 0.75rem; font-weight: 700; padding: 2px 8px; "
+            f'border-radius: 4px; border: 1px solid {border_color};">'
+            f"{icon} {fc.label}</span></div>"
+            f'<div style="font-size: 0.76rem; color: #64748B; border-top: 1px solid #1E3A5F; '
+            f'padding-top: 6px;">%95 Fiyat Koridoru (±%{corr["pct"]:.1f}):<br/>'
+            f'<strong style="color: #CBD5E1;">{corr["min"]:.2f} TL — '
+            f"{corr['max']:.2f} TL</strong></div></div>"
+        )
+        col.markdown(card_html, unsafe_allow_html=True)
+
+    # Vade Konsensüs & Konfluans Kutusu
+    c_score = horizon_res.confluence_score
+    c_color = "#059669" if c_score > 0.2 else ("#DC2626" if c_score < -0.2 else "#D97706")
+    confluence_html = (
+        f'<div style="background-color: #152238; border: 1px solid #1E3A5F; '
+        f"border-left: 4px solid {c_color}; border-radius: 6px; padding: 10px 14px; "
+        f"margin-bottom: 14px; display: flex; justify-content: space-between; "
+        f'align-items: center; flex-wrap: wrap; gap: 8px;">'
+        f'<div><span style="font-size: 0.85rem; font-weight: 700; color: #F8FAFC;">'
+        f'🏛️ Vade Konsensüsü: <span style="color: {c_color};">'
+        f"{horizon_res.confluence_label}</span></span>"
+        f'<div style="font-size: 0.78rem; color: #94A3B8; margin-top: 2px;">'
+        f"{horizon_res.summary}</div></div>"
+        f'<div style="font-size: 0.80rem; font-weight: 700; color: #94A3B8;">'
+        f'Uyum Skoru: <span style="color: #F8FAFC;">{c_score:+.2f}</span></div></div>'
+    )
+    st.markdown(confluence_html, unsafe_allow_html=True)
+
+
+def render_financial_tools_section(
+    selected_ticker: str,
+    full_df: pd.DataFrame,
+    current_price: float,
+) -> None:
+    """ADX trend gücü, Golden Cross, Pivot ve Risk/Ödül analizini render eder."""
+    pivots = multi_horizon.calculate_pivot_levels(full_df)
+    trend = multi_horizon.calculate_trend_strength(full_df)
+    s1 = pivots.get("s1", current_price * 0.97)
+    r1 = pivots.get("r1", current_price * 1.03)
+    rr = multi_horizon.calculate_risk_reward(current_price, s1, r1)
+
+    with st.expander("📐 Profesyonel Finansal Göstergeler & Risk Masası", expanded=False):
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.markdown("**📊 Trend Gücü & İvme:**")
+            st.write(f"• **ADX (14):** `{trend['adx']}` ({trend['trend_strength']})")
+            if trend["golden_cross"]:
+                st.write("• **Golden Cross:** 🟡 **Aktif (SMA 50 > SMA 200)**")
+            elif trend["death_cross"]:
+                st.write("• **Death Cross:** 🔴 **Aktif (SMA 50 < SMA 200)**")
+            else:
+                st.write("• **Trend Kesişimi:** Nötr / Yeterli veri yok")
+        with c2:
+            st.markdown("**🎯 Destek & Direnç Seviyeleri (TL):**")
+            p_val = pivots.get("pivot", current_price)
+            r2_val = pivots.get("r2", current_price * 1.05)
+            s2_val = pivots.get("s2", current_price * 0.95)
+            st.write(f"• **Direnç 2 (R2):** `{r2_val:.2f}` | **R1:** `{r1:.2f}`")
+            st.write(f"• **Pivot (P):** `{p_val:.2f}`")
+            st.write(f"• **Destek 1 (S1):** `{s1:.2f}` | **S2:** `{s2_val:.2f}`")
+        with c3:
+            st.markdown("**⚖️ Risk / Ödül Oranı (R:R):**")
+            st.write(f"• **R:R Oranı:** **{rr['label']}**")
+            st.write(f"• **Potansiyel Kâr (R1):** `+{rr['potential_gain_tl']:.2f} TL`")
+            st.write(f"• **Potansiyel Risk (S1):** `-{rr['potential_risk_tl']:.2f} TL`")
+
+        fib_382 = pivots.get("fib_382")
+        fib_500 = pivots.get("fib_500")
+        fib_618 = pivots.get("fib_618")
+        if fib_382 and fib_500 and fib_618:
+            st.caption(
+                f"Fibonacci Seviyeleri: %38.2 = **{fib_382:.2f} TL** · "
+                f"%50.0 (Denge) = **{fib_500:.2f} TL** · %61.8 (Altın Oran) = **{fib_618:.2f} TL**"
+            )
 
 
 def render_single_ticker_tab(
@@ -554,6 +696,23 @@ def render_single_ticker_tab(
             prob_low=prob_low,
         )
         render_hybrid_decision_card(decision)
+
+        # Çoklu Vade Trend Matrisi (1 Gün • 1 Hafta • 1 Ay)
+        render_multi_horizon_matrix(
+            selected_ticker=selected_ticker,
+            input_data=input_data,
+            full_df=full_df,
+            current_price=current_price,
+            prob_low=prob_low,
+            prob_high=prob_high,
+        )
+
+        # Profesyonel Finansal Göstergeler & Risk Masası (ADX, Pivotlar, R:R)
+        render_financial_tools_section(
+            selected_ticker=selected_ticker,
+            full_df=full_df,
+            current_price=current_price,
+        )
 
         # Günlük Tahmin Kaydı (Forward Tracking Denetim Defteri) (#53)
         last_date_str = str(input_data["Date"].iloc[-1]).split()[0]

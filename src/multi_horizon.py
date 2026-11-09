@@ -4,12 +4,16 @@ Farklı yatırım vadeleri (günlük swing, haftalık dalga ve aylık ana trend)
 yön tahminleri üretir ve vadelerin birbirini doğrulama derecesini (confluence) puanlar.
 """
 
+import os
 from dataclasses import dataclass
 from typing import Any, Dict, Optional, Tuple
 
+import numpy as np
 import pandas as pd
+import ta
+import xgboost as xgb
 
-from src import signals
+from src import config, features, signals
 
 
 @dataclass
@@ -163,7 +167,8 @@ def predict_horizons(
         model = models.get(key)
         if model is not None:
             if hasattr(model, "predict_proba"):
-                prob = float(model.predict_proba(X_row)[0][1])
+                aligned_X = features.align_model_features(model, X_row)
+                prob = float(model.predict_proba(aligned_X)[0][1])
             elif callable(model):
                 prob = float(model(X_row))
             else:
@@ -194,3 +199,223 @@ def predict_horizons(
         confluence_label=confluence_label,
         summary=summary,
     )
+
+
+def calculate_pivot_levels(df: pd.DataFrame) -> Dict[str, float]:
+    """Klasik ve Fibonacci pivot destek/direnç seviyelerini hesaplar.
+
+    Formüller:
+        Pivot (P) = (High + Low + Close) / 3
+        R1 = 2P - Low, R2 = P + (High - Low), R3 = High + 2(P - Low)
+        S1 = 2P - High, S2 = P - (High - Low), S3 = Low - 2(High - P)
+        Fib %38.2, %50, %61.8
+    """
+    if df.empty:
+        return {}
+
+    # Sütun adları büyük veya küçük harf olabilir
+    col_map = {c.lower(): c for c in df.columns}
+    h_col = col_map.get("high", "high")
+    l_col = col_map.get("low", "low")
+    c_col = col_map.get("close", "close")
+
+    last = df.iloc[-1]
+    h_val = float(last[h_col])
+    l_val = float(last[l_col])
+    c_val = float(last[c_col])
+
+    p = (h_val + l_val + c_val) / 3.0
+    r1 = 2.0 * p - l_val
+    s1 = 2.0 * p - h_val
+    r2 = p + (h_val - l_val)
+    s2 = p - (h_val - l_val)
+    r3 = h_val + 2.0 * (p - l_val)
+    s3 = l_val - 2.0 * (h_val - p)
+
+    diff = h_val - l_val if (h_val - l_val) > 0 else 0.01
+    fib_382 = h_val - diff * 0.382
+    fib_500 = h_val - diff * 0.500
+    fib_618 = h_val - diff * 0.618
+
+    return {
+        "pivot": round(p, 2),
+        "r1": round(r1, 2),
+        "r2": round(r2, 2),
+        "r3": round(r3, 2),
+        "s1": round(s1, 2),
+        "s2": round(s2, 2),
+        "s3": round(s3, 2),
+        "fib_382": round(fib_382, 2),
+        "fib_500": round(fib_500, 2),
+        "fib_618": round(fib_618, 2),
+    }
+
+
+def calculate_trend_strength(df: pd.DataFrame) -> Dict[str, Any]:
+    """ADX trend gücü ve 50/200 günlük hareketli ortalama kesişimlerini analiz eder."""
+    if df.empty or len(df) < 15:
+        return {
+            "adx": 20.0,
+            "trend_strength": "YATAY / BELİRSİZ",
+            "sma_50": None,
+            "sma_200": None,
+            "golden_cross": False,
+            "death_cross": False,
+        }
+
+    col_map = {c.lower(): c for c in df.columns}
+    h_col = col_map.get("high", "high")
+    l_col = col_map.get("low", "low")
+    c_col = col_map.get("close", "close")
+
+    # ADX hesaplama (en az 28 satır gerektirir)
+    adx_val = 20.0
+    if len(df) >= 28:
+        try:
+            adx_series = ta.trend.adx(df[h_col], df[l_col], df[c_col], window=14)
+            if not adx_series.empty and not np.isnan(adx_series.iloc[-1]):
+                adx_val = float(adx_series.iloc[-1])
+        except Exception:
+            adx_val = 20.0
+
+    if adx_val >= 25.0:
+        strength = "GÜÇLÜ TREND"
+    elif adx_val >= 20.0:
+        strength = "GELİŞEN TREND"
+    else:
+        strength = "ZAYIF / TESTERE (YATAY)"
+
+    # Hareketli Ortalamalar
+    close_series = df[c_col]
+    sma_50 = float(close_series.rolling(50).mean().iloc[-1]) if len(df) >= 50 else None
+    sma_200 = float(close_series.rolling(200).mean().iloc[-1]) if len(df) >= 200 else None
+
+    golden_cross = False
+    death_cross = False
+    if sma_50 is not None and sma_200 is not None:
+        golden_cross = sma_50 > sma_200
+        death_cross = sma_50 < sma_200
+
+    return {
+        "adx": round(adx_val, 1),
+        "trend_strength": strength,
+        "sma_50": round(sma_50, 2) if sma_50 is not None else None,
+        "sma_200": round(sma_200, 2) if sma_200 is not None else None,
+        "golden_cross": golden_cross,
+        "death_cross": death_cross,
+    }
+
+
+def calculate_expected_price_corridor(
+    current_price: float,
+    daily_volatility: float,
+) -> Dict[str, Dict[str, float]]:
+    """Tarihsel oynaklık üzerinden 1 Gün, 1 Hafta (5G) ve 1 Ay (20G)
+    %95 güven fiyat koridorunu hesaplar.
+    """
+    sigma_d = max(0.005, float(daily_volatility))
+
+    # 1.96 * sigma * sqrt(T)
+    d1 = 1.96 * sigma_d * 1.0
+    d5 = 1.96 * sigma_d * np.sqrt(5.0)
+    d20 = 1.96 * sigma_d * np.sqrt(20.0)
+
+    return {
+        "1d": {
+            "min": round(current_price * (1.0 - d1), 2),
+            "max": round(current_price * (1.0 + d1), 2),
+            "pct": round(d1 * 100, 1),
+        },
+        "5d": {
+            "min": round(current_price * (1.0 - d5), 2),
+            "max": round(current_price * (1.0 + d5), 2),
+            "pct": round(d5 * 100, 1),
+        },
+        "20d": {
+            "min": round(current_price * (1.0 - d20), 2),
+            "max": round(current_price * (1.0 + d20), 2),
+            "pct": round(d20 * 100, 1),
+        },
+    }
+
+
+def calculate_risk_reward(current_price: float, s1: float, r1: float) -> Dict[str, Any]:
+    """Destek (S1) ve Direnç (R1) seviyelerine göre Risk / Ödül oranını hesaplar."""
+    gain = max(0.01, r1 - current_price)
+    risk = max(0.01, current_price - s1)
+    ratio = round(gain / risk, 2)
+
+    if ratio >= 1.5:
+        label = f"CAZİP (1 : {ratio})"
+        favorable = True
+    elif ratio >= 1.0:
+        label = f"DENGELİ (1 : {ratio})"
+        favorable = False
+    else:
+        label = f"RİSKLİ / DÜŞÜK (1 : {ratio})"
+        favorable = False
+
+    return {
+        "ratio": ratio,
+        "potential_gain_tl": round(gain, 2),
+        "potential_risk_tl": round(risk, 2),
+        "label": label,
+        "is_favorable": favorable,
+    }
+
+
+def _fallback_momentum_estimator(days: int = 5):
+    """Eğitilmiş model bulunamadığında kullanılan kalibre edilmiş momentum tahmincisi."""
+
+    def _estimator(X_row: pd.DataFrame) -> float:
+        score = 0.50
+        if "roc_5" in X_row.columns:
+            score += float(np.tanh(X_row["roc_5"].iloc[0] * 8.0) * 0.15)
+        if "sma_10_ratio" in X_row.columns:
+            score += float(np.tanh(X_row["sma_10_ratio"].iloc[0] * 5.0) * 0.10)
+        if "mfi" in X_row.columns:
+            score += float((X_row["mfi"].iloc[0] - 50.0) / 100.0 * 0.10)
+        return float(np.clip(score, 0.35, 0.65))
+
+    return _estimator
+
+
+def load_multi_horizon_models() -> Dict[str, Any]:
+    """1 Gün, 1 Hafta (5G) ve 1 Ay (20G) yön tahmin modellerini yükler."""
+    models: Dict[str, Any] = {}
+
+    # 1 Gün Modeli: xgb_bist_model.json
+    try:
+        m1 = xgb.XGBClassifier()
+        m1.load_model(config.MODEL_PATH)
+        models["1d"] = m1
+    except Exception:
+        pass
+
+    models_dir = os.path.join(config.BASE_DIR, "models")
+    path_5d = os.path.join(models_dir, "xgb_5d_model.json")
+    path_20d = os.path.join(models_dir, "xgb_20d_model.json")
+
+    # 5 Gün Modeli
+    if os.path.exists(path_5d):
+        try:
+            m5 = xgb.XGBClassifier()
+            m5.load_model(path_5d)
+            models["5d"] = m5
+        except Exception:
+            models["5d"] = _fallback_momentum_estimator(5)
+    else:
+        models["5d"] = _fallback_momentum_estimator(5)
+
+    # 20 Gün Modeli
+    if os.path.exists(path_20d):
+        try:
+            m20 = xgb.XGBClassifier()
+            m20.load_model(path_20d)
+            models["20d"] = m20
+        except Exception:
+            models["20d"] = _fallback_momentum_estimator(20)
+    else:
+        models["20d"] = _fallback_momentum_estimator(20)
+
+    return models
