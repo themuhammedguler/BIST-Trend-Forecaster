@@ -313,7 +313,12 @@ def calculate_expected_price_corridor(
     """Tarihsel oynaklık üzerinden 1 Gün, 1 Hafta (5G) ve 1 Ay (20G)
     %95 güven fiyat koridorunu hesaplar.
     """
-    sigma_d = max(0.005, float(daily_volatility))
+    sigma_d = float(daily_volatility)
+    # Eğer mutlak TL cinsinden fiyat standart sapması verilmişse normalize et
+    if sigma_d > 0.5 and current_price > 0:
+        sigma_d = sigma_d / current_price
+    # Finansal seriler için gerçekçi günlük oynaklık sınırı (%0.5 ile %6.0 arası)
+    sigma_d = float(np.clip(sigma_d, 0.005, 0.06))
 
     # 1.96 * sigma * sqrt(T)
     d1 = 1.96 * sigma_d * 1.0
@@ -322,17 +327,17 @@ def calculate_expected_price_corridor(
 
     return {
         "1d": {
-            "min": round(current_price * (1.0 - d1), 2),
+            "min": max(0.01, round(current_price * (1.0 - d1), 2)),
             "max": round(current_price * (1.0 + d1), 2),
             "pct": round(d1 * 100, 1),
         },
         "5d": {
-            "min": round(current_price * (1.0 - d5), 2),
+            "min": max(0.01, round(current_price * (1.0 - d5), 2)),
             "max": round(current_price * (1.0 + d5), 2),
             "pct": round(d5 * 100, 1),
         },
         "20d": {
-            "min": round(current_price * (1.0 - d20), 2),
+            "min": max(0.01, round(current_price * (1.0 - d20), 2)),
             "max": round(current_price * (1.0 + d20), 2),
             "pct": round(d20 * 100, 1),
         },

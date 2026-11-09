@@ -1,5 +1,6 @@
 """Tek hisse senedi detay analizi, SHAP açıklamaları, grafikler ve backtest sekmesi."""
 
+import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
@@ -497,7 +498,13 @@ def render_multi_horizon_matrix(
         prob_high=prob_high,
     )
 
-    vol = float(input_data["volatility"].iloc[-1]) if "volatility" in input_data.columns else 0.02
+    # Yüzde getiri oynaklığı üzerinden hesapla
+    if full_df is not None and len(full_df) >= 10:
+        vol = float(full_df["close"].pct_change().tail(20).std())
+        if np.isnan(vol) or vol <= 0:
+            vol = 0.02
+    else:
+        vol = 0.02
     corridors = multi_horizon.calculate_expected_price_corridor(current_price, vol)
 
     st.markdown("#### 🎯 Çoklu Vade Trend Matrisi (1 Gün • 1 Hafta • 1 Ay)")
@@ -737,10 +744,14 @@ def render_single_ticker_tab(
                 m3.write(f"**💵 USD/TRY Değişimi:** %{fx_pct:+.2f}")
 
         # Sermaye Tahsisi & Pozisyon Boyutlandırma (Kelly) (#71)
-        vol = (
-            float(input_data["volatility"].iloc[-1]) if "volatility" in input_data.columns else 0.25
-        )
-        render_risk_sizing_section(selected_ticker, prob, vol)
+        if len(full_df) >= 10:
+            d_vol = float(full_df["close"].pct_change().tail(20).std())
+            if np.isnan(d_vol) or d_vol <= 0:
+                d_vol = 0.02
+        else:
+            d_vol = 0.02
+        annual_vol = float(np.clip(d_vol * np.sqrt(252.0), 0.10, 0.80))
+        render_risk_sizing_section(selected_ticker, prob, annual_vol)
 
         # GRAFİK KISMI (Candlestick)
         st.subheader(f"{selected_ticker} - Son 3 Ay Fiyat Grafiği", anchor=False)
