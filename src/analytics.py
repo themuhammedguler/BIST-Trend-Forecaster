@@ -18,20 +18,49 @@ _lock = threading.Lock()
 _SESSION_COUNTER = 0
 
 
+def _send_server_side_beacon(code: str) -> None:
+    """Sunucu taraflı yedek analitik pingi gönderir (iframe ve AdBlock engellerini aşar)."""
+    try:
+        import urllib.request
+
+        clean = code.strip()
+        url = f"https://{clean}.goatcounter.com/count?p=/&t=BIST_Trend_Forecaster"
+        req = urllib.request.Request(
+            url,
+            headers={
+                "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) BIST-Trend-Forecaster")
+            },
+        )
+        with urllib.request.urlopen(req, timeout=3):
+            pass
+    except Exception as exc:
+        logger.debug("Sunucu taraflı analitik pingi gönderilemedi: %s", exc)
+
+
 def record_session() -> int:
     """Yeni bir Streamlit oturumu başladığında sayacı bir artırır."""
     global _SESSION_COUNTER
+    is_new = False
     try:
         import streamlit as st
 
         if "analytics_session_recorded" not in st.session_state:
             st.session_state["analytics_session_recorded"] = True
+            is_new = True
             with _lock:
                 _SESSION_COUNTER += 1
     except Exception as exc:
         logger.debug("Oturum kaydedilirken Streamlit bağlamı dışındaydı: %s", exc)
+        is_new = True
         with _lock:
             _SESSION_COUNTER += 1
+
+    if is_new and config.GOATCOUNTER_CODE:
+        threading.Thread(
+            target=_send_server_side_beacon,
+            args=(config.GOATCOUNTER_CODE,),
+            daemon=True,
+        ).start()
 
     return _SESSION_COUNTER
 
@@ -57,12 +86,21 @@ def reset_session_counter_for_tests() -> None:
 
 
 def build_goatcounter_html(counter_code: str) -> str:
-    """GoatCounter izleme kodunu HTML script etiketi olarak döndürür."""
+    """GoatCounter izleme kodunu HTML script ve yedek görsel etiketi olarak döndürür."""
     clean_code = counter_code.strip()
-    return (
-        f'<script data-goatcounter="https://{clean_code}.goatcounter.com/count" '
-        f'async src="//gc.zgo.at/count.js"></script>'
-    )
+    return f"""
+    <script>
+        window.goatcounter = {{
+            allow_local: true,
+            allow_frame: true
+        }};
+    </script>
+    <script data-goatcounter="https://{clean_code}.goatcounter.com/count"
+            data-goatcounter-settings='{{"allow_local": true, "allow_frame": true}}'
+            async src="//gc.zgo.at/count.js"></script>
+    <img src="https://{clean_code}.goatcounter.com/count?p=/&t=BIST_Trend_Forecaster"
+         style="display:none; width:1px; height:1px;" alt="" />
+    """
 
 
 def build_ga_html(tracking_id: str) -> str:
