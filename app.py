@@ -43,6 +43,7 @@ st.set_page_config(
 analytics.record_session()
 analytics.inject_tracking_script()
 
+
 # Logo Base64 Çevrimi (HTML olarak render edilip Streamlit fullscreen butonu engellenir)
 def get_logo_base64() -> str | None:
     if os.path.exists(LOGO_PATH):
