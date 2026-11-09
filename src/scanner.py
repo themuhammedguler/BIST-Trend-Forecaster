@@ -2,7 +2,7 @@
 # BIST 30 hisselerinin tamamını modelden geçirip fırsat radarı sıralaması oluşturan modül
 import pandas as pd
 
-from src import config, live_data, network
+from src import config, features, live_data, network
 
 
 def predict_single_ticker(ticker, model):
@@ -20,7 +20,7 @@ def predict_single_ticker(ticker, model):
 def _build_record(ticker, df_processed, df, model):
     """Hazırlanmış canlı veriden tahmin ve fiyat metriklerini içeren satırı üretir."""
     last_row = df_processed.iloc[[-1]]
-    X_pred = last_row[config.FEATURES]
+    X_pred = features.align_model_features(model, last_row)
 
     prob = float(model.predict_proba(X_pred)[0][1])
     curr_price = float(df["close"].iloc[-1]) if len(df) > 0 else 0.0

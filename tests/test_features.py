@@ -177,3 +177,21 @@ def test_add_features_extracts_macro_from_combined_dataframe(ohlcv_dataset):
     assert set(processed["ticker"].unique()) == {"AKBNK", "GARAN"}
     for col in ["xu100_ret", "rel_strength_bist", "usdtry_change"]:
         assert col in processed.columns
+
+
+def test_align_model_features_dynamically_matches_expected_columns():
+    from features import align_model_features
+
+    class DummyModel:
+        feature_names_in_ = np.array(["f1", "f2"])
+
+    df = pd.DataFrame({"f1": [1], "f2": [2], "f3": [3], "f4": [4]})
+    aligned = align_model_features(DummyModel(), df)
+    assert list(aligned.columns) == ["f1", "f2"]
+
+    # When expected features are not on model, fallback to config.FEATURES or available
+    class EmptyModel:
+        pass
+
+    aligned_empty = align_model_features(EmptyModel(), df)
+    assert isinstance(aligned_empty, pd.DataFrame)
