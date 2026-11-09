@@ -1,0 +1,100 @@
+"""E-posta piyasa bülteni modülü (src/email_alerts.py) birim testleri."""
+
+from unittest.mock import MagicMock, patch
+
+from src import email_alerts
+
+
+def test_build_newsletter_html_renders_picks():
+    picks = [
+        {
+            "ticker": "THYAO",
+            "price": 312.50,
+            "prob_pct": 64.2,
+            "verdict": "🚀 GÜÇLÜ AL",
+            "allocation_pct": 14.5,
+        },
+        {
+            "ticker": "AKBNK",
+            "price": 58.90,
+            "prob_pct": 59.8,
+            "verdict": "📈 ALIM YÖNLÜ",
+            "allocation_pct": 10.0,
+        },
+    ]
+
+    html = email_alerts.build_newsletter_html(
+        top_picks=picks,
+        report_date="2026-11-09",
+        model_version="v2.0.0",
+        model_accuracy=0.525,
+    )
+
+    assert "<!DOCTYPE html>" in html
+    assert "BIST Trend Forecaster" in html
+    assert "THYAO" in html
+    assert "312.50 TL" in html
+    assert "AKBNK" in html
+    assert "58.90 TL" in html
+    assert "%52.5" in html
+    assert "Kelly Payı" in html
+    assert "v2.0.0" in html
+
+
+def test_build_newsletter_html_handles_empty_picks():
+    html = email_alerts.build_newsletter_html(top_picks=[])
+    assert "<!DOCTYPE html>" in html
+    assert "BIST Trend Forecaster" in html
+
+
+def test_send_email_alert_missing_credentials(monkeypatch):
+    monkeypatch.delenv("ALERT_RECIPIENT_EMAIL", raising=False)
+    monkeypatch.delenv("SMTP_USER", raising=False)
+    monkeypatch.delenv("SMTP_PASSWORD", raising=False)
+
+    success = email_alerts.send_email_alert(
+        subject="Test",
+        html_content="<p>Test</p>",
+        recipient_email="",
+        smtp_user="",
+        smtp_password="",
+    )
+    assert success is False
+
+
+def test_send_email_alert_success(monkeypatch):
+    mock_smtp_instance = MagicMock()
+    mock_smtp_class = MagicMock(return_value=mock_smtp_instance)
+    mock_smtp_instance.__enter__.return_value = mock_smtp_instance
+
+    with patch("smtplib.SMTP", mock_smtp_class):
+        success = email_alerts.send_email_alert(
+            subject="Bülten Test",
+            html_content="<h1>Test Bülteni</h1>",
+            recipient_email="investor@example.com",
+            smtp_server="smtp.example.com",
+            smtp_port=587,
+            smtp_user="bot@example.com",
+            smtp_password="secretpassword",
+        )
+
+        assert success is True
+        mock_smtp_class.assert_called_once_with("smtp.example.com", 587, timeout=15)
+        mock_smtp_instance.starttls.assert_called_once()
+        mock_smtp_instance.login.assert_called_once_with("bot@example.com", "secretpassword")
+        mock_smtp_instance.send_message.assert_called_once()
+
+
+def test_send_email_alert_handles_smtp_exception():
+    mock_smtp_class = MagicMock(side_effect=ConnectionRefusedError("SMTP sunucusuna bağlanılamadı"))
+
+    with patch("smtplib.SMTP", mock_smtp_class):
+        success = email_alerts.send_email_alert(
+            subject="Hata Testi",
+            html_content="<p>Hata</p>",
+            recipient_email="investor@example.com",
+            smtp_user="bot@example.com",
+            smtp_password="password",
+        )
+
+        assert success is False

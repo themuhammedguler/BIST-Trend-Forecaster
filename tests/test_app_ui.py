@@ -690,3 +690,22 @@ def test_backtest_renders_explanation_expander(patched_download):
     assert list(at.exception) == []
     expander_labels = [e.label for e in at.expander]
     assert any("Bu Kıyaslama Grafiği Nasıl Okunmalı" in label for label in expander_labels)
+
+
+def test_app_renders_hybrid_decision_card(patched_download):
+    """Tekli hisse sekmesinde kompozit skor ve hibrit karar rozeti render edilmeli."""
+    at = AppTest.from_file(APP_PATH, default_timeout=30)
+    at.run()
+    assert list(at.exception) == []
+    markdown_texts = [m.value for m in at.markdown]
+    assert any("Kompozit Skor:" in t for t in markdown_texts)
+    assert any("Uyum Düzeyi:" in t for t in markdown_texts)
+
+
+def test_app_renders_analytics_badge_in_sidebar(patched_download):
+    """Yan menüde ziyaretçi/oturum analitiği durumu render edilmeli."""
+    at = AppTest.from_file(APP_PATH, default_timeout=30)
+    at.run()
+    assert list(at.exception) == []
+    sidebar_captions = [c.value for c in at.sidebar.caption]
+    assert any("Oturum Sayacı" in c or "Ziyaretçi Analitiği" in c for c in sidebar_captions)
