@@ -9,6 +9,7 @@ from src.fundamental_rag import (
     KeyMetrics,
     build_chatbot_deeplink,
     clean_ticker,
+    enrich_key_metrics_with_live_market_data,
     fetch_fundamental_report,
     parse_report_payload,
 )
@@ -168,3 +169,30 @@ def test_fetch_fundamental_report_graceful_fallback_on_error():
     with patch("src.fundamental_rag._fetch_from_url", return_value=None):
         report = fetch_fundamental_report("UNKNOWN", api_url="", raw_repo="user/repo")
         assert report is None
+
+
+def test_enrich_key_metrics_skips_when_already_populated():
+    original = KeyMetrics(pe_ratio=5.5, pb_ratio=1.2)
+    with patch("yfinance.Ticker") as mock_ticker:
+        result = enrich_key_metrics_with_live_market_data("AKBNK", original)
+        assert result == original
+        mock_ticker.assert_not_called()
+
+
+def test_enrich_key_metrics_fills_missing_ratios():
+    original = KeyMetrics(pe_ratio=None, pb_ratio=None)
+    fake_info = {"trailingPE": 6.85, "priceToBook": 1.42}
+    with patch("yfinance.Ticker") as mock_ticker_cls:
+        mock_instance = mock_ticker_cls.return_value
+        mock_instance.info = fake_info
+        result = enrich_key_metrics_with_live_market_data("THYAO", original)
+        assert result.pe_ratio == 6.85
+        assert result.pb_ratio == 1.42
+
+
+def test_enrich_key_metrics_handles_yfinance_error_gracefully():
+    original = KeyMetrics(pe_ratio=None, pb_ratio=None)
+    with patch("yfinance.Ticker", side_effect=RuntimeError("Network down")):
+        result = enrich_key_metrics_with_live_market_data("THYAO", original)
+        assert result.pe_ratio is None
+        assert result.pb_ratio is None
