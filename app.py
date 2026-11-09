@@ -42,7 +42,16 @@ st.set_page_config(
 analytics.record_session()
 analytics.inject_tracking_script()
 
-st.title("📈 Borsa İstanbul Yapay Zeka Yön Tahmini", anchor=False)
+# Sayfa Başlığı ve Özel Grafik Amblemi (Emoji 📈 yerine özel grafik amblemi)
+CHART_ICON_PATH = os.path.join(os.path.dirname(__file__), "assets", "chart_icon.png")
+if os.path.exists(CHART_ICON_PATH):
+    c_icon, c_title = st.columns([1, 16], vertical_alignment="center")
+    with c_icon:
+        st.image(CHART_ICON_PATH, width=54)
+    with c_title:
+        st.title("Borsa İstanbul Yapay Zeka Yön Tahmini", anchor=False)
+else:
+    st.title("Borsa İstanbul Yapay Zeka Yön Tahmini", anchor=False)
 st.markdown("""
 Bu platform; **CatBoost, LightGBM ve XGBoost** topluluk modelleri ile BIST 30
 hisselerinin **1 Günlük, 1 Haftalık ve 1 Aylık** yön eğilimlerini ve risk analizini sunar.
