@@ -216,6 +216,23 @@ def _ticker_features(df):
     out["rel_strength_bist"] = out["pct_change"] - df["_xu100_ret"]
     out["usdtry_change"] = df["_usdtry_change"]
 
+    # 10. Hacim ve Para Akışı (Feature Engineering 2.0)
+    high = df["high"]
+    low = df["low"]
+    vol = df["volume"]
+    out["mfi"] = ta.volume.money_flow_index(high, low, close, vol, window=14).fillna(50.0)
+    vol_ma20 = vol.rolling(20).mean().replace(0, np.nan)
+    out["vol_ratio"] = (vol / vol_ma20).fillna(1.0)
+
+    # 11. Momentum ve Salınım Göstergeleri
+    out["stoch_k"] = ta.momentum.stoch(high, low, close, window=14, smooth_window=3).fillna(50.0)
+    out["williams_r"] = ta.momentum.williams_r(high, low, close, lbp=14).fillna(-50.0)
+    out["roc_5"] = close.pct_change(5).fillna(0.0)
+
+    # 12. Normalize Edilmiş Gerçek Aralık (ATR Oranı)
+    atr = ta.volatility.average_true_range(high, low, close, window=14)
+    out["atr_ratio"] = (atr / close).fillna(0.0)
+
     # Target
     out["next_close"] = close.shift(-1)
     out["target"] = (out["next_close"] > close).astype(int)

@@ -120,7 +120,7 @@ FINANCIAL_CHATBOT_RAW_REPO = os.getenv(
 FINANCIAL_CHATBOT_TIMEOUT_SECONDS = float(os.getenv("FINANCIAL_CHATBOT_TIMEOUT_SECONDS", "3.0"))
 
 # Ziyaretçi & Trafik Analitiği (Gizlilik dostu GoatCounter & Google Analytics)
-GOATCOUNTER_CODE = os.getenv("GOATCOUNTER_CODE", "")
+GOATCOUNTER_CODE = os.getenv("GOATCOUNTER_CODE", "bist-trend-forecaster")
 GA_TRACKING_ID = os.getenv("GA_TRACKING_ID", "")
 
 # Makro ve piyasa göstergeleri (BIST 100 endeksi ve USD/TRY kuru) (#10)
@@ -129,7 +129,7 @@ FX_TICKER = "USDTRY=X"
 MACRO_TICKERS = [INDEX_TICKER, FX_TICKER]
 
 # Modelin girdi olarak kullandığı teknik göstergeler ve takvim öznitelikleri
-# (Single Source of Truth)
+# (Single Source of Truth - 20 Feature)
 FEATURES = [
     "rsi",
     "macd",
@@ -145,4 +145,10 @@ FEATURES = [
     "xu100_ret",
     "rel_strength_bist",
     "usdtry_change",
+    "mfi",
+    "vol_ratio",
+    "stoch_k",
+    "williams_r",
+    "roc_5",
+    "atr_ratio",
 ]

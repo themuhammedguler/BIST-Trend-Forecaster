@@ -59,9 +59,9 @@ def build_catboost_classifier(params: dict[str, Any] | None = None) -> Any:
     from catboost import CatBoostClassifier
 
     default_params = {
-        "iterations": 100,
+        "iterations": 150,
         "depth": 3,
-        "learning_rate": 0.05,
+        "learning_rate": 0.03,
         "random_seed": 42,
         "verbose": 0,
     }
@@ -153,7 +153,7 @@ def evaluate_models_comparison(
         )
 
     # Topluluk Modeli
-    ensemble_weights = weights or {"xgboost": 0.40, "lightgbm": 0.30, "catboost": 0.30}
+    ensemble_weights = weights or {"catboost": 0.50, "lightgbm": 0.25, "xgboost": 0.25}
     ensemble = EnsemblePredictor(trained_models, ensemble_weights)
     ens_proba = ensemble.predict_proba(X_test)[:, 1]
     ens_preds = (ens_proba >= 0.5).astype(int)
@@ -175,3 +175,38 @@ def evaluate_models_comparison(
 
     df_comparison = pd.DataFrame(results)
     return trained_models, df_comparison
+
+
+def save_ensemble_models(
+    trained_models: dict[str, Any],
+    models_dir: str,
+    comparison_df: pd.DataFrame | None = None,
+) -> None:
+    """Eğitilen modelleri (XGBoost, LightGBM, CatBoost) ve karşılaştırma özetini kaydeder."""
+    import json
+    import os
+
+    os.makedirs(models_dir, exist_ok=True)
+    if "xgboost" in trained_models:
+        xgb_m = trained_models["xgboost"]
+        xgb_path = os.path.join(models_dir, "xgb_bist_model.json")
+        if hasattr(xgb_m, "save_model"):
+            xgb_m.save_model(xgb_path)
+
+    if "lightgbm" in trained_models:
+        lgb_m = trained_models["lightgbm"]
+        lgb_path = os.path.join(models_dir, "lgbm_bist_model.txt")
+        if hasattr(lgb_m, "booster_") and hasattr(lgb_m.booster_, "model_to_string"):
+            with open(lgb_path, "w", encoding="utf-8") as f:
+                f.write(lgb_m.booster_.model_to_string())
+
+    if "catboost" in trained_models:
+        cb_m = trained_models["catboost"]
+        cb_path = os.path.join(models_dir, "catboost_bist_model.cbm")
+        if hasattr(cb_m, "save_model"):
+            cb_m.save_model(cb_path)
+
+    if comparison_df is not None:
+        meta_path = os.path.join(models_dir, "ensemble_meta.json")
+        with open(meta_path, "w", encoding="utf-8") as f:
+            json.dump(comparison_df.to_dict(orient="records"), f, indent=2, ensure_ascii=False)

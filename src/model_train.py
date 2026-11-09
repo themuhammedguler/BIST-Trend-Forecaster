@@ -93,6 +93,11 @@ def train_model(
         )
         print("\n📊 Çoklu Model Karşılaştırma Karnesi:")
         print(df_comparison.to_string(index=False))
+        ensemble.save_ensemble_models(
+            trained_models,
+            os.path.dirname(config.MODEL_PATH),
+            comparison_df=df_comparison,
+        )
         model = trained_models["xgboost"]
     elif model_type == "lgbm":
         print("LightGBM modeli eğitiliyor...")

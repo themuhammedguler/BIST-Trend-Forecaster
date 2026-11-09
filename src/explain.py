@@ -21,6 +21,12 @@ FEATURE_LABELS = {
     "xu100_ret": "BIST 100 Getirisi",
     "rel_strength_bist": "BIST 100 Göreceli Güç",
     "usdtry_change": "USD/TRY Değişimi",
+    "mfi": "Para Akışı Endeksi (MFI)",
+    "vol_ratio": "20G Ort. Hacim Oranı",
+    "stoch_k": "Stokastik %K",
+    "williams_r": "Williams %R",
+    "roc_5": "5 Günlük Getiri Hızı (ROC)",
+    "atr_ratio": "Normalize ATR (Volatilite)",
 }
 
 
