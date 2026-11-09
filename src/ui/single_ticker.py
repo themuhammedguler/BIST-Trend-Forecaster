@@ -542,23 +542,33 @@ def render_multi_horizon_matrix(
             icon = "⏸️"
 
         card_html = (
-            f'<div style="background-color: #0F131D; border: 1px solid #1A2233; '
-            f"border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; "
-            f'border-top: 3px solid {border_color};">'
-            f'<div style="font-size: 0.80rem; color: #94A3B8; font-weight: 600; '
-            f'margin-bottom: 6px;">{title}</div>'
+            f'<div style="background-color: #0F131D; border: 1px solid #1E293B; '
+            f"border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; "
+            f'border-top: 3px solid {border_color}; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">'
+            f'<div style="font-size: 0.82rem; color: #94A3B8; font-weight: 600; '
+            f'margin-bottom: 8px;">{title}</div>'
             f'<div style="display: flex; justify-content: space-between; '
-            f'align-items: center; margin-bottom: 8px;">'
-            f'<span style="font-size: 1.15rem; font-weight: 800; color: #F8FAFC;">'
-            f"%{fc.probability * 100:.1f}</span>"
+            f'align-items: flex-end; margin-bottom: 10px;">'
+            f'<div><div style="font-size: 0.70rem; color: #94A3B8; text-transform: uppercase; '
+            f'font-weight: 600; letter-spacing: 0.5px;">Yükseliş İhtimali</div>'
+            f'<div style="font-size: 1.35rem; font-weight: 800; color: #F8FAFC; line-height: 1.1;">'
+            f"%{fc.probability * 100:.1f}</div></div>"
             f'<span style="background-color: {bg_badge}; color: {text_color}; '
-            f"font-size: 0.75rem; font-weight: 700; padding: 2px 8px; "
-            f'border-radius: 4px; border: 1px solid {border_color};">'
+            f"font-size: 0.78rem; font-weight: 700; padding: 4px 10px; "
+            f'border-radius: 6px; border: 1px solid {border_color};">'
             f"{icon} {fc.label}</span></div>"
-            f'<div style="font-size: 0.76rem; color: #64748B; border-top: 1px solid #1A2233; '
-            f'padding-top: 6px;">%95 Fiyat Koridoru (±%{corr["pct"]:.1f}):<br/>'
-            f'<strong style="color: #CBD5E1;">{corr["min"]:.2f} TL — '
-            f"{corr['max']:.2f} TL</strong></div></div>"
+            f'<div style="border-top: 1px solid #1E293B; padding-top: 8px; margin-top: 4px;">'
+            f'<div style="display: flex; justify-content: space-between; '
+            f'align-items: center; margin-bottom: 4px;">'
+            f'<span style="font-size: 0.82rem; color: #E2E8F0; font-weight: 600;">'
+            f"🛡️ %95 Fiyat Koridoru</span>"
+            f'<span style="font-size: 0.76rem; color: #38BDF8; font-weight: 700; '
+            f"background: rgba(56, 189, 248, 0.12); padding: 1px 7px; border-radius: 4px; "
+            f'border: 1px solid rgba(56, 189, 248, 0.25);">±%{corr["pct"]:.1f}</span></div>'
+            f'<div style="font-size: 0.95rem; font-weight: 700; color: #F8FAFC; '
+            f'letter-spacing: 0.3px;">{corr["min"]:.2f} TL '
+            f'<span style="color: #64748B; font-weight: 400; font-size: 0.85rem;">—</span> '
+            f"{corr['max']:.2f} TL</div></div></div>"
         )
         col.markdown(card_html, unsafe_allow_html=True)
 
@@ -566,19 +576,34 @@ def render_multi_horizon_matrix(
     c_score = horizon_res.confluence_score
     c_color = "#059669" if c_score > 0.2 else ("#DC2626" if c_score < -0.2 else "#D97706")
     confluence_html = (
-        f'<div style="background-color: #0F131D; border: 1px solid #1A2233; '
-        f"border-left: 4px solid {c_color}; border-radius: 6px; padding: 10px 14px; "
-        f"margin-bottom: 14px; display: flex; justify-content: space-between; "
+        f'<div style="background-color: #0F131D; border: 1px solid #1E293B; '
+        f"border-left: 4px solid {c_color}; border-radius: 8px; padding: 12px 16px; "
+        f"margin-bottom: 12px; display: flex; justify-content: space-between; "
         f'align-items: center; flex-wrap: wrap; gap: 8px;">'
-        f'<div><span style="font-size: 0.85rem; font-weight: 700; color: #F8FAFC;">'
+        f'<div><span style="font-size: 0.88rem; font-weight: 700; color: #F8FAFC;">'
         f'🏛️ Vade Konsensüsü: <span style="color: {c_color};">'
         f"{horizon_res.confluence_label}</span></span>"
-        f'<div style="font-size: 0.78rem; color: #94A3B8; margin-top: 2px;">'
+        f'<div style="font-size: 0.80rem; color: #94A3B8; margin-top: 3px;">'
         f"{horizon_res.summary}</div></div>"
-        f'<div style="font-size: 0.80rem; font-weight: 700; color: #94A3B8;">'
+        f'<div style="font-size: 0.82rem; font-weight: 700; color: #94A3B8;">'
         f'Uyum Skoru: <span style="color: #F8FAFC;">{c_score:+.2f}</span></div></div>'
     )
     st.markdown(confluence_html, unsafe_allow_html=True)
+
+    with st.expander("💡 Çoklu Vade İhtimalleri ve Fiyat Koridoru Nasıl Okunmalı?", expanded=False):
+        st.markdown(
+            r"""
+            * **Yükseliş İhtimali (%):** Modelin ilgili vade sonunda hissenin bugünkü fiyatının
+              üzerinde kapatma **olasılığıdır** (getiri oranı değil, ihtimaldir).
+              Örneğin **%61.6**, hissenin 20 gün sonra kârda kapatma ihtimalini belirtir.
+            * **🛡️ %95 Fiyat Koridoru:** Hissenin son 20 günlük oynaklığına (volatilite) ve
+              istatistiksel Gauss dağılımına ($\pm 1.96\sigma$) dayalı olası fiyat aralığıdır.
+              Piyasa şoku olmadıkça hissenin %95 ihtimalle bu iki sınır arasında kalması beklenir.
+            * **🏛️ Vade Konsensüsü:** 1 Günlük, 1 Haftalık ve 1 Aylık vadelerin ortak sinyal yönünü
+              sentezler (örneğin hepsi pozitifse *Güçlü Boğa*, kısa vade düşüş uzun vade yükselişse
+              *Dip Alım Fırsatı*).
+            """
+        )
 
 
 def render_financial_tools_section(
