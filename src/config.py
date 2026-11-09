@@ -107,6 +107,18 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
 GEMINI_TIMEOUT_SECONDS = int(os.getenv("GEMINI_TIMEOUT_SECONDS", "10"))
 
+# Financial Analyst Chatbot & RAG Entegrasyonu
+FINANCIAL_CHATBOT_URL = os.getenv(
+    "FINANCIAL_CHATBOT_URL",
+    "https://financial-analyst-chatbot-project.streamlit.app",
+)
+FINANCIAL_CHATBOT_API_URL = os.getenv("FINANCIAL_CHATBOT_API_URL", "")
+FINANCIAL_CHATBOT_RAW_REPO = os.getenv(
+    "FINANCIAL_CHATBOT_RAW_REPO",
+    "themuhammedguler/Financial-Analyst-ChatBot-Project",
+)
+FINANCIAL_CHATBOT_TIMEOUT_SECONDS = float(os.getenv("FINANCIAL_CHATBOT_TIMEOUT_SECONDS", "3.0"))
+
 # Makro ve piyasa göstergeleri (BIST 100 endeksi ve USD/TRY kuru) (#10)
 INDEX_TICKER = "XU100.IS"
 FX_TICKER = "USDTRY=X"
