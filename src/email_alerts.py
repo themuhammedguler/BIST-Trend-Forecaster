@@ -19,6 +19,9 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 LOGO_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "logo.png")
+LOGO_PUBLIC_URL = (
+    "https://cdn.jsdelivr.net/gh/themuhammedguler/BIST-Trend-Forecaster@main/assets/logo.png"
+)
 
 
 def _get_logo_base64() -> str | None:
@@ -40,19 +43,17 @@ def build_newsletter_html(
     market_summary: str | None = None,
 ) -> str:
     """Çoklu vade, fiyat koridorları ve risk masası içeren şık HTML bülteni üretir."""
-    logo_b64 = _get_logo_base64()
     accuracy_text = f"%{model_accuracy * 100:.1f}" if model_accuracy else "%52.1"
     app_url = "https://bist-trend-forecaster.streamlit.app"
 
-    # Logo HTML (Base64 varsa şık dairesel amblem, yoksa emoji)
-    if logo_b64:
-        logo_html = (
-            f'<img src="data:image/png;base64,{logo_b64}" width="60" height="60" '
-            f'style="border-radius: 50%; box-shadow: 0 0 16px rgba(0, 229, 255, 0.35); '
-            f'border: 2px solid #00E5FF; vertical-align: middle;" alt="Logo" />'
-        )
-    else:
-        logo_html = '<span style="font-size: 2.2rem;">📈</span>'
+    # Logo HTML: E-posta istemcileri (özellikle Gmail ve Outlook) base64 data: URI'leri
+    # güvenlik sebebiyle engellediğinden CDN üzerinden herkese açık HTTPS URL kullanılır.
+    logo_html = (
+        f'<img src="{LOGO_PUBLIC_URL}" width="60" height="60" '
+        f'style="border-radius: 50%; box-shadow: 0 0 16px rgba(0, 229, 255, 0.35); '
+        f'border: 2px solid #00E5FF; vertical-align: middle; display: inline-block;" '
+        f'alt="BIST Trend Forecaster" />'
+    )
 
     # Hisse Kartları HTML Üretimi
     cards_html = ""

@@ -39,6 +39,7 @@ def test_build_newsletter_html_renders_picks():
     assert "%52.5" in html
     assert "Kelly Payı" in html
     assert "v2.0.0" in html
+    assert email_alerts.LOGO_PUBLIC_URL in html
 
 
 def test_build_newsletter_html_handles_empty_picks():
