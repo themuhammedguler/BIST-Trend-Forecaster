@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+import sys
 from datetime import datetime, timezone
 from typing import Any
 
@@ -171,7 +172,7 @@ def run_daily_forecast(
 
     # 5. E-posta Bülteni Gönderimi (Opsiyonel)
     email_sent = False
-    if send_email and top_3 and not dry_run:
+    if send_email and top_3:
         recipient = os.getenv("ALERT_RECIPIENT_EMAIL", "")
         if recipient and os.getenv("SMTP_USER"):
             try:
@@ -212,7 +213,22 @@ def main() -> None:
         action="store_true",
         help="SMTP ayarları olsa dahi e-posta bülteni gönderimini atla",
     )
+    parser.add_argument(
+        "--test-email",
+        action="store_true",
+        help="Yalnızca test e-postası göndererek SMTP yapılandırmasını doğrula",
+    )
     args = parser.parse_args()
+
+    if args.test_email:
+        print("📨 Test bülteni e-postası gönderiliyor...")
+        success = email_alerts.send_test_email()
+        if success:
+            print("✅ Test e-postası başarıyla gönderildi!")
+            sys.exit(0)
+        else:
+            print("❌ Test e-postası gönderilemedi. Lütfen SMTP yapılandırmasını kontrol edin.")
+            sys.exit(1)
 
     result = run_daily_forecast(
         dry_run=args.dry_run,

@@ -270,18 +270,28 @@ def render_email_alert_section(filtered_scan_df: pd.DataFrame) -> None:
                             with st.expander("🛠️ 2 Dakikada Kolay SMTP Kurulum Rehberi"):
                                 st.markdown(
                                     """
-                                    **Gmail ile Otomatik Gönderim Adımları:**
-                                    1. Google Hesabınıza girin &rarr; **Güvenlik** &rarr;
+                                    **Seçenek 1: Resend (Önerilen, Hızlı ve Güvenli)**
+                                    1. [resend.com](https://resend.com) üzerinden ücretsiz hesap
+                                       açın ve bir API Key alın (`re_...`).
+                                    2. GitHub deponuzda **Settings &rarr; Secrets &rarr; Actions**
+                                       menüsüne şu değerleri ekleyin:
+                                       * `SMTP_SERVER`: `smtp.resend.com`
+                                       * `SMTP_PORT`: `465` (veya `587`)
+                                       * `SMTP_USER`: `resend`
+                                       * `SMTP_PASSWORD`: *(Resend API Key'iniz)*
+                                       * `ALERT_RECIPIENT_EMAIL`: *(Kayıtlı e-postanız)*
+
+                                    ---
+                                    **Seçenek 2: Gmail ile Gönderim Adımları**
+                                    1. Google Hesabınız &rarr; **Güvenlik** &rarr;
                                        **2 Adımlı Doğrulama**'yı açın.
-                                    2. Sayfanın en altındaki **Uygulama Şifreleri (App Passwords)**
-                                       bölümüne gidin.
-                                    3. *"BIST Forecaster"* adında yeni şifre üretin (16 haneli kod).
-                                    4. GitHub deponuzda **Settings &rarr; Secrets and variables
-                                       &rarr; Actions** menüsüne şu secret'ları ekleyin:
+                                    2. Sayfanın altındaki **Uygulama Şifreleri** bölümüne gidin.
+                                    3. *"BIST Forecaster"* adında yeni şifre üretin (16 hane).
+                                    4. GitHub repository secrets'a ekleyin:
                                        * `SMTP_SERVER`: `smtp.gmail.com`
                                        * `SMTP_PORT`: `587`
                                        * `SMTP_USER`: `epostaniz@gmail.com`
-                                       * `SMTP_PASSWORD`: *(16 haneli uygulama şifreniz)*
+                                       * `SMTP_PASSWORD`: *(16 haneli uygulama şifresi)*
                                        * `ALERT_RECIPIENT_EMAIL`: *(Raporun gideceği adres)*
                                     """
                                 )
