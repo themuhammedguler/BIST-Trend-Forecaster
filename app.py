@@ -82,6 +82,37 @@ st.markdown(
         -webkit-user-drag: none !important;
         display: block;
     }
+    /* Sinyal & Strateji Ayarları Slider Renk Özelleştirmesi (Açık Yeşil / Zümrüt) */
+    div[data-testid="stSlider"] div[data-testid="stSliderThumbValue"],
+    div[data-baseweb="slider"] [data-testid="stSliderThumbValue"],
+    div[data-baseweb="slider"] div[role="slider"] div {
+        color: #34D399 !important;
+        font-weight: 700 !important;
+    }
+
+    div[data-testid="stSlider"] [data-baseweb="slider"] div[role="slider"] {
+        background-color: #10B981 !important;
+        border-color: #34D399 !important;
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.45) !important;
+    }
+
+    div[data-testid="stSlider"] [data-baseweb="slider"] div[role="slider"]:focus,
+    div[data-testid="stSlider"] [data-baseweb="slider"] div[role="slider"]:hover {
+        background-color: #34D399 !important;
+        box-shadow: 0 0 14px rgba(52, 211, 153, 0.65) !important;
+    }
+
+    /* Slider Dolgulu İlerleme Çubuğu (Active Track) */
+    div[data-testid="stSlider"] [data-baseweb="slider"] > div > div:first-child {
+        background-color: #10B981 !important;
+    }
+
+    /* Tooltip / Açılan Balon */
+    div[data-baseweb="tooltip"] {
+        background-color: #0F131D !important;
+        color: #34D399 !important;
+        border: 1px solid #10B981 !important;
+    }
     </style>
     """,
     unsafe_allow_html=True,

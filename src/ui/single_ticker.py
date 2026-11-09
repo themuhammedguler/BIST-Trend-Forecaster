@@ -180,7 +180,9 @@ def render_drift_section(df_features):
             st.dataframe(drift_df[["Öznitelik", "Rozet", "PSI", "Öneri"]])
 
 
-def render_kap_llm_section(selected_ticker: str):
+def render_kap_llm_section(
+    selected_ticker: str, report: fundamental_rag.FundamentalReport | None = None
+):
     """KAP bildirimlerini ve LLM destekli temel analiz özetini gösterir (#70)."""
     with st.expander("🤖 Yapay Zeka Temel Analiz & KAP Yorumu", expanded=False):
         disclosures = kap_news.fetch_latest_disclosures(selected_ticker, limit=5)
@@ -204,6 +206,18 @@ def render_kap_llm_section(selected_ticker: str):
         st.markdown("**Finansal Öne Çıkanlar (Temel Göstergeler):**")
         for bullet in analysis.bullets:
             st.markdown(f"- {bullet}")
+
+        if not disclosures and report is not None and report.fundamental_summary:
+            pe_val = f"{report.key_metrics.pe_ratio:.2f}" if report.key_metrics.pe_ratio else "—"
+            pb_val = f"{report.key_metrics.pb_ratio:.2f}" if report.key_metrics.pb_ratio else "—"
+            st.info(
+                f"💡 **Kurumsal Bilanço Köprüsü:** Son günlerde olağanüstü anlık bir KAP bildirimi "
+                f"(ihale, SPK tedbiri, geri alım vb.) bulunmamaktadır. Şirketin güncel dönem "
+                f"**Bilanço Görünümü: {report.badge}** (F/K: `{pe_val}`, PD/DD: `{pb_val}`).\n\n"
+                f"Dönemsel kârlılık, büyüme katalizörleri ve risk faktörleri için aşağıdaki "
+                f"**'Kurumsal Temel Analiz & Bilanço Chatbot\\'u (RAG)'** sekmesini "
+                f"inceleyebilirsiniz."
+            )
 
         if analysis.error_message:
             st.caption(f"ℹ️ Not: {analysis.error_message}")
@@ -839,5 +853,5 @@ def render_single_ticker_tab(
         )
         render_forward_tracking_section(selected_ticker, full_df)
         render_drift_section(df_processed[config.FEATURES])
-        render_kap_llm_section(selected_ticker)
+        render_kap_llm_section(selected_ticker, report=report)
         render_fundamental_rag_section(selected_ticker, report=report)
