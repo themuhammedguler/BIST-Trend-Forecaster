@@ -279,9 +279,15 @@ def send_email_alert(
     except (ValueError, TypeError):
         server_port = 465
 
-    user = (smtp_user or os.getenv("SMTP_USER", "")).strip()
-    password = (smtp_password or os.getenv("SMTP_PASSWORD", "")).strip()
-    sender_addr = (from_email or os.getenv("SMTP_FROM_EMAIL", "")).strip()
+    user = (smtp_user or os.getenv("SMTP_USER", "")).strip("'\" \t\r\n")
+    password = (smtp_password or os.getenv("SMTP_PASSWORD", "")).strip("'\" \t\r\n")
+    sender_addr = (from_email or os.getenv("SMTP_FROM_EMAIL", "")).strip("'\" \t\r\n")
+
+    # Resend veya Gmail sağlayıcıları için sunucu adı otomatik düzeltilir
+    if user.lower() == "resend" or "resend" in server_host.lower():
+        server_host = "smtp.resend.com"
+    elif "gmail" in server_host.lower() or user.lower().endswith("@gmail.com"):
+        server_host = "smtp.gmail.com"
 
     if not to_email or not user or not password:
         logger.warning(
@@ -315,23 +321,47 @@ def send_email_alert(
     )
     msg.add_alternative(html_content, subtype="html")
 
-    try:
-        if server_port == 465:
-            with smtplib.SMTP_SSL(server_host, server_port, timeout=15) as server:
+    def _connect_and_send(host: str, port: int) -> None:
+        if port == 465:
+            with smtplib.SMTP_SSL(host, port, timeout=15) as server:
                 server.login(user, password)
                 server.send_message(msg)
         else:
-            with smtplib.SMTP(server_host, server_port, timeout=15) as server:
+            with smtplib.SMTP(host, port, timeout=15) as server:
                 server.ehlo()
                 server.starttls()
                 server.ehlo()
                 server.login(user, password)
                 server.send_message(msg)
+
+    try:
+        _connect_and_send(server_host, server_port)
         logger.info("E-posta bülteni başarıyla gönderildi: %s", to_email)
         return True
     except Exception as exc:
-        logger.error("E-posta gönderilirken hata oluştu: %s", exc)
-        return False
+        logger.warning(
+            "SMTP ilk denemede hata (host='%s', port=%d): %s. Alternatif port deneniyor...",
+            server_host,
+            server_port,
+            exc,
+        )
+        alt_port = 587 if server_port == 465 else 465
+        try:
+            _connect_and_send(server_host, alt_port)
+            logger.info(
+                "E-posta bülteni alternatif port (%d) üzerinden başarıyla gönderildi: %s",
+                alt_port,
+                to_email,
+            )
+            return True
+        except Exception as alt_exc:
+            logger.error(
+                "E-posta her iki portta da gönderilemedi (asıl: %d, alternatif: %d). Hata: %s",
+                server_port,
+                alt_port,
+                alt_exc,
+            )
+            return False
 
 
 def send_test_email(recipient_email: str | None = None) -> bool:
