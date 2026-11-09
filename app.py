@@ -42,6 +42,19 @@ st.set_page_config(
 analytics.record_session()
 analytics.inject_tracking_script()
 
+# Özel Stil İyileştirmeleri (Sidebar Dairesel Logo ve Amblem)
+st.markdown(
+    """
+    <style>
+    [data-testid="stSidebar"] img {
+        border-radius: 50% !important;
+        box-shadow: 0 0 14px rgba(0, 229, 255, 0.22);
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 # Sayfa Başlığı ve Özel Grafik Amblemi (Emoji 📈 yerine özel grafik amblemi)
 CHART_ICON_PATH = os.path.join(os.path.dirname(__file__), "assets", "chart_icon.png")
 if os.path.exists(CHART_ICON_PATH):
