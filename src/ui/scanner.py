@@ -2,7 +2,7 @@
 
 import streamlit as st
 
-from src import config, risk_sizing, scanner
+from src import config, portfolio_optimizer, risk_sizing, scanner
 from src.ui.components import SCAN_COLUMN_CONFIG, get_cached_market_scan
 
 
@@ -81,21 +81,104 @@ def render_market_scanner_tab():
                     column_config=SCAN_COLUMN_CONFIG,
                 )
 
+            # Sektörel Ağaç Haritası (Treemap)
+            with st.expander("🗺️ BIST 30 Sektörel Görünüm & Isı Haritası (Treemap)", expanded=True):
+                st.markdown(
+                    "Sektörlerin ve hisselerin yapay zeka modeline göre toplu görünümü "
+                    "(Yeşil: Yükseliş Beklentisi / Kırmızı: Zayıf veya Düşüş Beklentisi):"
+                )
+                c_t1, _ = st.columns([6, 4])
+                with c_t1:
+                    color_mode = st.radio(
+                        "Isı Haritası Renklendirme Ölçütü:",
+                        options=[
+                            "Yapay Zeka Yükseliş Olasılığı (%)",
+                            "Günlük Fiyat Değişimi (%)",
+                        ],
+                        horizontal=True,
+                        key="treemap_color_mode",
+                    )
+                color_key = "daily_change" if "Günlük" in color_mode else "ai_prob"
+                fig_treemap = portfolio_optimizer.build_sector_treemap_figure(
+                    filtered_scan_df, color_by=color_key
+                )
+                st.plotly_chart(fig_treemap, use_container_width=True)
+
             with st.expander(
-                "💼 Önerilen Portföy Sermaye Dağılımı (Kelly Criterion)", expanded=False
+                "💼 Önerilen Portföy Sermaye Dağılımı (Markowitz MPT & Kelly)", expanded=False
             ):
                 st.markdown(
-                    "Yükseliş potansiyeli en yüksek hisseler arasında Kelly Kriteri ve oynaklık "
-                    "bütçelemesine göre optimize edilmiş sermaye tahsisi (#71):"
+                    "Yükseliş potansiyeli en yüksek hisseler arasında modern portföy teorisi "
+                    "ve dinamik sermaye bütçelemesine göre optimize edilmiş dağılım (#71):"
                 )
-                alloc_df = risk_sizing.calculate_portfolio_allocation(
-                    filtered_scan_df, max_tickers=5
+                tab_markowitz, tab_kelly = st.tabs(
+                    ["📊 Markowitz (Maksimum Sharpe)", "🛡️ Kelly Kriteri"]
                 )
-                if not alloc_df.empty:
-                    md_table = risk_sizing.format_allocation_as_markdown(alloc_df)
-                    st.markdown(md_table)
-                else:
-                    st.caption("Eşik üzeri yükseliş sinyali veren hisse bulunamadı.")
+
+                with tab_markowitz:
+                    st.caption(
+                        "En yüksek Sharpe oranını (risk başına düşen getiri) hedefleyen "
+                        "Markowitz Mean-Variance optimizasyonu:"
+                    )
+                    c_m1, c_m2 = st.columns(2)
+                    with c_m1:
+                        target_capital = st.number_input(
+                            "Yatırım Sermayesi (TL)",
+                            min_value=1_000.0,
+                            max_value=10_000_000.0,
+                            value=100_000.0,
+                            step=10_000.0,
+                            key="mpt_capital",
+                        )
+                    with c_m2:
+                        max_w = st.slider(
+                            "Hisse Başına Azami Ağırlık (%)",
+                            min_value=20,
+                            max_value=50,
+                            value=35,
+                            step=5,
+                            key="mpt_max_w",
+                        )
+
+                    mpt_res = portfolio_optimizer.compute_markowitz_allocation(
+                        filtered_scan_df,
+                        max_tickers=5,
+                        total_capital=float(target_capital),
+                        max_weight=float(max_w) / 100.0,
+                    )
+
+                    if not mpt_res.allocation_table.empty:
+                        exp_pct = mpt_res.expected_annual_return * 100.0
+                        vol_pct = mpt_res.annual_volatility * 100.0
+                        st.markdown(
+                            f"📈 **Beklenen Yıllık Getiri:** `%{exp_pct:.1f}` "
+                            f"&nbsp;|&nbsp; ⚡ **Yıllık Volatilite:** `%{vol_pct:.1f}` "
+                            f"&nbsp;|&nbsp; 🎯 **Sharpe Oranı:** `{mpt_res.sharpe_ratio:.2f}`"
+                        )
+                        c_chart, c_table = st.columns([4, 6])
+                        with c_chart:
+                            fig_donut = portfolio_optimizer.build_portfolio_allocation_figure(
+                                mpt_res.allocation_table
+                            )
+                            st.plotly_chart(fig_donut, use_container_width=True)
+                        with c_table:
+                            st.markdown(
+                                portfolio_optimizer.format_markowitz_as_markdown(
+                                    mpt_res.allocation_table
+                                )
+                            )
+                    else:
+                        st.caption("Yeterli yükseliş sinyali veren hisse bulunamadı.")
+
+                with tab_kelly:
+                    alloc_df = risk_sizing.calculate_portfolio_allocation(
+                        filtered_scan_df, max_tickers=5
+                    )
+                    if not alloc_df.empty:
+                        md_table = risk_sizing.format_allocation_as_markdown(alloc_df)
+                        st.markdown(md_table)
+                    else:
+                        st.caption("Eşik üzeri yükseliş sinyali veren hisse bulunamadı.")
 
             st.markdown("### 📋 Tüm BIST 30 Liderlik Tablosu")
             st.dataframe(

@@ -663,6 +663,7 @@ def test_scanner_renders_portfolio_allocation_expander(patched_download):
     assert list(at.exception) == []
     expander_labels = [e.label for e in at.expander]
     assert any("Önerilen Portföy Sermaye Dağılımı" in label for label in expander_labels)
+    assert any("Sektörel Görünüm & Isı Haritası (Treemap)" in label for label in expander_labels)
 
 
 def test_app_renders_fundamental_rag_chatbot_expander(patched_download):
