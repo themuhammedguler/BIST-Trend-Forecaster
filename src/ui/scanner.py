@@ -11,6 +11,7 @@ from src import (
     config,
     daily_updater,
     email_alerts,
+    live_market,
     portfolio_optimizer,
     risk_sizing,
     scanner,
@@ -27,6 +28,12 @@ PLOTLY_CONFIG: dict[str, object] = {
 }
 
 
+@st.cache_data(ttl=30, show_spinner=False)
+def get_cached_live_market_quotes() -> dict[str, live_market.LiveQuote]:
+    """BIST 30 hisselerinin anlık canlı kotasyonlarını 30 saniye boyunca önbellekte tutar."""
+    return live_market.fetch_live_quotes()
+
+
 def render_market_scanner_tab():
     """BIST 30 piyasa tarama sekmesini ve liderlik tablolarını render eder."""
     st.subheader("📊 BIST 30 Piyasa Fırsat Radarı", anchor=False)
@@ -34,6 +41,46 @@ def render_market_scanner_tab():
     Bu modül BIST 30 endeksindeki tüm hisseleri yapay zeka modelinden geçirerek
     yarın için en yüksek yükseliş potansiyeline ve düşüş riskine sahip hisseleri sıralar.
     """)
+
+    # Anlık Canlı BIST 30 Seans Akışı (0 Gecikmeli Fiyatlar)
+    quotes = get_cached_live_market_quotes()
+    if quotes:
+        sorted_quotes = sorted(quotes.values(), key=lambda q: q.change_pct, reverse=True)
+        top_gainers = [
+            f"<strong>{q.ticker}</strong> {q.badge} ({q.last_price:.2f} TL)"
+            for q in sorted_quotes[:4]
+        ]
+        top_losers = [
+            f"<strong>{q.ticker}</strong> {q.badge} ({q.last_price:.2f} TL)"
+            for q in sorted_quotes[-3:]
+        ]
+        gainers_html = " &nbsp;•&nbsp; ".join(top_gainers)
+        losers_html = " &nbsp;•&nbsp; ".join(top_losers)
+        box_style = (
+            "background: rgba(15, 23, 42, 0.7); "
+            "border: 1px solid rgba(56, 189, 248, 0.3); "
+            "border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; "
+            "font-size: 0.86rem;"
+        )
+        st.markdown(
+            f"""
+            <div style="{box_style}">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="color: #38BDF8; font-weight: 700;">
+                        🔴 BIST CANLI PİYASA NABZI (0 GECİKME)
+                    </span>
+                    <span style="color: #94A3B8; font-size: 0.78rem;">
+                        Anlık Son Fiyat & Değişim
+                    </span>
+                </div>
+                <div style="color: #F1F5F9; line-height: 1.6;">
+                    🚀 <strong>Günün Liderleri:</strong> {gainers_html}<br/>
+                    ⚠️ <strong>En Çok Gerileyenler:</strong> {losers_html}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     c_btn1, c_btn2 = st.columns([3, 7])
     with c_btn1:

@@ -108,6 +108,10 @@ GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
 GEMINI_TIMEOUT_SECONDS = int(os.getenv("GEMINI_TIMEOUT_SECONDS", "10"))
 
 # Financial Analyst Chatbot & RAG Entegrasyonu
+COLAB_LLM_URL = os.getenv(
+    "COLAB_LLM_URL",
+    "https://attentive-uncanny-usual.ngrok-free.dev",
+)
 FINANCIAL_CHATBOT_URL = os.getenv(
     "FINANCIAL_CHATBOT_URL",
     "https://financial-analyst-chatbot-project.streamlit.app",

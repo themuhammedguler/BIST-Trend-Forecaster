@@ -7,6 +7,7 @@ import streamlit as st
 
 from src import (
     backtest,
+    colab_llm,
     config,
     drift,
     explain,
@@ -15,6 +16,7 @@ from src import (
     hybrid_decision,
     kap_llm,
     kap_news,
+    live_market,
     multi_horizon,
     patterns,
     risk_sizing,
@@ -199,6 +201,12 @@ def render_drift_section(df_features):
 def get_cached_fundamental_report(ticker: str) -> fundamental_rag.FundamentalReport | None:
     """Tekil hisse için temel analiz raporunu 15 dakika boyunca önbellekte tutar."""
     return fundamental_rag.fetch_fundamental_report(ticker)
+
+
+@st.cache_data(ttl=30, show_spinner=False)
+def get_cached_live_market_quotes() -> dict[str, live_market.LiveQuote]:
+    """BIST hisselerinin anlık canlı kotasyonlarını 30 saniye boyunca önbellekte tutar."""
+    return live_market.fetch_live_quotes()
 
 
 def render_kap_llm_section(
@@ -388,6 +396,36 @@ def render_fundamental_rag_section(
                 f"Yukarıdaki butona tıklayarak **Financial Analyst ChatBot** üzerinden "
                 f"canlı RAG analizini başlatabilirsiniz.*"
             )
+
+        # 🚀 Google Colab Pro Fine-Tuned Canlı BIST LLM Entegrasyonu
+        st.markdown("---")
+        st.markdown("#### 🚀 Canlı Fine-Tuned BIST LLM (Google Colab Pro GPU — A100)")
+        st.caption(
+            "Kendi eğittiğimiz `bist-financial-llm` modeli Colab üzerinde çalışmakta ve "
+            "doğrudan BIST 100 bilanço & KAP eğitim verileriyle yanıt vermektedir."
+        )
+        colab_active = colab_llm.check_colab_health()
+        colab_badge = (
+            "🟢 Çevrimiçi (Colab ngrok Aktif: bist-financial-llm)"
+            if colab_active
+            else "⚪ Çevrimdışı (ngrok bekleniyor)"
+        )
+        st.markdown(f"**Model Sunucusu Durumu:** `{colab_badge}`")
+
+        c_prompt, c_ask = st.columns([8, 2])
+        default_prompt = (
+            f"{selected_ticker} için 2024 yılı finansal karne, DuPont ROE ve riskleri özetle."
+        )
+        user_q = c_prompt.text_input(
+            "Soru:",
+            value=default_prompt,
+            key=f"colab_q_{selected_ticker}",
+            label_visibility="collapsed",
+        )
+        if c_ask.button("🤖 Sor", key=f"btn_ask_colab_{selected_ticker}"):
+            with st.spinner("Fine-Tuned BIST modeli yanıt üretiyor..."):
+                answer = colab_llm.query_colab_llm(user_q)
+                st.markdown(f"**🤖 Model Değerlendirmesi:**\n\n{answer}")
 
 
 def render_hybrid_decision_card(decision: hybrid_decision.HybridDecision) -> None:
@@ -985,6 +1023,18 @@ def render_single_ticker_tab(
         with col3:
             st.write("📊 **Güven Skoru:**")
             signal_box(f"%{prob * 100:.1f} Olasılıkla Yükseliş")
+
+        # Canlı (0 gecikmeli) kotasyon kontrolü
+        live_quotes = get_cached_live_market_quotes()
+        norm_sym = selected_ticker.replace(".IS", "")
+        live_q = live_quotes.get(norm_sym)
+        if live_q is not None:
+            q_info = (
+                f"🔴 **Canlı Seans Fiyatı (0 Gecikme):** `{live_q.last_price:.2f} TL` "
+                f"({live_q.badge}) &nbsp;|&nbsp; 📊 **Gün İçi:** `{live_q.low:.2f} — "
+                f"{live_q.high:.2f} TL` &nbsp;|&nbsp; ⚡ **Hacim:** `{live_q.volume:,.0f}`"
+            )
+            st.caption(q_info)
 
         # Hibrit Karar Motoru (Teknik ML + RAG Temel Analiz Sentezi)
         report = get_cached_fundamental_report(selected_ticker)
