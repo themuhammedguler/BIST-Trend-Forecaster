@@ -39,6 +39,21 @@ class SupportResistance:
     distance_to_support_pct: float
 
 
+@dataclass(frozen=True)
+class TradeExitLevels:
+    """ATR tabanlı dinamik zarar-kes (Stop-Loss) ve kâr-al (Take-Profit) hedefleri."""
+
+    current_price: float
+    atr: float
+    stop_loss: float
+    stop_loss_pct: float
+    take_profit_1: float
+    take_profit_1_pct: float
+    take_profit_2: float
+    take_profit_2_pct: float
+    risk_reward_ratio: float
+
+
 def detect_candlestick_patterns(df: pd.DataFrame, lookback: int = 5) -> List[CandlestickPattern]:
     """Fiyat serisinin son `lookback` günündeki mum formasyonlarını tespit eder."""
     if df is None or len(df) < 3:
@@ -245,3 +260,66 @@ def calculate_relative_strength(
     merged["outperforming"] = merged["rs_ratio"] >= merged["rs_sma"]
 
     return merged
+
+
+def calculate_atr_exit_levels(
+    df: pd.DataFrame,
+    window: int = 14,
+    sl_mult: float = 1.5,
+    tp1_mult: float = 2.0,
+    tp2_mult: float = 3.0,
+) -> Optional[TradeExitLevels]:
+    """14 günlük Ortalama Gerçek Aralık (ATR) ile Stop-Loss ve Hedef seviyelerini hesaplar."""
+    if df is None or len(df) < window:
+        return None
+
+    required_cols = {"high", "low", "close"}
+    if not required_cols.issubset(df.columns):
+        return None
+
+    recent = df.tail(window + 1)
+    highs = recent["high"].to_numpy(dtype=float)
+    lows = recent["low"].to_numpy(dtype=float)
+    closes = recent["close"].to_numpy(dtype=float)
+
+    # True Range serisi: max(H-L, |H-Cp|, |L-Cp|)
+    tr_list = []
+    for i in range(1, len(recent)):
+        h_val, l_val = highs[i], lows[i]
+        c_prev = closes[i - 1]
+        tr = max(h_val - l_val, abs(h_val - c_prev), abs(l_val - c_prev))
+        tr_list.append(tr)
+
+    if not tr_list:
+        return None
+
+    atr = float(sum(tr_list[-window:]) / min(len(tr_list), window))
+    current_price = float(closes[-1])
+
+    if current_price <= 0 or atr <= 0:
+        return None
+
+    stop_loss = max(current_price - (sl_mult * atr), 0.01)
+    sl_pct = ((stop_loss - current_price) / current_price) * 100.0
+
+    tp1 = current_price + (tp1_mult * atr)
+    tp1_pct = ((tp1 - current_price) / current_price) * 100.0
+
+    tp2 = current_price + (tp2_mult * atr)
+    tp2_pct = ((tp2 - current_price) / current_price) * 100.0
+
+    risk = current_price - stop_loss
+    reward = tp1 - current_price
+    rr_ratio = round(reward / risk, 2) if risk > 0 else 0.0
+
+    return TradeExitLevels(
+        current_price=round(current_price, 2),
+        atr=round(atr, 2),
+        stop_loss=round(stop_loss, 2),
+        stop_loss_pct=round(sl_pct, 2),
+        take_profit_1=round(tp1, 2),
+        take_profit_1_pct=round(tp1_pct, 2),
+        take_profit_2=round(tp2, 2),
+        take_profit_2_pct=round(tp2_pct, 2),
+        risk_reward_ratio=rr_ratio,
+    )

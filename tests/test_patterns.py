@@ -93,3 +93,15 @@ def test_calculate_relative_strength(sample_ohlc_df):
     assert rs_df is not None
     assert "rs_ratio" in rs_df.columns
     assert "outperforming" in rs_df.columns
+
+
+def test_calculate_atr_exit_levels(sample_ohlc_df):
+    exits = patterns.calculate_atr_exit_levels(sample_ohlc_df, window=5)
+    assert exits is not None
+    assert exits.atr > 0
+    assert exits.stop_loss < exits.current_price
+    assert exits.take_profit_1 > exits.current_price
+    assert exits.take_profit_2 > exits.take_profit_1
+    assert exits.risk_reward_ratio > 0
+    assert exits.stop_loss_pct < 0
+    assert exits.take_profit_1_pct > 0

@@ -44,6 +44,7 @@ class FundamentalReport:
     key_metrics: KeyMetrics
     catalysts: list[str] = field(default_factory=list)
     risk_factors: list[str] = field(default_factory=list)
+    recent_disclosures: list[dict[str, Any]] = field(default_factory=list)
     source: str = "unknown"
     error_message: str | None = None
 
@@ -110,6 +111,8 @@ def parse_report_payload(payload: dict[str, Any], source: str = "unknown") -> Fu
     risk_factors = [
         str(r) for r in payload.get("risk_factors", []) if isinstance(r, (str, int, float))
     ]
+    raw_disclosures = payload.get("recent_disclosures", payload.get("kap_events", []))
+    disclosures = [dict(d) for d in raw_disclosures if isinstance(d, dict)]
 
     return FundamentalReport(
         ticker=ticker,
@@ -121,6 +124,7 @@ def parse_report_payload(payload: dict[str, Any], source: str = "unknown") -> Fu
         key_metrics=key_metrics,
         catalysts=catalysts,
         risk_factors=risk_factors,
+        recent_disclosures=disclosures,
         source=source,
     )
 

@@ -210,10 +210,26 @@ def render_market_scanner_tab():
                     else:
                         st.caption("Eşik üzeri yükseliş sinyali veren hisse bulunamadı.")
 
+            # Kişisel İzleme Listesi & Portföy Sepetim
+            render_custom_watchlist_section(filtered_scan_df)
+
             # Otonom Seans Kapanış E-Posta Alarm Robotu (#71, #80)
             render_email_alert_section(filtered_scan_df)
 
-            st.markdown("### 📋 Tüm BIST 30 Liderlik Tablosu")
+            c_head1, c_head2 = st.columns([7, 3])
+            with c_head1:
+                st.markdown("### 📋 Tüm BIST 30 Liderlik Tablosu")
+            with c_head2:
+                csv_bytes = filtered_scan_df.to_csv(index=False).encode("utf-8-sig")
+                st.download_button(
+                    label="📥 CSV / Excel Olarak İndir",
+                    data=csv_bytes,
+                    file_name=f"BIST30_Firsat_Radari_{pd.Timestamp.now().strftime('%Y%m%d')}.csv",
+                    mime="text/csv",
+                    key="btn_download_scan_csv",
+                    help="Tüm piyasa tarama tablosunu Excel uyumlu CSV formatında indirir.",
+                )
+
             st.dataframe(
                 filtered_scan_df[
                     [
@@ -233,6 +249,86 @@ def render_market_scanner_tab():
             render_model_diagnostics_section()
         else:
             st.warning("Piyasa verileri taranırken veri alınamadı.")
+
+
+def render_custom_watchlist_section(scan_df: pd.DataFrame) -> None:
+    """Kullanıcının seçtiği hisselerden oluşan ve URL ile kalıcılaştırılan kişisel izleme sepeti."""
+    with st.expander("⭐ Kişisel İzleme Listesi & Portföy Sepetim", expanded=False):
+        st.markdown(
+            "Takip etmek istediğiniz hisseleri seçin. Seçiminiz tarayıcı adresine "
+            "(**URL parametresi**) işlenir; böylece **sayfa yenilense (F5) veya yer imlerine "
+            "eklense dahi kaybolmaz**, tamamen sizin tarayıcınıza özel kalır."
+        )
+
+        all_tickers = sorted(scan_df["Hisse"].unique()) if "Hisse" in scan_df.columns else []
+
+        raw_param = st.query_params.get("watchlist", "")
+        url_defaults = [
+            t.strip().upper() for t in raw_param.split(",") if t.strip().upper() in all_tickers
+        ]
+
+        selected_watchlist = st.multiselect(
+            "Sepete Hisse Ekle / Çıkar:",
+            options=all_tickers,
+            default=url_defaults,
+            key="ms_custom_watchlist",
+            help="İzleme sepetinize dahil etmek istediğiniz BIST 30 hisselerini seçin.",
+        )
+
+        if selected_watchlist:
+            st.query_params["watchlist"] = ",".join(selected_watchlist)
+        elif "watchlist" in st.query_params:
+            del st.query_params["watchlist"]
+
+        if selected_watchlist:
+            wl_df = scan_df[scan_df["Hisse"].isin(selected_watchlist)].copy()
+            avg_prob = wl_df["Yükseliş Olasılığı (%)"].mean()
+            avg_chg = wl_df["Günlük Değişim (%)"].mean()
+
+            st.markdown("##### 📊 Kişisel Sepet Analizi:")
+            w1, w2, w3 = st.columns(3)
+            with w1:
+                st.markdown(
+                    f"**Ortalama Model Güveni:**<br>"
+                    f"<span style='font-size:1.15rem; font-weight:800; color:#10B981;'>"
+                    f"%{avg_prob:.1f}</span>",
+                    unsafe_allow_html=True,
+                )
+            with w2:
+                st.markdown(
+                    f"**Günün Ortalama Getirisi:**<br>"
+                    f"<span style='font-size:1.15rem; font-weight:800; color:#38BDF8;'>"
+                    f"%{avg_chg:+.2f}</span>",
+                    unsafe_allow_html=True,
+                )
+            with w3:
+                badge = (
+                    "🟢 Güçlü Alım"
+                    if avg_prob >= 55.0
+                    else ("🟡 Nötr" if avg_prob >= 48.0 else "🔴 Temkinli")
+                )
+                st.markdown(
+                    f"**Sepet Görünümü:**<br>"
+                    f"<span style='font-size:1.15rem; font-weight:800;'>{badge}</span>",
+                    unsafe_allow_html=True,
+                )
+
+            st.table(
+                wl_df[
+                    [
+                        "Hisse",
+                        "Sektör",
+                        "Son Fiyat (TL)",
+                        "Günlük Değişim (%)",
+                        "Yükseliş Olasılığı (%)",
+                        "Tahmin",
+                    ]
+                ]
+            )
+        else:
+            st.caption(
+                "ℹ️ Henüz hisse seçilmedi. Yukarıdan hisse seçerek sepetinizi oluşturabilirsiniz."
+            )
 
 
 def render_model_diagnostics_section() -> None:
