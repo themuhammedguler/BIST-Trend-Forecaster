@@ -27,6 +27,15 @@ from src.ui.components import get_prediction_data, load_model
 
 BACKTEST_MONTHS = 6
 
+PLOTLY_CONFIG: dict[str, object] = {
+    "scrollZoom": True,
+    "displayModeBar": "hover",
+    "doubleClick": "reset+autosize",
+    "responsive": True,
+    "displaylogo": False,
+    "modeBarButtonsToRemove": ["lasso2d", "select2d"],
+}
+
 
 def render_backtest(model, df_processed, threshold=config.PROB_THRESHOLD_HIGH, cost=0.0):
     """Modelin yükseliş sinyallerini izleyen al/nakit stratejisini al-tut ile kıyaslar."""
@@ -70,8 +79,12 @@ def render_backtest(model, df_processed, threshold=config.PROB_THRESHOLD_HIGH, c
             )
         )
 
-    fig.update_layout(yaxis_title="Kümülatif Getiri (%)", hovermode="x unified")
-    st.plotly_chart(fig, width="stretch")
+    fig.update_layout(
+        yaxis_title="Kümülatif Getiri (%)",
+        hovermode="x unified",
+        dragmode="pan",
+    )
+    st.plotly_chart(fig, width="stretch", config=PLOTLY_CONFIG)
 
     if use_kelly and result_kelly is not None:
         summary_rows = [result.strategy, result_kelly.strategy, result.buy_hold]
@@ -903,8 +916,10 @@ def render_paper_trading_simulator_section(
                 yaxis_title="Portföy Değeri (TL)",
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
                 margin=dict(l=20, r=20, t=30, b=20),
+                dragmode="pan",
+                hovermode="x unified",
             )
-            st.plotly_chart(fig_sim, width="stretch")
+            st.plotly_chart(fig_sim, width="stretch", config=PLOTLY_CONFIG)
 
 
 def render_single_ticker_tab(
@@ -1103,8 +1118,12 @@ def render_single_ticker_tab(
                         ),
                     )
                 )
-        fig.update_layout(xaxis_rangeslider_visible=False)
-        st.plotly_chart(fig, width="stretch")
+        fig.update_layout(
+            xaxis_rangeslider_visible=False,
+            dragmode="pan",
+            hovermode="x unified",
+        )
+        st.plotly_chart(fig, width="stretch", config=PLOTLY_CONFIG)
 
         # Explainability (TreeSHAP)
         st.subheader("Model Neden Bu Kararı Verdi?", anchor=False)
@@ -1132,8 +1151,11 @@ def render_single_ticker_tab(
             yaxis_title="Yükseliş Olasılığı (%)",
             yaxis_range=[low - 2, high + 2],
             showlegend=False,
+            dragmode=False,
+            xaxis=dict(fixedrange=True),
+            yaxis=dict(fixedrange=True),
         )
-        st.plotly_chart(fig_explain, width="stretch")
+        st.plotly_chart(fig_explain, width="stretch", config=PLOTLY_CONFIG)
         st.caption(
             "Ortalama: modelin hiçbir göstergeyi bilmeden verdiği olasılık. "
             "Her çubuk, ilgili göstergenin bugünkü değerinin olasılığı kaç puan "
