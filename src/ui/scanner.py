@@ -1,5 +1,6 @@
 """BIST 30 Piyasa Fırsat Radarı ve sektör tarayıcı arayüz modülü."""
 
+import json
 import os
 
 import pandas as pd
@@ -92,12 +93,30 @@ def render_market_scanner_tab():
                     column_config=SCAN_COLUMN_CONFIG,
                 )
 
-            # Sektörel Ağaç Haritası (Treemap)
+            # Sektörel Ağaç Haritası (Treemap) & Göreceli Güç
             with st.expander("🗺️ BIST 30 Sektörel Görünüm & Isı Haritası (Treemap)", expanded=True):
                 st.markdown(
                     "Sektörlerin ve hisselerin yapay zeka modeline göre toplu görünümü "
                     "(Yeşil: Yükseliş Beklentisi / Kırmızı: Zayıf veya Düşüş Beklentisi):"
                 )
+                if (
+                    "Sektör" in filtered_scan_df.columns
+                    and "Yükseliş Olasılığı (%)" in filtered_scan_df.columns
+                ):
+                    sec_avg = (
+                        filtered_scan_df.groupby("Sektör")["Yükseliş Olasılığı (%)"]
+                        .mean()
+                        .sort_values(ascending=False)
+                    )
+                    if not sec_avg.empty:
+                        top_sec = sec_avg.index[0]
+                        top_val = sec_avg.iloc[0]
+                        st.info(
+                            f"🏆 **Günün En Güçlü Sektörü: {top_sec}** "
+                            f"(Ortalama Model Güveni: **%{top_val:.1f}** &nbsp;|&nbsp; "
+                            f"Taranan Sektör Sayısı: **{len(sec_avg)}**)"
+                        )
+
                 c_t1, _ = st.columns([6, 4])
                 with c_t1:
                     color_mode = st.radio(
@@ -209,8 +228,73 @@ def render_market_scanner_tab():
                 hide_index=True,
                 column_config=SCAN_COLUMN_CONFIG,
             )
+
+            # Model Mimarisi & Performans İncelemesi
+            render_model_diagnostics_section()
         else:
             st.warning("Piyasa verileri taranırken veri alınamadı.")
+
+
+def render_model_diagnostics_section() -> None:
+    """Yapay Zeka model mimarisi, doğruluk metrikleri ve denetim defteri özetini render eder."""
+    with st.expander("🤖 Yapay Zeka Model Mimarisi & Performans İncelemesi", expanded=False):
+        st.markdown(
+            """
+            BIST Trend Forecaster, çoklu makine öğrenimi modellerinin ağırlıklı birleşimi olan
+            **v2.1-ensemble** (XGBoost, LightGBM, CatBoost) mimarisiyle çalışır.
+            Aşağıda test seti üzerinde ölçülen başarı metrikleri ve günlük tahmin denetim defteri
+            özeti yer almaktadır:
+            """
+        )
+
+        c_meta1, c_meta2 = st.columns([6, 4])
+        with c_meta1:
+            st.markdown("##### 🏆 Model Topluluğu Başarı Kıyaslaması (Test Seti)")
+            meta_path = "models/ensemble_meta.json"
+            if os.path.exists(meta_path):
+                try:
+                    with open(meta_path, "r", encoding="utf-8") as f:
+                        meta_data = json.load(f)
+                    df_meta = pd.DataFrame(meta_data)
+                    st.table(df_meta)
+                except Exception:
+                    st.caption("Model metaveri dosyası okunamadı.")
+            else:
+                st.caption("ensemble_meta.json bulunamadı.")
+
+        with c_meta2:
+            st.markdown("##### 📋 Otonom Tahmin Defteri (Audit Ledger)")
+            audit_path = "data/prediction_audit.json"
+            if os.path.exists(audit_path):
+                try:
+                    with open(audit_path, "r", encoding="utf-8") as f:
+                        audit_data = json.load(f)
+                    total_records = len(audit_data)
+                    bull_count = sum(
+                        1
+                        for r in audit_data
+                        if r.get("signal") == 1 or "YÜKSELİŞ" in r.get("direction", "")
+                    )
+                    bear_count = total_records - bull_count
+                    last_record = audit_data[-1] if audit_data else {}
+                    last_date = last_record.get("date", "—")
+
+                    st.markdown(
+                        f"* **Toplam Denetlenen Tahmin:** `{total_records} Adet`\n"
+                        f"* **Son Güncelleme:** `{last_date}`\n"
+                        f"* **Sinyal Dağılımı:** 🟢 {bull_count} Alım · 🔴 {bear_count} Satış/Nötr"
+                    )
+                except Exception:
+                    st.caption("Denetim defteri okunamadı.")
+            else:
+                st.caption("prediction_audit.json bulunamadı.")
+
+        st.info(
+            "🔄 **Otonom Model Yeniden Eğitimi (Retrain):** Sistem, GitHub Actions "
+            "(`retrain.yml`) iş akışı üzerinden her hafta sonu yeni gelen seans verilerini "
+            "otomatik olarak veri tabanına işler, hiperparametreleri optimize eder ve "
+            "model ağırlıklarını günceller."
+        )
 
 
 def render_email_alert_section(filtered_scan_df: pd.DataFrame) -> None:
