@@ -58,6 +58,11 @@ class FundamentalReport:
             return f"🔴 Negatif ({score_str})"
         return f"🟡 Nötr ({score_str})"
 
+    @property
+    def kap_disclosures(self) -> list[Any]:
+        """recent_disclosures verilerini KAPDisclosure nesneleri olarak döndürür."""
+        return convert_disclosures_to_kap(self.ticker, self.recent_disclosures)
+
 
 def clean_ticker(ticker: str) -> str:
     """Hisse kodunu temizler ve standartlaştırır (örn: THYAO.IS -> THYAO)."""
@@ -69,6 +74,47 @@ def build_chatbot_deeplink(ticker: str, base_url: str | None = None) -> str:
     norm_ticker = clean_ticker(ticker)
     url = (base_url or config.FINANCIAL_CHATBOT_URL).rstrip("/")
     return f"{url}/?ticker={norm_ticker}"
+
+
+def convert_disclosures_to_kap(ticker: str, disclosures: list[dict[str, Any]]) -> list[Any]:
+    """Chatbot projesinden gelen recent_disclosures verisini KAPDisclosure listesine dönüştürür."""
+    from src import kap_news
+
+    results: list[kap_news.KAPDisclosure] = []
+    clean = clean_ticker(ticker)
+    for d in disclosures:
+        if not isinstance(d, dict):
+            continue
+        title = str(d.get("Başlık") or d.get("title") or "").strip()
+        if not title:
+            continue
+        date = str(d.get("Tarih") or d.get("date") or d.get("publish_date") or "").strip()
+        cat = str(d.get("Kategori") or d.get("category") or "Özel Durum").strip()
+        impact = str(d.get("Etki") or d.get("impact") or "Pozitif").strip().lower()
+
+        if any(w in impact for w in ("pozitif", "positive", "olumlu")):
+            category = kap_news.EventCategory.POSITIVE
+            badge = f"🟢 {cat}"
+        elif any(w in impact for w in ("negatif", "negative", "olumsuz")):
+            category = kap_news.EventCategory.NEGATIVE
+            badge = f"🔴 {cat}"
+        else:
+            category = kap_news.EventCategory.NEUTRAL
+            badge = f"⚪ {cat}"
+
+        summary = str(d.get("Özet") or d.get("summary") or title).strip()
+        results.append(
+            kap_news.KAPDisclosure(
+                ticker=clean,
+                title=title,
+                summary=summary,
+                publish_date=date,
+                category=category,
+                badge=badge,
+                event_type=cat,
+            )
+        )
+    return results
 
 
 def parse_report_payload(payload: dict[str, Any], source: str = "unknown") -> FundamentalReport:
@@ -213,13 +259,16 @@ def fetch_fundamental_report(
 
     # 1. Yerel rapor kontrolü (testler veya paylaşımlı disk için)
     if local_reports_dir:
-        local_path = Path(local_reports_dir) / f"{clean}_latest.json"
-        if local_path.is_file():
-            try:
-                data = json.loads(local_path.read_text(encoding="utf-8"))
-                report = parse_report_payload(data, source="local_cache")
-            except Exception as e:
-                logger.debug("Yerel rapor okunamadı (%s): %s", local_path, e)
+        for fname in (f"{clean}_latest.json", f"{clean}.json"):
+            local_path = Path(local_reports_dir) / fname
+            if local_path.is_file():
+                try:
+                    data = json.loads(local_path.read_text(encoding="utf-8"))
+                    report = parse_report_payload(data, source="local_cache")
+                    if report is not None:
+                        break
+                except Exception as e:
+                    logger.debug("Yerel rapor okunamadı (%s): %s", local_path, e)
 
     # 2. FastAPI Servisi Kontrolü
     if report is None:
@@ -234,12 +283,12 @@ def fetch_fundamental_report(
     if report is None:
         active_repo = raw_repo or config.FINANCIAL_CHATBOT_RAW_REPO
         if active_repo:
-            raw_url = (
-                f"https://raw.githubusercontent.com/{active_repo}/main/reports/{clean}_latest.json"
-            )
-            data = _fetch_from_url(raw_url, timeout=t_out)
-            if data:
-                report = parse_report_payload(data, source="github_raw")
+            for raw_path in (f"reports/{clean}_latest.json", f"data/reports/{clean}.json"):
+                raw_url = f"https://raw.githubusercontent.com/{active_repo}/main/{raw_path}"
+                data = _fetch_from_url(raw_url, timeout=t_out)
+                if data:
+                    report = parse_report_payload(data, source="github_raw")
+                    break
 
     if report is not None and enrich_live_metrics:
         if report.key_metrics.pe_ratio is None or report.key_metrics.pb_ratio is None:
