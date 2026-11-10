@@ -973,19 +973,28 @@ def render_single_ticker_tab(
     prob_low: float,
     prob_high: float,
     cost: float = 0.0,
-    active_view: str = "📊 Tüm Analizler (Kapsamlı Rapor)",
+    active_view: str = "📊 Kapsamlı Analiz Raporu",
     *args,
     **kwargs,
 ):
     """Tek hisse senedi detay analizi sekmesini oluşturur."""
     v = active_view.lower()
-    is_all = "tüm" in v or "all" in v or v == ""
+    is_all = "kapsamlı" in v or "tüm" in v or "all" in v or v == ""
     is_technical = is_all or "teknik" in v
-    is_paper = "paper" in v or "simülatör" in v
-    is_tracking = "forward" in v or "takip" in v or "denetim" in v or "başarı" in v
-    is_drift = "drift" in v or "sapma" in v or "psi" in v
-    is_kap = "kap" in v
-    is_rag = "bilanço" in v or "colab" in v or "rag" in v
+    is_rag = (
+        is_all or "bilanço" in v or "colab" in v or "kurumsal" in v or "rag" in v or "chatbot" in v
+    )
+    is_kap = is_all or "kap" in v
+    is_paper = is_all or "paper" in v or "simülatör" in v
+    is_tracking = (
+        is_all
+        or "audit" in v
+        or "doğrulama" in v
+        or "forward" in v
+        or "takip" in v
+        or "başarı" in v
+    )
+    is_drift = is_all or "drift" in v or "sapma" in v or "psi" in v
 
     model = load_model()
     with st.spinner(f"{selected_ticker} verileri analiz ediliyor..."):
@@ -1076,6 +1085,30 @@ def render_single_ticker_tab(
             prob=prob,
             entry_price=current_price,
         )
+
+        # Modüle Özel Odaklanmış Görünüm (Kullanıcı sol menüden tek bir analiz seçtiğinde)
+        if not is_all:
+            if is_rag:
+                render_fundamental_rag_section(selected_ticker, report=report, expanded=True)
+            elif is_kap:
+                render_kap_llm_section(selected_ticker, report=report, expanded=True)
+            elif is_paper:
+                render_paper_trading_simulator_section(
+                    selected_ticker=selected_ticker,
+                    full_df=df_processed,
+                    model=model,
+                    cost=cost,
+                    expanded=True,
+                )
+            elif is_tracking:
+                render_forward_tracking_section(selected_ticker, full_df, expanded=True)
+            elif is_drift:
+                render_drift_section(df_processed[config.FEATURES], expanded=True)
+
+        # Kapsamlı Rapor: Temel Analiz & KAP Doğrudan Üstte (Hibrit Kararın Hemen Altında)
+        if is_all:
+            render_fundamental_rag_section(selected_ticker, report=report, expanded=False)
+            render_kap_llm_section(selected_ticker, report=report, expanded=False)
 
         if is_technical:
             # Çoklu Vade Trend Matrisi (1 Gün • 1 Hafta • 1 Ay)
@@ -1246,23 +1279,13 @@ def render_single_ticker_tab(
                 cost=cost,
             )
 
-        if is_all or is_paper:
+        if is_all:
             render_paper_trading_simulator_section(
                 selected_ticker=selected_ticker,
                 full_df=df_processed,
                 model=model,
                 cost=cost,
-                expanded=is_paper,
+                expanded=False,
             )
-
-        if is_all or is_tracking:
-            render_forward_tracking_section(selected_ticker, full_df, expanded=is_tracking)
-
-        if is_all or is_drift:
-            render_drift_section(df_processed[config.FEATURES], expanded=is_drift)
-
-        if is_all or is_kap:
-            render_kap_llm_section(selected_ticker, report=report, expanded=is_kap)
-
-        if is_all or is_rag:
-            render_fundamental_rag_section(selected_ticker, report=report, expanded=is_rag)
+            render_forward_tracking_section(selected_ticker, full_df, expanded=False)
+            render_drift_section(df_processed[config.FEATURES], expanded=False)
