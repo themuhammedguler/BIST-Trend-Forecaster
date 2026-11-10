@@ -2,7 +2,7 @@
 # BIST 30 hisselerinin tamamını modelden geçirip fırsat radarı sıralaması oluşturan modül
 import pandas as pd
 
-from src import config, features, live_data, network
+from src import config, features, live_data, live_market, network
 
 
 def predict_single_ticker(ticker, model):
@@ -14,21 +14,30 @@ def predict_single_ticker(ticker, model):
         df_processed, df = live_data.fetch_live_frame(ticker)
     except ValueError:
         return None
-    return _build_record(ticker, df_processed, df, model)
+    live_quotes = live_market.fetch_live_quotes([ticker])
+    norm_sym = ticker.replace(".IS", "")
+    live_q = live_quotes.get(norm_sym) if live_market.is_live_frame_recent(df) else None
+    if live_q is not None:
+        df_processed, df = live_market.apply_live_quote_to_frames(df_processed, df, live_q)
+    return _build_record(ticker, df_processed, df, model, live_quote=live_q)
 
 
-def _build_record(ticker, df_processed, df, model):
+def _build_record(ticker, df_processed, df, model, live_quote=None):
     """Hazırlanmış canlı veriden tahmin ve fiyat metriklerini içeren satırı üretir."""
     last_row = df_processed.iloc[[-1]]
     X_pred = features.align_model_features(model, last_row)
 
     prob = float(model.predict_proba(X_pred)[0][1])
-    curr_price = float(df["close"].iloc[-1]) if len(df) > 0 else 0.0
-    change_rate = 0.0
-    if len(df) >= 2:
-        prev_price = float(df["close"].iloc[-2])
-        if prev_price > 0:
-            change_rate = float(((curr_price - prev_price) / prev_price) * 100)
+    if live_quote is not None and live_quote.last_price > 0:
+        curr_price = float(live_quote.last_price)
+        change_rate = float(live_quote.change_pct)
+    else:
+        curr_price = float(df["close"].iloc[-1]) if len(df) > 0 else 0.0
+        change_rate = 0.0
+        if len(df) >= 2:
+            prev_price = float(df["close"].iloc[-2])
+            if prev_price > 0:
+                change_rate = float(((curr_price - prev_price) / prev_price) * 100)
 
     clean_name = ticker.replace(".IS", "")
     if clean_name == "KOZAL":
@@ -89,6 +98,7 @@ def scan_market(tickers, model, include_macro=False):
         except network.MarketDataUnavailableError:
             # Yahoo'ya ulaşılamadı: tüm hisseler verisi alınamayanlar listesine düşer
             batch = None
+    live_quotes = live_market.fetch_live_quotes(list(tickers)) if symbols else {}
     for ticker, symbol in symbols.items():
         try:
             df_processed, df = live_data.prepare_live_frame(
@@ -99,9 +109,18 @@ def scan_market(tickers, model, include_macro=False):
         except ValueError:
             failed.append(ticker)
             continue
+        norm_sym = ticker.replace(".IS", "")
+        live_q = live_quotes.get(norm_sym) if live_market.is_live_frame_recent(df) else None
+        if live_q is not None:
+            df_processed, df = live_market.apply_live_quote_to_frames(
+                df_processed,
+                df,
+                live_q,
+                macro_data=batch if include_macro else None,
+            )
         # Model hataları (XGBoost öznitelik uyumsuzluğunda da ValueError fırlatır)
         # veri hatası sayılmamalı; bu yüzden try bloğunun dışında.
-        records.append(_build_record(ticker, df_processed, df, model))
+        records.append(_build_record(ticker, df_processed, df, model, live_quote=live_q))
 
     if not records:
         return pd.DataFrame(
