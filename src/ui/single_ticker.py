@@ -172,9 +172,9 @@ def render_risk_sizing_section(selected_ticker: str, prob: float, volatility: fl
         st.info(rec.summary_note)
 
 
-def render_drift_section(df_features):
+def render_drift_section(df_features, expanded: bool = False):
     """Öznitelik sapmasını (Data Drift / PSI) hesaplayıp özetler (#45, #69)."""
-    with st.expander("📊 Veri & Öznitelik Sapması (Data Drift / PSI)", expanded=False):
+    with st.expander("📊 Veri & Öznitelik Sapması (Data Drift / PSI)", expanded=expanded):
         drift_df, summary = drift.compute_series_drift_by_split(df_features, recent_rows=60)
         cyclical_text = (
             f" · Takvim Döngüsü: `{summary['max_cyclical_psi']:.2f}`"
@@ -210,10 +210,12 @@ def get_cached_live_market_quotes() -> dict[str, live_market.LiveQuote]:
 
 
 def render_kap_llm_section(
-    selected_ticker: str, report: fundamental_rag.FundamentalReport | None = None
+    selected_ticker: str,
+    report: fundamental_rag.FundamentalReport | None = None,
+    expanded: bool = False,
 ):
     """KAP bildirimlerini ve LLM destekli temel analiz özetini gösterir (#70)."""
-    with st.expander("🤖 Yapay Zeka Temel Analiz & KAP Yorumu", expanded=False):
+    with st.expander("🤖 Yapay Zeka Temel Analiz & KAP Yorumu", expanded=expanded):
         disclosures = kap_news.fetch_latest_disclosures(selected_ticker, limit=5)
         is_rag_source = False
         if not disclosures and report is not None and report.recent_disclosures:
@@ -302,10 +304,12 @@ def render_kap_llm_section(
 
 
 def render_fundamental_rag_section(
-    selected_ticker: str, report: fundamental_rag.FundamentalReport | None = None
+    selected_ticker: str,
+    report: fundamental_rag.FundamentalReport | None = None,
+    expanded: bool = False,
 ):
     """Financial Analyst ChatBot Project temel analiz ve bilanço özetini gösterir."""
-    with st.expander("💬 Kurumsal Temel Analiz & Bilanço Chatbot'u (RAG)", expanded=False):
+    with st.expander("💬 Kurumsal Temel Analiz & Bilanço Chatbot'u (RAG)", expanded=expanded):
         if report is None:
             report = get_cached_fundamental_report(selected_ticker)
         chatbot_link = fundamental_rag.build_chatbot_deeplink(selected_ticker)
@@ -521,11 +525,13 @@ def render_hybrid_decision_card(decision: hybrid_decision.HybridDecision) -> Non
     st.markdown(card_html, unsafe_allow_html=True)
 
 
-def render_forward_tracking_section(selected_ticker: str, full_df: pd.DataFrame):
+def render_forward_tracking_section(
+    selected_ticker: str, full_df: pd.DataFrame, expanded: bool = False
+):
     """Kayıtlı tahminlerin gerçekleşen piyasa fiyatlarıyla başarı karnesini gösterir (#53)."""
     with st.expander(
         "🎯 Gerçekleşen Model Başarısı & İleriye Dönük Takip (Forward Tracking)",
-        expanded=False,
+        expanded=expanded,
     ):
         all_preds = tracker.load_predictions()
         ticker_preds = [p for p in all_preds if p.get("ticker") == selected_ticker]
@@ -851,10 +857,11 @@ def render_paper_trading_simulator_section(
     full_df: pd.DataFrame,
     model,
     cost: float = 0.001,
+    expanded: bool = False,
 ) -> None:
     """TL bazlı sanal portföy ve kâğıt üzerinde alım-satım simülatörü (#52)."""
     with st.expander(
-        "💼 Sanal Portföy & Kâğıt Üzerinde İşlem Simülatörü (Paper Trading)", expanded=False
+        "💼 Sanal Portföy & Kâğıt Üzerinde İşlem Simülatörü (Paper Trading)", expanded=expanded
     ):
         st.markdown(
             f"**{selected_ticker}** için belirleyeceğiniz sanal sermaye ile yapay zeka modelinin "
@@ -966,8 +973,18 @@ def render_single_ticker_tab(
     prob_low: float,
     prob_high: float,
     cost: float = 0.0,
+    active_view: str = "📊 Tüm Analizler (Kapsamlı Rapor)",
 ):
     """Tek hisse senedi detay analizi sekmesini oluşturur."""
+    v = active_view.lower()
+    is_all = "tüm" in v or "all" in v or v == ""
+    is_technical = is_all or "teknik" in v
+    is_paper = "paper" in v or "simülatör" in v
+    is_tracking = "forward" in v or "takip" in v or "denetim" in v or "başarı" in v
+    is_drift = "drift" in v or "sapma" in v or "psi" in v
+    is_kap = "kap" in v
+    is_rag = "bilanço" in v or "colab" in v or "rag" in v
+
     model = load_model()
     with st.spinner(f"{selected_ticker} verileri analiz ediliyor..."):
         df_processed, full_df = get_prediction_data(selected_ticker_full)
@@ -1048,24 +1065,6 @@ def render_single_ticker_tab(
         )
         render_hybrid_decision_card(decision)
 
-        # Çoklu Vade Trend Matrisi (1 Gün • 1 Hafta • 1 Ay)
-        render_multi_horizon_matrix(
-            selected_ticker=selected_ticker,
-            input_data=input_data,
-            full_df=full_df,
-            current_price=current_price,
-            prob_low=prob_low,
-            prob_high=prob_high,
-        )
-
-        # Profesyonel Finansal Göstergeler & Risk Masası (ADX, Pivotlar, R:R)
-        render_financial_tools_section(
-            selected_ticker=selected_ticker,
-            full_df=full_df,
-            current_price=current_price,
-        )
-        render_patterns_and_sr_section(selected_ticker, full_df)
-
         # Günlük Tahmin Kaydı (Forward Tracking Denetim Defteri) (#53)
         last_date_str = str(input_data["Date"].iloc[-1]).split()[0]
         tracker.record_prediction(
@@ -1076,158 +1075,192 @@ def render_single_ticker_tab(
             entry_price=current_price,
         )
 
-        # Makro ve Piyasa Göstergeleri (#10)
-        macro_cols = ["xu100_ret", "rel_strength_bist", "usdtry_change"]
-        if all(col in input_data.columns for col in macro_cols):
-            with st.expander("🌐 Makro Piyasa Göstergeleri (BIST 100 & USD/TRY)", expanded=False):
-                m1, m2, m3 = st.columns(3)
-                xu_pct = input_data["xu100_ret"].iloc[-1] * 100
-                rel_pct = input_data["rel_strength_bist"].iloc[-1] * 100
-                fx_pct = input_data["usdtry_change"].iloc[-1] * 100
-                m1.write(f"**🏛️ BIST 100 Getirisi:** %{xu_pct:+.2f}")
-                m2.write(f"**💪 BIST 100 Rölatif Güç:** %{rel_pct:+.2f}")
-                m3.write(f"**💵 USD/TRY Değişimi:** %{fx_pct:+.2f}")
+        if is_technical:
+            # Çoklu Vade Trend Matrisi (1 Gün • 1 Hafta • 1 Ay)
+            render_multi_horizon_matrix(
+                selected_ticker=selected_ticker,
+                input_data=input_data,
+                full_df=full_df,
+                current_price=current_price,
+                prob_low=prob_low,
+                prob_high=prob_high,
+            )
 
-        # Sermaye Tahsisi & Pozisyon Boyutlandırma (Kelly) (#71)
-        if len(full_df) >= 10:
-            d_vol = float(full_df["close"].pct_change().tail(20).std())
-            if np.isnan(d_vol) or d_vol <= 0:
+            # Profesyonel Finansal Göstergeler & Risk Masası (ADX, Pivotlar, R:R)
+            render_financial_tools_section(
+                selected_ticker=selected_ticker,
+                full_df=full_df,
+                current_price=current_price,
+            )
+            render_patterns_and_sr_section(selected_ticker, full_df)
+
+            # Makro ve Piyasa Göstergeleri (#10)
+            macro_cols = ["xu100_ret", "rel_strength_bist", "usdtry_change"]
+            if all(col in input_data.columns for col in macro_cols):
+                with st.expander(
+                    "🌐 Makro Piyasa Göstergeleri (BIST 100 & USD/TRY)", expanded=False
+                ):
+                    m1, m2, m3 = st.columns(3)
+                    xu_pct = input_data["xu100_ret"].iloc[-1] * 100
+                    rel_pct = input_data["rel_strength_bist"].iloc[-1] * 100
+                    fx_pct = input_data["usdtry_change"].iloc[-1] * 100
+                    m1.write(f"**🏛️ BIST 100 Getirisi:** %{xu_pct:+.2f}")
+                    m2.write(f"**💪 BIST 100 Rölatif Güç:** %{rel_pct:+.2f}")
+                    m3.write(f"**💵 USD/TRY Değişimi:** %{fx_pct:+.2f}")
+
+            # Sermaye Tahsisi & Pozisyon Boyutlandırma (Kelly) (#71)
+            if len(full_df) >= 10:
+                d_vol = float(full_df["close"].pct_change().tail(20).std())
+                if np.isnan(d_vol) or d_vol <= 0:
+                    d_vol = 0.02
+            else:
                 d_vol = 0.02
-        else:
-            d_vol = 0.02
-        annual_vol = float(np.clip(d_vol * np.sqrt(252.0), 0.10, 0.80))
-        render_risk_sizing_section(selected_ticker, prob, annual_vol)
+            annual_vol = float(np.clip(d_vol * np.sqrt(252.0), 0.10, 0.80))
+            render_risk_sizing_section(selected_ticker, prob, annual_vol)
 
-        # GRAFİK KISMI (Candlestick & Destek/Direnç Seviyeleri)
-        st.subheader(f"{selected_ticker} - Fiyat Grafiği & Kırılım Seviyeleri", anchor=False)
-        sr = patterns.calculate_support_resistance(full_df)
-        fig = go.Figure(
-            data=[
-                go.Candlestick(
-                    x=full_df["Date"][-90:],
-                    open=full_df["open"][-90:],
-                    high=full_df["high"][-90:],
-                    low=full_df["low"][-90:],
-                    close=full_df["close"][-90:],
-                    name="Fiyat",
-                )
-            ]
-        )
-        if sr is not None and len(full_df) >= 2:
-            x_dates = full_df["Date"][-90:]
-            x_start = x_dates.iloc[0]
-            x_end = x_dates.iloc[-1]
-            fig.add_trace(
-                go.Scatter(
-                    x=[x_start, x_end],
-                    y=[sr.resistance_1, sr.resistance_1],
-                    mode="lines",
-                    line=dict(color="#EF4444", width=1.5, dash="dash"),
-                    name=f"Direnç (R1): {sr.resistance_1:.2f} TL",
-                )
+            # GRAFİK KISMI (Candlestick & Destek/Direnç Seviyeleri)
+            st.subheader(f"{selected_ticker} - Fiyat Grafiği & Kırılım Seviyeleri", anchor=False)
+            sr = patterns.calculate_support_resistance(full_df)
+            fig = go.Figure(
+                data=[
+                    go.Candlestick(
+                        x=full_df["Date"][-90:],
+                        open=full_df["open"][-90:],
+                        high=full_df["high"][-90:],
+                        low=full_df["low"][-90:],
+                        close=full_df["close"][-90:],
+                        name="Fiyat",
+                    )
+                ]
             )
-            fig.add_trace(
-                go.Scatter(
-                    x=[x_start, x_end],
-                    y=[sr.pivot, sr.pivot],
-                    mode="lines",
-                    line=dict(color="#38BDF8", width=1, dash="dot"),
-                    name=f"Pivot: {sr.pivot:.2f} TL",
-                )
-            )
-            fig.add_trace(
-                go.Scatter(
-                    x=[x_start, x_end],
-                    y=[sr.support_1, sr.support_1],
-                    mode="lines",
-                    line=dict(color="#10B981", width=1.5, dash="dash"),
-                    name=f"Destek (S1): {sr.support_1:.2f} TL",
-                )
-            )
-
-            exits = patterns.calculate_atr_exit_levels(full_df)
-            if exits is not None:
+            if sr is not None and len(full_df) >= 2:
+                x_dates = full_df["Date"][-90:]
+                x_start = x_dates.iloc[0]
+                x_end = x_dates.iloc[-1]
                 fig.add_trace(
                     go.Scatter(
                         x=[x_start, x_end],
-                        y=[exits.stop_loss, exits.stop_loss],
+                        y=[sr.resistance_1, sr.resistance_1],
                         mode="lines",
-                        line=dict(color="#DC2626", width=1.5, dash="dot"),
-                        name=f"Stop-Loss: {exits.stop_loss:.2f} TL (%{exits.stop_loss_pct:.1f})",
+                        line=dict(color="#EF4444", width=1.5, dash="dash"),
+                        name=f"Direnç (R1): {sr.resistance_1:.2f} TL",
                     )
                 )
                 fig.add_trace(
                     go.Scatter(
                         x=[x_start, x_end],
-                        y=[exits.take_profit_1, exits.take_profit_1],
+                        y=[sr.pivot, sr.pivot],
                         mode="lines",
-                        line=dict(color="#059669", width=1.5, dash="dot"),
-                        name=(
-                            f"Hedef 1: {exits.take_profit_1:.2f} TL "
-                            f"(+%{exits.take_profit_1_pct:.1f})"
-                        ),
+                        line=dict(color="#38BDF8", width=1, dash="dot"),
+                        name=f"Pivot: {sr.pivot:.2f} TL",
                     )
                 )
-        fig.update_layout(
-            xaxis_rangeslider_visible=False,
-            dragmode="pan",
-            hovermode="x unified",
-        )
-        st.plotly_chart(fig, width="stretch", config=PLOTLY_CONFIG)
+                fig.add_trace(
+                    go.Scatter(
+                        x=[x_start, x_end],
+                        y=[sr.support_1, sr.support_1],
+                        mode="lines",
+                        line=dict(color="#10B981", width=1.5, dash="dash"),
+                        name=f"Destek (S1): {sr.support_1:.2f} TL",
+                    )
+                )
 
-        # Explainability (TreeSHAP)
-        st.subheader("Model Neden Bu Kararı Verdi?", anchor=False)
-        explanation, base_prob = explain.explain_prediction(model, X_pred)
-        st.markdown(explain.summarize_drivers(explanation, selected_ticker))
-
-        impacts = explanation["impact"] * 100
-        levels = base_prob * 100 + impacts.cumsum()
-        fig_explain = go.Figure(
-            go.Waterfall(
-                measure=["absolute"] + ["relative"] * len(explanation) + ["total"],
-                x=["Ortalama"]
-                + [explain.FEATURE_LABELS.get(f, f) for f in explanation["feature"]]
-                + ["Tahmin"],
-                y=[base_prob * 100] + impacts.tolist() + [0],
-                text=[f"%{base_prob * 100:.1f}"]
-                + [f"{i:+.1f}" for i in impacts]
-                + [f"%{prob * 100:.1f}"],
-                increasing={"marker": {"color": "#2ca02c"}},
-                decreasing={"marker": {"color": "#d62728"}},
+                exits = patterns.calculate_atr_exit_levels(full_df)
+                if exits is not None:
+                    fig.add_trace(
+                        go.Scatter(
+                            x=[x_start, x_end],
+                            y=[exits.stop_loss, exits.stop_loss],
+                            mode="lines",
+                            line=dict(color="#DC2626", width=1.5, dash="dot"),
+                            name=(
+                                f"Stop-Loss: {exits.stop_loss:.2f} TL (%{exits.stop_loss_pct:.1f})"
+                            ),
+                        )
+                    )
+                    fig.add_trace(
+                        go.Scatter(
+                            x=[x_start, x_end],
+                            y=[exits.take_profit_1, exits.take_profit_1],
+                            mode="lines",
+                            line=dict(color="#059669", width=1.5, dash="dot"),
+                            name=(
+                                f"Hedef 1: {exits.take_profit_1:.2f} TL "
+                                f"(+%{exits.take_profit_1_pct:.1f})"
+                            ),
+                        )
+                    )
+            fig.update_layout(
+                xaxis_rangeslider_visible=False,
+                dragmode="pan",
+                hovermode="x unified",
             )
-        )
-        low, high = min(levels.min(), base_prob * 100), max(levels.max(), base_prob * 100)
-        fig_explain.update_layout(
-            yaxis_title="Yükseliş Olasılığı (%)",
-            yaxis_range=[low - 2, high + 2],
-            showlegend=False,
-            dragmode=False,
-            xaxis=dict(fixedrange=True),
-            yaxis=dict(fixedrange=True),
-        )
-        st.plotly_chart(fig_explain, width="stretch", config=PLOTLY_CONFIG)
-        st.caption(
-            "Ortalama: modelin hiçbir göstergeyi bilmeden verdiği olasılık. "
-            "Her çubuk, ilgili göstergenin bugünkü değerinin olasılığı kaç puan "
-            "artırdığını (yeşil) ya da azalttığını (kırmızı) gösterir."
-        )
+            st.plotly_chart(fig, width="stretch", config=PLOTLY_CONFIG)
 
-        st.write("Son günün teknik verileri:")
-        st.dataframe(input_data[["rsi", "macd", "sma_10", "sma_50", "volatility"]])
+            # Explainability (TreeSHAP)
+            st.subheader("Model Neden Bu Kararı Verdi?", anchor=False)
+            explanation, base_prob = explain.explain_prediction(model, X_pred)
+            st.markdown(explain.summarize_drivers(explanation, selected_ticker))
 
-        render_backtest(
-            model,
-            df_processed[["Date", "close"] + config.FEATURES],
-            threshold=prob_high,
-            cost=cost,
-        )
-        render_paper_trading_simulator_section(
-            selected_ticker=selected_ticker,
-            full_df=df_processed,
-            model=model,
-            cost=cost,
-        )
-        render_forward_tracking_section(selected_ticker, full_df)
-        render_drift_section(df_processed[config.FEATURES])
-        render_kap_llm_section(selected_ticker, report=report)
-        render_fundamental_rag_section(selected_ticker, report=report)
+            impacts = explanation["impact"] * 100
+            levels = base_prob * 100 + impacts.cumsum()
+            fig_explain = go.Figure(
+                go.Waterfall(
+                    measure=["absolute"] + ["relative"] * len(explanation) + ["total"],
+                    x=["Ortalama"]
+                    + [explain.FEATURE_LABELS.get(f, f) for f in explanation["feature"]]
+                    + ["Tahmin"],
+                    y=[base_prob * 100] + impacts.tolist() + [0],
+                    text=[f"%{base_prob * 100:.1f}"]
+                    + [f"{i:+.1f}" for i in impacts]
+                    + [f"%{prob * 100:.1f}"],
+                    increasing={"marker": {"color": "#2ca02c"}},
+                    decreasing={"marker": {"color": "#d62728"}},
+                )
+            )
+            low, high = min(levels.min(), base_prob * 100), max(levels.max(), base_prob * 100)
+            fig_explain.update_layout(
+                yaxis_title="Yükseliş Olasılığı (%)",
+                yaxis_range=[low - 2, high + 2],
+                showlegend=False,
+                dragmode=False,
+                xaxis=dict(fixedrange=True),
+                yaxis=dict(fixedrange=True),
+            )
+            st.plotly_chart(fig_explain, width="stretch", config=PLOTLY_CONFIG)
+            st.caption(
+                "Ortalama: modelin hiçbir göstergeyi bilmeden verdiği olasılık. "
+                "Her çubuk, ilgili göstergenin bugünkü değerinin olasılığı kaç puan "
+                "artırdığını (yeşil) ya da azalttığını (kırmızı) gösterir."
+            )
+
+            st.write("Son günün teknik verileri:")
+            st.dataframe(input_data[["rsi", "macd", "sma_10", "sma_50", "volatility"]])
+
+            render_backtest(
+                model,
+                df_processed[["Date", "close"] + config.FEATURES],
+                threshold=prob_high,
+                cost=cost,
+            )
+
+        if is_all or is_paper:
+            render_paper_trading_simulator_section(
+                selected_ticker=selected_ticker,
+                full_df=df_processed,
+                model=model,
+                cost=cost,
+                expanded=is_paper,
+            )
+
+        if is_all or is_tracking:
+            render_forward_tracking_section(selected_ticker, full_df, expanded=is_tracking)
+
+        if is_all or is_drift:
+            render_drift_section(df_processed[config.FEATURES], expanded=is_drift)
+
+        if is_all or is_kap:
+            render_kap_llm_section(selected_ticker, report=report, expanded=is_kap)
+
+        if is_all or is_rag:
+            render_fundamental_rag_section(selected_ticker, report=report, expanded=is_rag)
