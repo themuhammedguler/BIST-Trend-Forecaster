@@ -17,6 +17,15 @@ from src import (
 )
 from src.ui.components import SCAN_COLUMN_CONFIG, get_cached_market_scan
 
+PLOTLY_CONFIG: dict[str, object] = {
+    "scrollZoom": True,
+    "displayModeBar": "hover",
+    "doubleClick": "reset+autosize",
+    "responsive": True,
+    "displaylogo": False,
+    "modeBarButtonsToRemove": ["lasso2d", "select2d"],
+}
+
 
 def render_market_scanner_tab():
     """BIST 30 piyasa tarama sekmesini ve liderlik tablolarını render eder."""
@@ -132,7 +141,7 @@ def render_market_scanner_tab():
                 fig_treemap = portfolio_optimizer.build_sector_treemap_figure(
                     filtered_scan_df, color_by=color_key
                 )
-                st.plotly_chart(fig_treemap, use_container_width=True)
+                st.plotly_chart(fig_treemap, use_container_width=True, config=PLOTLY_CONFIG)
 
             with st.expander(
                 "💼 Önerilen Portföy Sermaye Dağılımı (Markowitz MPT & Kelly)", expanded=False
@@ -190,7 +199,9 @@ def render_market_scanner_tab():
                             fig_donut = portfolio_optimizer.build_portfolio_allocation_figure(
                                 mpt_res.allocation_table
                             )
-                            st.plotly_chart(fig_donut, use_container_width=True)
+                            st.plotly_chart(
+                                fig_donut, use_container_width=True, config=PLOTLY_CONFIG
+                            )
                         with c_table:
                             st.markdown(
                                 portfolio_optimizer.format_markowitz_as_markdown(
