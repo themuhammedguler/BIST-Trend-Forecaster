@@ -242,16 +242,31 @@ else:
     tab1, tab2 = st.tabs(["🎯 Tek Hisse Analizi", "📊 BIST 30 Fırsat Radarı"])
 
     with tab1:
-        render_safely(
-            lambda: render_single_ticker_tab(
-                selected_ticker,
-                selected_ticker_full,
-                prob_low,
-                prob_high,
-                cost,
-                active_view=selected_view,
-            )
-        )
+
+        def _render_single_ticker_tab_safe():
+            try:
+                render_single_ticker_tab(
+                    selected_ticker,
+                    selected_ticker_full,
+                    prob_low,
+                    prob_high,
+                    cost,
+                    active_view=selected_view,
+                )
+            except TypeError as te:
+                if "active_view" in str(te):
+                    # Sıcak yeniden yükleme (hot reload) esnasında modül önbelleği uyumluluğu
+                    render_single_ticker_tab(
+                        selected_ticker,
+                        selected_ticker_full,
+                        prob_low,
+                        prob_high,
+                        cost,
+                    )
+                else:
+                    raise te
+
+        render_safely(_render_single_ticker_tab_safe)
 
     with tab2:
         render_safely(render_market_scanner_tab)
