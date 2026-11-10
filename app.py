@@ -188,6 +188,24 @@ st.sidebar.button(
     on_click=lambda: get_prediction_data.clear(selected_ticker_full),
 )
 
+# Yan Menü: Analiz Modülü Seçimi
+st.sidebar.header("Analiz Menüsü")
+VIEW_OPTIONS = [
+    "📊 Tüm Analizler (Kapsamlı Rapor)",
+    "🎯 Teknik Model & Trend Özeti",
+    "🎮 Paper Trading Simülatörü",
+    "📜 Model Başarısı & Takip (Audit)",
+    "🔬 Veri Sapması & Kararlılık (PSI)",
+    "🤖 Yapay Zeka KAP Analizi",
+    "💬 Kurumsal Bilanço & Colab LLM",
+]
+selected_view = st.sidebar.radio(
+    "İnceleme Modülü",
+    VIEW_OPTIONS,
+    index=0,
+    key="sidebar_analysis_view",
+)
+
 # Yan Menü: Sinyal & Strateji Ayarları
 st.sidebar.header("Sinyal & Strateji Ayarları")
 min_confidence = st.sidebar.slider(
@@ -226,7 +244,12 @@ else:
     with tab1:
         render_safely(
             lambda: render_single_ticker_tab(
-                selected_ticker, selected_ticker_full, prob_low, prob_high, cost
+                selected_ticker,
+                selected_ticker_full,
+                prob_low,
+                prob_high,
+                cost,
+                active_view=selected_view,
             )
         )
 
