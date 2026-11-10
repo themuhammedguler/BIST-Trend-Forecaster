@@ -587,12 +587,15 @@ def test_app_renders_macro_indicators_expander(monkeypatch):
 
 
 def test_app_renders_data_drift_expander(patched_download):
-    """Tekli hisse sekmesinde veri sapması (Drift/PSI) expander'ı ve tablosu render edilmeli."""
+    """Yan menüden seçildiğinde veri sapması (Drift/PSI) sayfası ve tablosu render edilmeli."""
     at = AppTest.from_file(APP_PATH, default_timeout=30)
     at.run()
+    at.sidebar.radio(key="sidebar_analysis_view").set_value(
+        "🔬 Veri Sapması & Kararlılık (PSI)"
+    ).run()
     assert list(at.exception) == []
-    expander_labels = [e.label for e in at.expander]
-    assert any("Veri & Öznitelik Sapması" in label for label in expander_labels)
+    subheaders = [s.value for s in at.subheader]
+    assert any("Veri & Öznitelik Sapması" in s for s in subheaders)
     drift_tables = [
         df.value
         for df in at.dataframe
@@ -604,7 +607,7 @@ def test_app_renders_data_drift_expander(patched_download):
 
 
 def test_app_renders_kap_llm_expander(monkeypatch, patched_download):
-    """Tekli hisse sekmesinde KAP & LLM temel analiz expander'ı render edilmeli (#70)."""
+    """Yan menüden seçildiğinde KAP & LLM temel analiz sayfası render edilmeli (#70)."""
     sample_news = [kap_news.parse_raw_news_item("AKBNK", {"title": "Yeni İş İlişkisi ve Sipariş"})]
     monkeypatch.setattr(
         "src.kap_news.fetch_latest_disclosures",
@@ -612,9 +615,10 @@ def test_app_renders_kap_llm_expander(monkeypatch, patched_download):
     )
     at = AppTest.from_file(APP_PATH, default_timeout=30)
     at.run()
+    at.sidebar.radio(key="sidebar_analysis_view").set_value("📑 KAP Bildirimleri & Analiz").run()
     assert list(at.exception) == []
-    expander_labels = [e.label for e in at.expander]
-    assert any("Yapay Zeka Temel Analiz & KAP Yorumu" in label for label in expander_labels)
+    subheaders = [s.value for s in at.subheader]
+    assert any("Yapay Zeka Temel Analiz & KAP Yorumu" in s for s in subheaders)
     kap_tables = [
         df.value
         for df in at.dataframe
@@ -667,12 +671,13 @@ def test_scanner_renders_portfolio_allocation_expander(patched_download):
 
 
 def test_app_renders_fundamental_rag_chatbot_expander(patched_download):
-    """Tekli hisse sekmesinde Financial Analyst Chatbot RAG expander'ı render edilmeli."""
+    """Yan menüden seçildiğinde Financial Analyst Chatbot RAG sayfası render edilmeli."""
     at = AppTest.from_file(APP_PATH, default_timeout=30)
     at.run()
+    at.sidebar.radio(key="sidebar_analysis_view").set_value("🏢 Kurumsal Bilanço & Chatbot").run()
     assert list(at.exception) == []
-    expander_labels = [e.label for e in at.expander]
-    assert any("Kurumsal Temel Analiz & Bilanço Chatbot'u" in label for label in expander_labels)
+    subheaders = [s.value for s in at.subheader]
+    assert any("Kurumsal Temel Analiz & Bilanço Chatbot'u" in s for s in subheaders)
 
 
 def test_app_respects_url_query_parameter_for_ticker(patched_download):
@@ -713,9 +718,10 @@ def test_app_renders_analytics_badge_in_sidebar(patched_download):
 
 
 def test_app_renders_forward_tracking_expander(patched_download):
-    """Tekli hisse sekmesinde ileriye dönük takip (Forward Tracking) expander'ı render edilmeli."""
+    """Yan menüden seçildiğinde ileriye dönük takip (Forward Tracking) sayfası render edilmeli."""
     at = AppTest.from_file(APP_PATH, default_timeout=30)
     at.run()
+    at.sidebar.radio(key="sidebar_analysis_view").set_value("🎯 Model Doğrulama (Audit)").run()
     assert list(at.exception) == []
-    expander_labels = [e.label for e in at.expander]
-    assert any("Gerçekleşen Model Başarısı" in label for label in expander_labels)
+    subheaders = [s.value for s in at.subheader]
+    assert any("Gerçekleşen Model Başarısı" in s for s in subheaders)

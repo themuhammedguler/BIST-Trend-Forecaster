@@ -391,7 +391,7 @@ def render_custom_watchlist_section(scan_df: pd.DataFrame) -> None:
 
 def render_model_diagnostics_section() -> None:
     """Yapay Zeka model mimarisi, doğruluk metrikleri ve denetim defteri özetini render eder."""
-    with st.expander("🤖 Yapay Zeka Model Mimarisi & Performans İncelemesi", expanded=False):
+    with st.expander("⚙️ Yapay Zeka Model Mimarisi & Performans İncelemesi", expanded=False):
         st.markdown(
             """
             BIST Trend Forecaster, çoklu makine öğrenimi modellerinin ağırlıklı birleşimi olan
