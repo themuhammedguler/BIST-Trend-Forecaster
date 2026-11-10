@@ -1,10 +1,16 @@
 """Unit tests for the zero-delay live market quotes module."""
 
+import numpy as np
+import pandas as pd
+
+from src import features
 from src.live_market import (
     LiveQuote,
+    apply_live_quote_to_frames,
     build_scanner_payload,
     clean_ticker_name,
     fetch_live_quotes,
+    is_live_frame_recent,
 )
 
 
@@ -73,3 +79,55 @@ def test_fetch_live_quotes_handles_network_error():
         custom_fetcher=failing_fetcher,
     )
     assert quotes == {}
+
+
+def test_is_live_frame_recent():
+    old_df = pd.DataFrame({"Date": pd.bdate_range("2024-01-01", periods=10)})
+    assert not is_live_frame_recent(old_df)
+
+    today = pd.Timestamp.now(tz="Europe/Istanbul").tz_localize(None).normalize()
+    recent_df = pd.DataFrame({"Date": [today - pd.Timedelta(days=1), today]})
+    assert is_live_frame_recent(recent_df)
+
+
+def test_apply_live_quote_to_frames_updates_candle_and_recomputes_indicators():
+    dates = pd.bdate_range("2025-01-01", periods=120)
+    close = 100.0 + np.linspace(0.0, 10.0, 120) + 3.0 * np.sin(np.arange(120))
+    last_close_val = float(close[-1])
+    full_df = pd.DataFrame(
+        {
+            "Date": dates,
+            "ticker": "THYAO.IS",
+            "open": close - 0.5,
+            "high": close + 1.0,
+            "low": close - 1.0,
+            "close": close,
+            "volume": np.full(120, 1_000_000.0),
+        }
+    )
+    df_processed = features.add_features(full_df.copy(), drop_incomplete_target=False)
+    orig_rsi = float(df_processed["rsi"].iloc[-1])
+
+    quote = LiveQuote(
+        ticker="THYAO",
+        last_price=135.0,
+        change_pct=12.5,
+        volume=5_000_000.0,
+        high=136.0,
+        low=105.0,
+        open_price=112.0,
+    )
+
+    # Without force=True on an old 2025 fixture, frame remains untouched
+    unchanged_proc, unchanged_full = apply_live_quote_to_frames(df_processed, full_df, quote)
+    assert float(unchanged_full["close"].iloc[-1]) == last_close_val
+
+    # With force=True (or recent live dates), latest candle and indicators are updated
+    updated_proc, updated_full = apply_live_quote_to_frames(
+        df_processed, full_df, quote, force=True
+    )
+    assert float(updated_full["close"].iloc[-1]) == 135.0
+    assert float(updated_full["high"].iloc[-1]) == 136.0
+    assert float(updated_full["low"].iloc[-1]) == 105.0
+    assert float(updated_full["volume"].iloc[-1]) == 5_000_000.0
+    assert float(updated_proc["rsi"].iloc[-1]) > orig_rsi

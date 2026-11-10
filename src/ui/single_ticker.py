@@ -26,7 +26,7 @@ from src import (
     simulator,
     tracker,
 )
-from src.ui.components import get_prediction_data, load_model
+from src.ui.components import get_cached_macro_data, get_prediction_data, load_model
 
 BACKTEST_MONTHS = 6
 
@@ -1004,6 +1004,19 @@ def render_single_ticker_tab(
     model = load_model()
     with st.spinner(f"{selected_ticker} verileri analiz ediliyor..."):
         df_processed, full_df = get_prediction_data(selected_ticker_full)
+
+        # Canlı (0 gecikmeli) kotasyon entegrasyonu: son gün mumunu ve indikatörleri günceller
+        live_quotes = get_cached_live_market_quotes()
+        norm_sym = selected_ticker.replace(".IS", "")
+        live_q = live_quotes.get(norm_sym) if live_market.is_live_frame_recent(full_df) else None
+        if live_q is not None:
+            df_processed, full_df = live_market.apply_live_quote_to_frames(
+                df_processed,
+                full_df,
+                live_q,
+                macro_data=get_cached_macro_data(),
+            )
+
         # Sadece en son günü al (Yarın için tahmin yapacağız)
         input_data = df_processed.iloc[[-1]]
 
@@ -1030,17 +1043,17 @@ def render_single_ticker_tab(
         # GÖSTERGE PANELİ (Seçili hissenin özet fiyat ve sinyal başlığı)
         col1, col2, col3 = st.columns(3)
 
-        # Fiyat ve Değişim Hesaplama
-        if len(full_df) >= 2:
+        # Fiyat ve Değişim Hesaplama (Canlı 0 gecikmeli kotasyon mevcutsa doğrudan onu kullanır)
+        if live_q is not None and live_q.last_price > 0:
+            current_price = float(live_q.last_price)
+            change_rate = float(live_q.change_pct)
+        elif len(full_df) >= 2:
             current_price = full_df["close"].iloc[-1]
             prev_price = full_df["close"].iloc[-2]
-
-            # Değişim Miktarı (TL) ve Oranı (%)
             change_amount = current_price - prev_price
             change_rate = (change_amount / prev_price) * 100
         else:
             current_price = full_df["close"].iloc[-1]
-            change_amount = 0
             change_rate = 0
 
         with col1:
@@ -1058,10 +1071,6 @@ def render_single_ticker_tab(
             st.write("📊 **Güven Skoru:**")
             signal_box(f"%{prob * 100:.1f} Olasılıkla Yükseliş")
 
-        # Canlı (0 gecikmeli) kotasyon kontrolü
-        live_quotes = get_cached_live_market_quotes()
-        norm_sym = selected_ticker.replace(".IS", "")
-        live_q = live_quotes.get(norm_sym)
         if live_q is not None:
             q_info = (
                 f"🔴 **Canlı Seans Fiyatı (0 Gecikme):** `{live_q.last_price:.2f} TL` "
