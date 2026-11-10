@@ -274,11 +274,10 @@ st.sidebar.button(
 # Yan Menü: Analiz Modülü Seçimi
 st.sidebar.header("Analiz Menüsü")
 VIEW_OPTIONS = [
-    "📊 Kapsamlı Analiz Raporu",
     "📈 Teknik Model & Grafikler",
     "🏢 Kurumsal Bilanço & Chatbot",
     "📑 KAP Bildirimleri & Analiz",
-    "🎮 Paper Trading Simülatörü",
+    "💼 Paper Trading Simülatörü",
     "🎯 Model Doğrulama (Audit)",
     "🔬 Veri Sapması & Kararlılık (PSI)",
 ]

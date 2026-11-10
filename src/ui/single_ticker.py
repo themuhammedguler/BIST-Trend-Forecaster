@@ -135,7 +135,7 @@ def render_backtest(model, df_processed, threshold=config.PROB_THRESHOLD_HIGH, c
             * **🔘 Al ve Tut (Gri Çizgi - Benchmark):** Hissenin **kendi saf piyasa getirisi ve
               doğal fiyat grafiğidir**. 6 ay önce hisseyi alıp aradaki hiçbir düşüş veya yükselişe
               dokunmadan bugüne kadar öylece tutsaydınız portföyün nasıl değişeceğini gösterir.
-            * **🤖 Model Stratejisi (Mavi Çizgi):** Yapay zekanın yönettiği
+            * **📈 Model Stratejisi (Mavi Çizgi):** Yapay zekanın yönettiği
               **alım-satım portföyüdür**. Model *Yükseliş* öngördüğünde hissede kalarak kârı
               hedefler; *Düşüş* veya *Belirsiz* öngördüğünde ise hisseyi satıp **TL Nakde** geçer.
               Amaç, sert piyasa düşüşlerinden nakitte kalarak korunmak ve yalnızca yükseliş
@@ -172,29 +172,29 @@ def render_risk_sizing_section(selected_ticker: str, prob: float, volatility: fl
         st.info(rec.summary_note)
 
 
-def render_drift_section(df_features, expanded: bool = False):
+def render_drift_section(df_features):
     """Öznitelik sapmasını (Data Drift / PSI) hesaplayıp özetler (#45, #69)."""
-    with st.expander("📊 Veri & Öznitelik Sapması (Data Drift / PSI)", expanded=expanded):
-        drift_df, summary = drift.compute_series_drift_by_split(df_features, recent_rows=60)
-        cyclical_text = (
-            f" · Takvim Döngüsü: `{summary['max_cyclical_psi']:.2f}`"
-            if summary.get("max_cyclical_psi", 0.0) > 0.25
-            else ""
-        )
-        st.markdown(
-            f"**Genel Sağlık Durumu:** {summary['badge']} | "
-            f"**Ortalama Gösterge PSI:** `{summary['mean_psi']:.4f}` | "
-            f"**Maksimum Gösterge PSI:** `{summary['max_psi']:.4f}`"
-            f"{cyclical_text}"
-        )
-        st.caption(
-            "Population Stability Index (PSI), geçmiş referans dönem ile son 60 günün "
-            "teknik gösterge dağılımlarını kıyaslar. Takvim öznitelikleri doğal döngü olarak "
-            "ayrı etiketlenir ve gösterge sapma puanlarını etkilemez. "
-            "PSI < 0.10: Sağlıklı, 0.10-0.25: Hafif Sapma, > 0.25: Kritik Sapma."
-        )
-        if not drift_df.empty:
-            st.dataframe(drift_df[["Öznitelik", "Rozet", "PSI", "Öneri"]])
+    st.subheader("🔬 Veri & Öznitelik Sapması (Data Drift / PSI)", anchor=False)
+    drift_df, summary = drift.compute_series_drift_by_split(df_features, recent_rows=60)
+    cyclical_text = (
+        f" · Takvim Döngüsü: `{summary['max_cyclical_psi']:.2f}`"
+        if summary.get("max_cyclical_psi", 0.0) > 0.25
+        else ""
+    )
+    st.markdown(
+        f"**Genel Sağlık Durumu:** {summary['badge']} | "
+        f"**Ortalama Gösterge PSI:** `{summary['mean_psi']:.4f}` | "
+        f"**Maksimum Gösterge PSI:** `{summary['max_psi']:.4f}`"
+        f"{cyclical_text}"
+    )
+    st.caption(
+        "Population Stability Index (PSI), geçmiş referans dönem ile son 60 günün "
+        "teknik gösterge dağılımlarını kıyaslar. Takvim öznitelikleri doğal döngü olarak "
+        "ayrı etiketlenir ve gösterge sapma puanlarını etkilemez. "
+        "PSI < 0.10: Sağlıklı, 0.10-0.25: Hafif Sapma, > 0.25: Kritik Sapma."
+    )
+    if not drift_df.empty:
+        st.dataframe(drift_df[["Öznitelik", "Rozet", "PSI", "Öneri"]])
 
 
 @st.cache_data(ttl=900, show_spinner=False)
@@ -212,64 +212,169 @@ def get_cached_live_market_quotes() -> dict[str, live_market.LiveQuote]:
 def render_kap_llm_section(
     selected_ticker: str,
     report: fundamental_rag.FundamentalReport | None = None,
-    expanded: bool = False,
 ):
     """KAP bildirimlerini ve LLM destekli temel analiz özetini gösterir (#70)."""
-    with st.expander("🤖 Yapay Zeka Temel Analiz & KAP Yorumu", expanded=expanded):
-        disclosures = kap_news.fetch_latest_disclosures(selected_ticker, limit=5)
-        is_rag_source = False
-        if not disclosures and report is not None and report.recent_disclosures:
-            disclosures = fundamental_rag.convert_disclosures_to_kap(
-                selected_ticker, report.recent_disclosures
-            )
-            is_rag_source = True
+    st.subheader("📑 Yapay Zeka Temel Analiz & KAP Yorumu", anchor=False)
+    disclosures = kap_news.fetch_latest_disclosures(selected_ticker, limit=5)
+    is_rag_source = False
+    has_signal = any(d.category != kap_news.EventCategory.NEUTRAL for d in disclosures)
+    if (not disclosures or not has_signal) and report is not None and report.recent_disclosures:
+        disclosures = fundamental_rag.convert_disclosures_to_kap(
+            selected_ticker, report.recent_disclosures
+        )
+        is_rag_source = True
 
-        analysis = kap_llm.analyze_disclosures_with_llm(selected_ticker, disclosures)
+    analysis = kap_llm.analyze_disclosures_with_llm(selected_ticker, disclosures)
 
-        if is_rag_source:
-            if analysis.provider == "gemini":
-                provider_badge = "🤖 Gemini LLM (RAG KAP)"
-            else:
-                provider_badge = "🐙 RAG Chatbot KAP Verisi"
+    if is_rag_source:
+        if analysis.provider == "gemini":
+            provider_badge = "✨ Gemini LLM (RAG KAP)"
         else:
-            provider_badge = (
-                "🤖 Gemini LLM"
-                if analysis.provider == "gemini"
-                else "⚙️ Kural Tabanlı (Yedek Mod)"
-                if analysis.provider == "rule_based"
-                else "⚪ Bildirim Yok"
+            provider_badge = "🏢 RAG Chatbot KAP Verisi"
+    else:
+        provider_badge = (
+            "✨ Gemini LLM"
+            if analysis.provider == "gemini"
+            else "⚙️ Kural Tabanlı (Yedek Mod)"
+            if analysis.provider == "rule_based"
+            else "⚪ Bildirim Yok"
+        )
+    c1, c2, c3 = st.columns(3)
+    c1.markdown(f"**KAP Etki Rozeti:** {analysis.badge}")
+    c2.markdown(f"**Etki Skoru:** `{analysis.impact_score:+.2f}`")
+    c3.markdown(f"**Analiz Kaynağı:** `{provider_badge}`")
+
+    if analysis.summary:
+        st.markdown(f"**Özet Değerlendirme:** {analysis.summary}")
+
+    st.markdown("**Finansal Öne Çıkanlar (Temel Göstergeler):**")
+    for bullet in analysis.bullets:
+        st.markdown(f"- {bullet}")
+
+    if not disclosures and report is not None and report.fundamental_summary:
+        pe_val = f"{report.key_metrics.pe_ratio:.2f}" if report.key_metrics.pe_ratio else "—"
+        pb_val = f"{report.key_metrics.pb_ratio:.2f}" if report.key_metrics.pb_ratio else "—"
+        st.info(
+            f"💡 **Kurumsal Bilanço Köprüsü:** Son günlerde olağanüstü anlık bir KAP bildirimi "
+            f"(ihale, SPK tedbiri, geri alım vb.) bulunmamaktadır. Şirketin güncel dönem "
+            f"**Bilanço Görünümü: {report.badge}** (F/K: `{pe_val}`, PD/DD: `{pb_val}`).\n\n"
+            f"Dönemsel kârlılık, büyüme katalizörleri ve risk faktörleri için sol menüdeki "
+            f"**'🏢 Kurumsal Bilanço & Chatbot'** sekmesini inceleyebilirsiniz."
+        )
+
+    if analysis.error_message:
+        st.caption(f"ℹ️ Not: {analysis.error_message}")
+
+    if is_rag_source and report is not None and report.recent_disclosures:
+        st.markdown("---")
+        st.markdown("**Son KAP & Finansal Bildirimleri (RAG Chatbot Veri Deposu):**")
+        formatted_rows = []
+        for item in report.recent_disclosures:
+            etki_val = str(item.get("Etki", item.get("impact", "Nötr")))
+            if any(pos in etki_val.lower() for pos in ["pozitif", "olumlu", "positive"]):
+                etki_badge = "🟢 Pozitif"
+            elif any(neg in etki_val.lower() for neg in ["negatif", "olumsuz", "negative"]):
+                etki_badge = "🔴 Negatif"
+            else:
+                etki_badge = "⚪ Nötr"
+            formatted_rows.append(
+                {
+                    "Tarih": item.get("Tarih", item.get("date", "—")),
+                    "Kategori": item.get("Kategori", item.get("category", "KAP")),
+                    "Başlık": item.get("Başlık", item.get("title", "—")),
+                    "Etki": etki_badge,
+                }
             )
+        st.table(pd.DataFrame(formatted_rows))
+    elif disclosures:
+        st.markdown("---")
+        st.markdown("**Son KAP Bildirimleri & Şirket Haberleri:**")
+        disc_table = pd.DataFrame(
+            [
+                {
+                    "Tarih": d.publish_date,
+                    "Kategori": d.badge,
+                    "Başlık": d.title,
+                }
+                for d in disclosures
+            ]
+        )
+        st.dataframe(disc_table)
+
+
+def render_fundamental_rag_section(
+    selected_ticker: str,
+    report: fundamental_rag.FundamentalReport | None = None,
+):
+    """Financial Analyst ChatBot Project temel analiz ve bilanço özetini gösterir."""
+    st.subheader("🏢 Kurumsal Temel Analiz & Bilanço Chatbot'u (RAG)", anchor=False)
+    if report is None:
+        report = get_cached_fundamental_report(selected_ticker)
+    chatbot_link = fundamental_rag.build_chatbot_deeplink(selected_ticker)
+
+    box_style = (
+        "background-color: #0F131D; border: 1px solid #1A2233; "
+        "border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; "
+        "display: flex; justify-content: space-between; align-items: center; "
+        "flex-wrap: wrap; gap: 8px;"
+    )
+    btn_style = (
+        "background-color: #2563EB; color: #FFFFFF; font-weight: 600; "
+        "font-size: 0.82rem; padding: 6px 14px; border-radius: 6px; "
+        "text-decoration: none; display: inline-block;"
+    )
+    st.markdown(
+        f"""
+        <div style="{box_style}">
+            <span style="color: #F8FAFC; font-size: 0.90rem;">
+                🏢 <strong>{selected_ticker}</strong> için KAP raporları, bilanço ve dipnotları
+                analiz eden yapay zeka asistanına soru sorun.
+            </span>
+            <a href="{chatbot_link}" target="_blank" style="{btn_style}">
+                Chatbot'a Git ↗
+            </a>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    if report is not None:
         c1, c2, c3 = st.columns(3)
-        c1.markdown(f"**KAP Etki Rozeti:** {analysis.badge}")
-        c2.markdown(f"**Etki Skoru:** `{analysis.impact_score:+.2f}`")
-        c3.markdown(f"**Analiz Kaynağı:** `{provider_badge}`")
+        c1.markdown(f"**Temel Görünüm:** {report.badge}")
+        c2.markdown(f"**Rapor Tarihi:** `{report.report_date or 'Güncel'}`")
+        source_badge = (
+            "⚡ Yerel Önbellek"
+            if report.source == "local_cache"
+            else ("🌐 Chatbot API" if report.source == "api" else "🐙 GitHub Veri Deposu")
+        )
+        c3.markdown(f"**Veri Kaynağı:** `{source_badge}`")
 
-        if analysis.summary:
-            st.markdown(f"**Özet Değerlendirme:** {analysis.summary}")
+        if report.fundamental_summary:
+            st.markdown(f"**Bilanço & Faaliyet Özeti:**\n\n{report.fundamental_summary}")
 
-        st.markdown("**Finansal Öne Çıkanlar (Temel Göstergeler):**")
-        for bullet in analysis.bullets:
-            st.markdown(f"- {bullet}")
+        km = report.key_metrics
+        r_col1, r_col2, r_col3, r_col4 = st.columns(4)
+        pe_str = f"{km.pe_ratio:.2f}" if km.pe_ratio is not None else "—"
+        pb_str = f"{km.pb_ratio:.2f}" if km.pb_ratio is not None else "—"
+        r_col1.markdown(f"**F/K Oranı:** `{pe_str}`")
+        r_col2.markdown(f"**PD/DD:** `{pb_str}`")
+        r_col3.markdown(f"**Net Kâr Trendi:** `{km.net_profit_margin_trend}`")
+        r_col4.markdown(f"**Borçluluk:** `{km.debt_to_equity}`")
 
-        if not disclosures and report is not None and report.fundamental_summary:
-            pe_val = f"{report.key_metrics.pe_ratio:.2f}" if report.key_metrics.pe_ratio else "—"
-            pb_val = f"{report.key_metrics.pb_ratio:.2f}" if report.key_metrics.pb_ratio else "—"
-            st.info(
-                f"💡 **Kurumsal Bilanço Köprüsü:** Son günlerde olağanüstü anlık bir KAP bildirimi "
-                f"(ihale, SPK tedbiri, geri alım vb.) bulunmamaktadır. Şirketin güncel dönem "
-                f"**Bilanço Görünümü: {report.badge}** (F/K: `{pe_val}`, PD/DD: `{pb_val}`).\n\n"
-                f"Dönemsel kârlılık, büyüme katalizörleri ve risk faktörleri için aşağıdaki "
-                f"**'Kurumsal Temel Analiz & Bilanço Chatbot\\'u (RAG)'** sekmesini "
-                f"inceleyebilirsiniz."
-            )
+        if report.catalysts:
+            st.markdown("**🚀 Yukarı Yönlü Katalizörler & Büyüme Faktörleri:**")
+            for cat in report.catalysts:
+                st.markdown(f"- {cat}")
 
-        if analysis.error_message:
-            st.caption(f"ℹ️ Not: {analysis.error_message}")
+        if report.risk_factors:
+            st.markdown("**⚠️ Temel ve Finansal Risk Faktörleri:**")
+            for risk in report.risk_factors:
+                st.markdown(f"- {risk}")
 
-        if is_rag_source and report is not None and report.recent_disclosures:
+        if report.recent_disclosures:
             st.markdown("---")
-            st.markdown("**Son KAP & Finansal Bildirimleri (RAG Chatbot Veri Deposu):**")
-            formatted_rows = []
+            st.markdown("**📋 Son KAP & Finansal Bildirimleri (Chatbot Hafızası):**")
+            formatted_disclosures = []
             for item in report.recent_disclosures:
                 etki_val = str(item.get("Etki", item.get("impact", "Nötr")))
                 if any(pos in etki_val.lower() for pos in ["pozitif", "olumlu", "positive"]):
@@ -278,7 +383,7 @@ def render_kap_llm_section(
                     etki_badge = "🔴 Negatif"
                 else:
                     etki_badge = "⚪ Nötr"
-                formatted_rows.append(
+                formatted_disclosures.append(
                     {
                         "Tarih": item.get("Tarih", item.get("date", "—")),
                         "Kategori": item.get("Kategori", item.get("category", "KAP")),
@@ -286,150 +391,43 @@ def render_kap_llm_section(
                         "Etki": etki_badge,
                     }
                 )
-            st.table(pd.DataFrame(formatted_rows))
-        elif disclosures:
-            st.markdown("---")
-            st.markdown("**Son KAP Bildirimleri & Şirket Haberleri:**")
-            disc_table = pd.DataFrame(
-                [
-                    {
-                        "Tarih": d.publish_date,
-                        "Kategori": d.badge,
-                        "Başlık": d.title,
-                    }
-                    for d in disclosures
-                ]
-            )
-            st.dataframe(disc_table)
-
-
-def render_fundamental_rag_section(
-    selected_ticker: str,
-    report: fundamental_rag.FundamentalReport | None = None,
-    expanded: bool = False,
-):
-    """Financial Analyst ChatBot Project temel analiz ve bilanço özetini gösterir."""
-    with st.expander("💬 Kurumsal Temel Analiz & Bilanço Chatbot'u (RAG)", expanded=expanded):
-        if report is None:
-            report = get_cached_fundamental_report(selected_ticker)
-        chatbot_link = fundamental_rag.build_chatbot_deeplink(selected_ticker)
-
-        box_style = (
-            "background-color: #0F131D; border: 1px solid #1A2233; "
-            "border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; "
-            "display: flex; justify-content: space-between; align-items: center; "
-            "flex-wrap: wrap; gap: 8px;"
-        )
-        btn_style = (
-            "background-color: #2563EB; color: #FFFFFF; font-weight: 600; "
-            "font-size: 0.82rem; padding: 6px 14px; border-radius: 6px; "
-            "text-decoration: none; display: inline-block;"
-        )
+            st.table(pd.DataFrame(formatted_disclosures))
+    else:
         st.markdown(
-            f"""
-            <div style="{box_style}">
-                <span style="color: #F8FAFC; font-size: 0.90rem;">
-                    🏢 <strong>{selected_ticker}</strong> için KAP raporları, bilanço ve dipnotları
-                    analiz eden yapay zeka asistanına soru sorun.
-                </span>
-                <a href="{chatbot_link}" target="_blank" style="{btn_style}">
-                    Chatbot'a Git ↗
-                </a>
-            </div>
-            """,
-            unsafe_allow_html=True,
+            f"ℹ️ *{selected_ticker} için önceden üretilmiş statik özet rapor bulunamadı. "
+            f"Yukarıdaki butona tıklayarak **Financial Analyst ChatBot** üzerinden "
+            f"canlı RAG analizini başlatabilirsiniz.*"
         )
 
-        if report is not None:
-            c1, c2, c3 = st.columns(3)
-            c1.markdown(f"**Temel Görünüm:** {report.badge}")
-            c2.markdown(f"**Rapor Tarihi:** `{report.report_date or 'Güncel'}`")
-            source_badge = (
-                "⚡ Yerel Önbellek"
-                if report.source == "local_cache"
-                else ("🌐 Chatbot API" if report.source == "api" else "🐙 GitHub Veri Deposu")
-            )
-            c3.markdown(f"**Veri Kaynağı:** `{source_badge}`")
+    # 🚀 Google Colab Pro Fine-Tuned Canlı BIST LLM Entegrasyonu
+    st.markdown("---")
+    st.markdown("#### 🚀 Canlı Fine-Tuned BIST LLM (Google Colab Pro GPU — A100)")
+    st.caption(
+        "Kendi eğittiğimiz `bist-financial-llm` modeli Colab üzerinde çalışmakta ve "
+        "doğrudan BIST 100 bilanço & KAP eğitim verileriyle yanıt vermektedir."
+    )
+    colab_active = colab_llm.check_colab_health()
+    colab_badge = (
+        "🟢 Çevrimiçi (Colab ngrok Aktif: bist-financial-llm)"
+        if colab_active
+        else "⚪ Çevrimdışı (ngrok bekleniyor)"
+    )
+    st.markdown(f"**Model Sunucusu Durumu:** `{colab_badge}`")
 
-            if report.fundamental_summary:
-                st.markdown(f"**Bilanço & Faaliyet Özeti:**\n\n{report.fundamental_summary}")
-
-            km = report.key_metrics
-            r_col1, r_col2, r_col3, r_col4 = st.columns(4)
-            pe_str = f"{km.pe_ratio:.2f}" if km.pe_ratio is not None else "—"
-            pb_str = f"{km.pb_ratio:.2f}" if km.pb_ratio is not None else "—"
-            r_col1.markdown(f"**F/K Oranı:** `{pe_str}`")
-            r_col2.markdown(f"**PD/DD:** `{pb_str}`")
-            r_col3.markdown(f"**Net Kâr Trendi:** `{km.net_profit_margin_trend}`")
-            r_col4.markdown(f"**Borçluluk:** `{km.debt_to_equity}`")
-
-            if report.catalysts:
-                st.markdown("**🚀 Yukarı Yönlü Katalizörler & Büyüme Faktörleri:**")
-                for cat in report.catalysts:
-                    st.markdown(f"- {cat}")
-
-            if report.risk_factors:
-                st.markdown("**⚠️ Temel ve Finansal Risk Faktörleri:**")
-                for risk in report.risk_factors:
-                    st.markdown(f"- {risk}")
-
-            if report.recent_disclosures:
-                st.markdown("---")
-                st.markdown("**📋 Son KAP & Finansal Bildirimleri (Chatbot Hafızası):**")
-                formatted_disclosures = []
-                for item in report.recent_disclosures:
-                    etki_val = str(item.get("Etki", item.get("impact", "Nötr")))
-                    if any(pos in etki_val.lower() for pos in ["pozitif", "olumlu", "positive"]):
-                        etki_badge = "🟢 Pozitif"
-                    elif any(neg in etki_val.lower() for neg in ["negatif", "olumsuz", "negative"]):
-                        etki_badge = "🔴 Negatif"
-                    else:
-                        etki_badge = "⚪ Nötr"
-                    formatted_disclosures.append(
-                        {
-                            "Tarih": item.get("Tarih", item.get("date", "—")),
-                            "Kategori": item.get("Kategori", item.get("category", "KAP")),
-                            "Başlık": item.get("Başlık", item.get("title", "—")),
-                            "Etki": etki_badge,
-                        }
-                    )
-                st.table(pd.DataFrame(formatted_disclosures))
-        else:
-            st.markdown(
-                f"ℹ️ *{selected_ticker} için önceden üretilmiş statik özet rapor bulunamadı. "
-                f"Yukarıdaki butona tıklayarak **Financial Analyst ChatBot** üzerinden "
-                f"canlı RAG analizini başlatabilirsiniz.*"
-            )
-
-        # 🚀 Google Colab Pro Fine-Tuned Canlı BIST LLM Entegrasyonu
-        st.markdown("---")
-        st.markdown("#### 🚀 Canlı Fine-Tuned BIST LLM (Google Colab Pro GPU — A100)")
-        st.caption(
-            "Kendi eğittiğimiz `bist-financial-llm` modeli Colab üzerinde çalışmakta ve "
-            "doğrudan BIST 100 bilanço & KAP eğitim verileriyle yanıt vermektedir."
-        )
-        colab_active = colab_llm.check_colab_health()
-        colab_badge = (
-            "🟢 Çevrimiçi (Colab ngrok Aktif: bist-financial-llm)"
-            if colab_active
-            else "⚪ Çevrimdışı (ngrok bekleniyor)"
-        )
-        st.markdown(f"**Model Sunucusu Durumu:** `{colab_badge}`")
-
-        c_prompt, c_ask = st.columns([8, 2])
-        default_prompt = (
-            f"{selected_ticker} için 2024 yılı finansal karne, DuPont ROE ve riskleri özetle."
-        )
-        user_q = c_prompt.text_input(
-            "Soru:",
-            value=default_prompt,
-            key=f"colab_q_{selected_ticker}",
-            label_visibility="collapsed",
-        )
-        if c_ask.button("🤖 Sor", key=f"btn_ask_colab_{selected_ticker}"):
-            with st.spinner("Fine-Tuned BIST modeli yanıt üretiyor..."):
-                answer = colab_llm.query_colab_llm(user_q)
-                st.markdown(f"**🤖 Model Değerlendirmesi:**\n\n{answer}")
+    c_prompt, c_ask = st.columns([8, 2])
+    default_prompt = (
+        f"{selected_ticker} için 2024 yılı finansal karne, DuPont ROE ve riskleri özetle."
+    )
+    user_q = c_prompt.text_input(
+        "Soru:",
+        value=default_prompt,
+        key=f"colab_q_{selected_ticker}",
+        label_visibility="collapsed",
+    )
+    if c_ask.button("✨ Sor", key=f"btn_ask_colab_{selected_ticker}"):
+        with st.spinner("Fine-Tuned BIST modeli yanıt üretiyor..."):
+            answer = colab_llm.query_colab_llm(user_q)
+            st.markdown(f"**✨ Model Değerlendirmesi:**\n\n{answer}")
 
 
 def render_hybrid_decision_card(decision: hybrid_decision.HybridDecision) -> None:
@@ -516,7 +514,7 @@ def render_hybrid_decision_card(decision: hybrid_decision.HybridDecision) -> Non
             {decision.summary}
         </p>
         <div style="{meta_style}">
-            <span>🤖 <strong>Teknik Olasılık:</strong> %{decision.technical_prob * 100:.1f}</span>
+            <span>📈 <strong>Teknik Olasılık:</strong> %{decision.technical_prob * 100:.1f}</span>
             <span>📑 <strong>KAP Temel Duygu:</strong> {fund_text}</span>
             <span>⚖️ <strong>Ağırlık:</strong> %55 Teknik + %45 Temel</span>
         </div>
@@ -525,95 +523,91 @@ def render_hybrid_decision_card(decision: hybrid_decision.HybridDecision) -> Non
     st.markdown(card_html, unsafe_allow_html=True)
 
 
-def render_forward_tracking_section(
-    selected_ticker: str, full_df: pd.DataFrame, expanded: bool = False
-):
+def render_forward_tracking_section(selected_ticker: str, full_df: pd.DataFrame):
     """Kayıtlı tahminlerin gerçekleşen piyasa fiyatlarıyla başarı karnesini gösterir (#53)."""
-    with st.expander(
+    st.subheader(
         "🎯 Gerçekleşen Model Başarısı & İleriye Dönük Takip (Forward Tracking)",
-        expanded=expanded,
-    ):
-        all_preds = tracker.load_predictions()
-        ticker_preds = [p for p in all_preds if p.get("ticker") == selected_ticker]
+        anchor=False,
+    )
+    all_preds = tracker.load_predictions()
+    ticker_preds = [p for p in all_preds if p.get("ticker") == selected_ticker]
 
-        if not ticker_preds:
-            st.info(
-                f"ℹ️ {selected_ticker} için ilk tahmin kaydı bugünkü seans ile oluşturuldu. "
-                "Sonraki seans kapanışlarında gerçekleşen getiri ve isabet oranları bu "
-                "tabloda otomatik güncellenecektir."
+    if not ticker_preds:
+        st.info(
+            f"ℹ️ {selected_ticker} için ilk tahmin kaydı bugünkü seans ile oluşturuldu. "
+            "Sonraki seans kapanışlarında gerçekleşen getiri ve isabet oranları bu "
+            "tabloda otomatik güncellenecektir."
+        )
+        return
+
+    evaluated_df = tracker.evaluate_realization(ticker_preds, full_df, horizons=(1, 3, 5))
+    if evaluated_df.empty:
+        st.info(f"ℹ️ {selected_ticker} için geçmiş seans gerçekleşmeleri hesaplanıyor...")
+        return
+
+    summary = tracker.summarize_performance(evaluated_df, horizons=(1, 3, 5))
+    horizons_info = summary.get("horizons", {})
+
+    # KPI Rozetleri (len(at.metric) == 1 kuralını korumak için HTML ile)
+    kpi_cols = st.columns(3)
+    labels = [("1G", "1 Seans"), ("3G", "3 Seans"), ("1H (5G)", "1 Hafta (5 Seans)")]
+
+    badge_box_style = (
+        "background-color: #0F131D; border: 1px solid #1A2233; border-radius: 6px; "
+        "padding: 10px 14px; text-align: center; margin-bottom: 12px;"
+    )
+
+    for col, (h_key, h_title) in zip(kpi_cols, labels):
+        h_data = horizons_info.get(h_key, {})
+        completed = h_data.get("completed_count", 0)
+        hit_rate = h_data.get("hit_rate_pct", 0.0)
+        avg_ret = h_data.get("avg_return_pct", 0.0)
+
+        ret_color = "#059669" if avg_ret >= 0 else "#DC2626"
+        title_div = (
+            f'<div style="font-size: 0.75rem; color: #94A3B8; font-weight: 600;">'
+            f"{h_title} İsabet</div>"
+        )
+        if completed > 0:
+            rate_div = (
+                f'<div style="font-size: 1.25rem; font-weight: 800; color: #F8FAFC; '
+                f'margin: 2px 0;">%{hit_rate:.1f}</div>'
             )
-            return
-
-        evaluated_df = tracker.evaluate_realization(ticker_preds, full_df, horizons=(1, 3, 5))
-        if evaluated_df.empty:
-            st.info(f"ℹ️ {selected_ticker} için geçmiş seans gerçekleşmeleri hesaplanıyor...")
-            return
-
-        summary = tracker.summarize_performance(evaluated_df, horizons=(1, 3, 5))
-        horizons_info = summary.get("horizons", {})
-
-        # KPI Rozetleri (len(at.metric) == 1 kuralını korumak için HTML ile)
-        kpi_cols = st.columns(3)
-        labels = [("1G", "1 Seans"), ("3G", "3 Seans"), ("1H (5G)", "1 Hafta (5 Seans)")]
-
-        badge_box_style = (
-            "background-color: #0F131D; border: 1px solid #1A2233; border-radius: 6px; "
-            "padding: 10px 14px; text-align: center; margin-bottom: 12px;"
-        )
-
-        for col, (h_key, h_title) in zip(kpi_cols, labels):
-            h_data = horizons_info.get(h_key, {})
-            completed = h_data.get("completed_count", 0)
-            hit_rate = h_data.get("hit_rate_pct", 0.0)
-            avg_ret = h_data.get("avg_return_pct", 0.0)
-
-            ret_color = "#059669" if avg_ret >= 0 else "#DC2626"
-            title_div = (
-                f'<div style="font-size: 0.75rem; color: #94A3B8; font-weight: 600;">'
-                f"{h_title} İsabet</div>"
+            ret_div = (
+                f'<div style="font-size: 0.75rem; color: {ret_color};">'
+                f"Ort. Getiri: %{avg_ret:+.2f} ({completed} seans)</div>"
             )
-            if completed > 0:
-                rate_div = (
-                    f'<div style="font-size: 1.25rem; font-weight: 800; color: #F8FAFC; '
-                    f'margin: 2px 0;">%{hit_rate:.1f}</div>'
-                )
-                ret_div = (
-                    f'<div style="font-size: 0.75rem; color: {ret_color};">'
-                    f"Ort. Getiri: %{avg_ret:+.2f} ({completed} seans)</div>"
-                )
-                html = f'<div style="{badge_box_style}">{title_div}{rate_div}{ret_div}</div>'
-            else:
-                pending_div = (
-                    '<div style="font-size: 1.05rem; font-weight: 700; color: #F59E0B; '
-                    'margin: 4px 0;">⏳ Bekleniyor</div>'
-                )
-                wait_div = (
-                    '<div style="font-size: 0.75rem; color: #64748B;">Seans tamamlanmadı</div>'
-                )
-                html = f'<div style="{badge_box_style}">{title_div}{pending_div}{wait_div}</div>'
-            col.markdown(html, unsafe_allow_html=True)
+            html = f'<div style="{badge_box_style}">{title_div}{rate_div}{ret_div}</div>'
+        else:
+            pending_div = (
+                '<div style="font-size: 1.05rem; font-weight: 700; color: #F59E0B; '
+                'margin: 4px 0;">⏳ Bekleniyor</div>'
+            )
+            wait_div = '<div style="font-size: 0.75rem; color: #64748B;">Seans tamamlanmadı</div>'
+            html = f'<div style="{badge_box_style}">{title_div}{pending_div}{wait_div}</div>'
+        col.markdown(html, unsafe_allow_html=True)
 
-        st.caption(
-            "Modelin geçmişte verdiği yön tahminlerinin 1 gün, 3 gün ve 1 hafta (5 işlem günü) "
-            "sonraki gerçekleşen fiyat karşılıkları ve başarı karnesi:"
-        )
+    st.caption(
+        "Modelin geçmişte verdiği yön tahminlerinin 1 gün, 3 gün ve 1 hafta (5 işlem günü) "
+        "sonraki gerçekleşen fiyat karşılıkları ve başarı karnesi:"
+    )
 
-        display_df = evaluated_df.iloc[::-1].reset_index(drop=True)
-        st.dataframe(
-            display_df,
-            column_config={
-                "Giriş Fiyatı (TL)": st.column_config.NumberColumn(format="%.2f"),
-                "1G Fiyat (TL)": st.column_config.NumberColumn(format="%.2f"),
-                "1G Getiri (%)": st.column_config.NumberColumn(format="%+.2f"),
-                "3G Fiyat (TL)": st.column_config.NumberColumn(format="%.2f"),
-                "3G Getiri (%)": st.column_config.NumberColumn(format="%+.2f"),
-                "1H (5G) Fiyat (TL)": st.column_config.NumberColumn(format="%.2f"),
-                "1H (5G) Getiri (%)": st.column_config.NumberColumn(format="%+.2f"),
-                "1G 100k TL Bakiye": st.column_config.NumberColumn(format="%.2f TL"),
-                "3G 100k TL Bakiye": st.column_config.NumberColumn(format="%.2f TL"),
-                "1H (5G) 100k TL Bakiye": st.column_config.NumberColumn(format="%.2f TL"),
-            },
-        )
+    display_df = evaluated_df.iloc[::-1].reset_index(drop=True)
+    st.dataframe(
+        display_df,
+        column_config={
+            "Giriş Fiyatı (TL)": st.column_config.NumberColumn(format="%.2f"),
+            "1G Fiyat (TL)": st.column_config.NumberColumn(format="%.2f"),
+            "1G Getiri (%)": st.column_config.NumberColumn(format="%+.2f"),
+            "3G Fiyat (TL)": st.column_config.NumberColumn(format="%.2f"),
+            "3G Getiri (%)": st.column_config.NumberColumn(format="%+.2f"),
+            "1H (5G) Fiyat (TL)": st.column_config.NumberColumn(format="%.2f"),
+            "1H (5G) Getiri (%)": st.column_config.NumberColumn(format="%+.2f"),
+            "1G 100k TL Bakiye": st.column_config.NumberColumn(format="%.2f TL"),
+            "3G 100k TL Bakiye": st.column_config.NumberColumn(format="%.2f TL"),
+            "1H (5G) 100k TL Bakiye": st.column_config.NumberColumn(format="%.2f TL"),
+        },
+    )
 
 
 def render_multi_horizon_matrix(
@@ -857,114 +851,114 @@ def render_paper_trading_simulator_section(
     full_df: pd.DataFrame,
     model,
     cost: float = 0.001,
-    expanded: bool = False,
 ) -> None:
     """TL bazlı sanal portföy ve kâğıt üzerinde alım-satım simülatörü (#52)."""
-    with st.expander(
-        "💼 Sanal Portföy & Kâğıt Üzerinde İşlem Simülatörü (Paper Trading)", expanded=expanded
-    ):
-        st.markdown(
-            f"**{selected_ticker}** için belirleyeceğiniz sanal sermaye ile yapay zeka modelinin "
-            f"ürettiği olasılık sinyalleri doğrultusunda işlem yapılsaydı portföyünüzün nasıl "
-            f"büyüyeceğini ve 'Al ve Tut' stratejisine göre ne kadar **Alfa (Ekstra Getiri)** "
-            f"sağlandığını simüle edin."
+    st.subheader(
+        "💼 Sanal Portföy & Kâğıt Üzerinde İşlem Simülatörü (Paper Trading)",
+        anchor=False,
+    )
+    st.markdown(
+        f"**{selected_ticker}** için belirleyeceğiniz sanal sermaye ile yapay zeka modelinin "
+        f"ürettiği olasılık sinyalleri doğrultusunda işlem yapılsaydı portföyünüzün nasıl "
+        f"büyüyeceğini ve 'Al ve Tut' stratejisine göre ne kadar **Alfa (Ekstra Getiri)** "
+        f"sağlandığını simüle edin."
+    )
+
+    c_cap, c_thr = st.columns(2)
+    with c_cap:
+        init_cap = st.number_input(
+            "Başlangıç Sermayesi (TL)",
+            min_value=10_000,
+            max_value=5_000_000,
+            value=100_000,
+            step=10_000,
+            key=f"sim_cap_input_{selected_ticker}",
+            help="Sanal portföy başlangıç nakit bakiyesi.",
+        )
+    with c_thr:
+        sim_thr = st.slider(
+            "İşleme Giriş Olasılığı Eşiği",
+            min_value=0.50,
+            max_value=0.70,
+            value=0.53,
+            step=0.01,
+            key=f"sim_thresh_slider_{selected_ticker}",
+            help="Model güveni bu değerin üzerine çıktığında AL, altına düştüğünde NAKDE GEÇ.",
         )
 
-        c_cap, c_thr = st.columns(2)
-        with c_cap:
-            init_cap = st.number_input(
-                "Başlangıç Sermayesi (TL)",
-                min_value=10_000,
-                max_value=5_000_000,
-                value=100_000,
-                step=10_000,
-                key=f"sim_cap_input_{selected_ticker}",
-                help="Sanal portföy başlangıç nakit bakiyesi.",
+    window = backtest.recent_window(full_df, months=BACKTEST_MONTHS)
+    if len(window) < 10:
+        st.caption("Yeterli geçmiş veri bulunamadığı için simülasyon hesaplanamadı.")
+        return
+
+    probs = model.predict_proba(features.align_model_features(model, window))[:, 1]
+    sim_res = simulator.simulate_investment(
+        frame=window[["Date", "close"]],
+        probs=probs,
+        threshold=sim_thr,
+        initial_capital=float(init_cap),
+        cost=cost,
+    )
+
+    if sim_res is None:
+        st.warning("Simülasyon hesaplanamadı.")
+        return
+
+    m1, m2, m3, m4 = st.columns(4)
+    m1.markdown(
+        f"**Son Portföy Değeri:**<br>`{sim_res.final_value:,.2f} TL` "
+        f"(%{sim_res.total_return_pct:+.1f})",
+        unsafe_allow_html=True,
+    )
+    m2.markdown(
+        f"**Net Kâr / Zarar:**<br>`{sim_res.net_profit_tl:+,.2f} TL`",
+        unsafe_allow_html=True,
+    )
+    m3.markdown(
+        f"**Al ve Tut (Buy & Hold):**<br>`{sim_res.buy_hold_final_value:,.2f} TL` "
+        f"(Alfa: `{sim_res.alpha_tl:+,.2f} TL`)",
+        unsafe_allow_html=True,
+    )
+    m4.markdown(
+        f"**Kazanma Oranı (Win Rate):**<br>`%{sim_res.win_rate * 100:.1f}` "
+        f"({sim_res.winning_trades} Kâr / {sim_res.trades_count} İşlem)",
+        unsafe_allow_html=True,
+    )
+
+    st.caption(
+        f"Ödenen Komisyon: **{sim_res.total_commission_paid:,.2f} TL** · "
+        f"Maksimum Çekilme (Max Drawdown): **-%{sim_res.max_drawdown_pct:.1f}** · "
+        f"Zararlı İşlemler: **{sim_res.losing_trades}**"
+    )
+
+    if not sim_res.daily_timeline.empty:
+        fig_sim = go.Figure()
+        fig_sim.add_trace(
+            go.Scatter(
+                x=sim_res.daily_timeline["Date"],
+                y=sim_res.daily_timeline["portfolio_value"],
+                mode="lines",
+                name="✨ Yapay Zeka Portföyü",
+                line=dict(color="#10B981", width=2.5),
             )
-        with c_thr:
-            sim_thr = st.slider(
-                "İşleme Giriş Olasılığı Eşiği",
-                min_value=0.50,
-                max_value=0.70,
-                value=0.53,
-                step=0.01,
-                key=f"sim_thresh_slider_{selected_ticker}",
-                help="Model güveni bu değerin üzerine çıktığında AL, altına düştüğünde NAKDE GEÇ.",
+        )
+        fig_sim.add_trace(
+            go.Scatter(
+                x=sim_res.daily_timeline["Date"],
+                y=sim_res.daily_timeline["buy_hold_value"],
+                mode="lines",
+                name="📈 Al ve Tut (Buy & Hold)",
+                line=dict(color="#64748B", width=1.5, dash="dash"),
             )
-
-        window = backtest.recent_window(full_df, months=BACKTEST_MONTHS)
-        if len(window) < 10:
-            st.caption("Yeterli geçmiş veri bulunamadığı için simülasyon hesaplanamadı.")
-            return
-
-        probs = model.predict_proba(features.align_model_features(model, window))[:, 1]
-        sim_res = simulator.simulate_investment(
-            frame=window[["Date", "close"]],
-            probs=probs,
-            threshold=sim_thr,
-            initial_capital=float(init_cap),
-            cost=cost,
         )
-
-        if sim_res is None:
-            st.warning("Simülasyon hesaplanamadı.")
-            return
-
-        m1, m2, m3, m4 = st.columns(4)
-        m1.markdown(
-            f"**Son Portföy Değeri:**<br>`{sim_res.final_value:,.2f} TL` "
-            f"(%{sim_res.total_return_pct:+.1f})",
-            unsafe_allow_html=True,
+        fig_sim.update_layout(
+            yaxis_title="Portföy Değeri (TL)",
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            margin=dict(l=20, r=20, t=30, b=20),
+            dragmode="pan",
+            hovermode="x unified",
         )
-        m2.markdown(
-            f"**Net Kâr / Zarar:**<br>`{sim_res.net_profit_tl:+,.2f} TL`",
-            unsafe_allow_html=True,
-        )
-        m3.markdown(
-            f"**Al ve Tut (Buy & Hold):**<br>`{sim_res.buy_hold_final_value:,.2f} TL` "
-            f"(Alfa: `{sim_res.alpha_tl:+,.2f} TL`)",
-            unsafe_allow_html=True,
-        )
-        m4.markdown(
-            f"**Kazanma Oranı (Win Rate):**<br>`%{sim_res.win_rate * 100:.1f}` "
-            f"({sim_res.winning_trades} Kâr / {sim_res.trades_count} İşlem)",
-            unsafe_allow_html=True,
-        )
-
-        st.caption(
-            f"Ödenen Komisyon: **{sim_res.total_commission_paid:,.2f} TL** · "
-            f"Maksimum Çekilme (Max Drawdown): **-%{sim_res.max_drawdown_pct:.1f}** · "
-            f"Zararlı İşlemler: **{sim_res.losing_trades}**"
-        )
-
-        if not sim_res.daily_timeline.empty:
-            fig_sim = go.Figure()
-            fig_sim.add_trace(
-                go.Scatter(
-                    x=sim_res.daily_timeline["Date"],
-                    y=sim_res.daily_timeline["portfolio_value"],
-                    mode="lines",
-                    name="🤖 Yapay Zeka Portföyü",
-                    line=dict(color="#10B981", width=2.5),
-                )
-            )
-            fig_sim.add_trace(
-                go.Scatter(
-                    x=sim_res.daily_timeline["Date"],
-                    y=sim_res.daily_timeline["buy_hold_value"],
-                    mode="lines",
-                    name="📈 Al ve Tut (Buy & Hold)",
-                    line=dict(color="#64748B", width=1.5, dash="dash"),
-                )
-            )
-            fig_sim.update_layout(
-                yaxis_title="Portföy Değeri (TL)",
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                margin=dict(l=20, r=20, t=30, b=20),
-                dragmode="pan",
-                hovermode="x unified",
-            )
-            st.plotly_chart(fig_sim, width="stretch", config=PLOTLY_CONFIG)
+        st.plotly_chart(fig_sim, width="stretch", config=PLOTLY_CONFIG)
 
 
 def render_single_ticker_tab(
@@ -973,28 +967,20 @@ def render_single_ticker_tab(
     prob_low: float,
     prob_high: float,
     cost: float = 0.0,
-    active_view: str = "📊 Kapsamlı Analiz Raporu",
+    active_view: str = "📈 Teknik Model & Grafikler",
     *args,
     **kwargs,
 ):
     """Tek hisse senedi detay analizi sekmesini oluşturur."""
     v = active_view.lower()
-    is_all = "kapsamlı" in v or "tüm" in v or "all" in v or v == ""
-    is_technical = is_all or "teknik" in v
-    is_rag = (
-        is_all or "bilanço" in v or "colab" in v or "kurumsal" in v or "rag" in v or "chatbot" in v
-    )
-    is_kap = is_all or "kap" in v
-    is_paper = is_all or "paper" in v or "simülatör" in v
+    is_rag = "bilanço" in v or "colab" in v or "kurumsal" in v or "rag" in v or "chatbot" in v
+    is_kap = "kap" in v
+    is_paper = "paper" in v or "simülatör" in v
     is_tracking = (
-        is_all
-        or "audit" in v
-        or "doğrulama" in v
-        or "forward" in v
-        or "takip" in v
-        or "başarı" in v
+        "audit" in v or "doğrulama" in v or "forward" in v or "takip" in v or "başarı" in v
     )
-    is_drift = is_all or "drift" in v or "sapma" in v or "psi" in v
+    is_drift = "drift" in v or "sapma" in v or "psi" in v
+    is_technical = not (is_rag or is_kap or is_paper or is_tracking or is_drift)
 
     model = load_model()
     with st.spinner(f"{selected_ticker} verileri analiz ediliyor..."):
@@ -1045,7 +1031,7 @@ def render_single_ticker_tab(
             )
 
         with col2:
-            st.write(f"🤖 **Modelin Seans Tahmini ({session_info.next_session_str}):**")
+            st.write(f"🎯 **Modelin Seans Tahmini ({session_info.next_session_str}):**")
             signal_box(signal_label)
 
         with col3:
@@ -1086,31 +1072,23 @@ def render_single_ticker_tab(
             entry_price=current_price,
         )
 
-        # Modüle Özel Odaklanmış Görünüm (Kullanıcı sol menüden tek bir analiz seçtiğinde)
-        if not is_all:
-            if is_rag:
-                render_fundamental_rag_section(selected_ticker, report=report, expanded=True)
-            elif is_kap:
-                render_kap_llm_section(selected_ticker, report=report, expanded=True)
-            elif is_paper:
-                render_paper_trading_simulator_section(
-                    selected_ticker=selected_ticker,
-                    full_df=df_processed,
-                    model=model,
-                    cost=cost,
-                    expanded=True,
-                )
-            elif is_tracking:
-                render_forward_tracking_section(selected_ticker, full_df, expanded=True)
-            elif is_drift:
-                render_drift_section(df_processed[config.FEATURES], expanded=True)
-
-        # Kapsamlı Rapor: Temel Analiz & KAP Doğrudan Üstte (Hibrit Kararın Hemen Altında)
-        if is_all:
-            render_fundamental_rag_section(selected_ticker, report=report, expanded=False)
-            render_kap_llm_section(selected_ticker, report=report, expanded=False)
-
-        if is_technical:
+        # Her menü öğesi kendine özel tam sayfa olarak render edilir (açılır/kapanır kutu olmadan)
+        if is_rag:
+            render_fundamental_rag_section(selected_ticker, report=report)
+        elif is_kap:
+            render_kap_llm_section(selected_ticker, report=report)
+        elif is_paper:
+            render_paper_trading_simulator_section(
+                selected_ticker=selected_ticker,
+                full_df=df_processed,
+                model=model,
+                cost=cost,
+            )
+        elif is_tracking:
+            render_forward_tracking_section(selected_ticker, full_df)
+        elif is_drift:
+            render_drift_section(df_processed[config.FEATURES])
+        elif is_technical:
             # Çoklu Vade Trend Matrisi (1 Gün • 1 Hafta • 1 Ay)
             render_multi_horizon_matrix(
                 selected_ticker=selected_ticker,
@@ -1278,14 +1256,3 @@ def render_single_ticker_tab(
                 threshold=prob_high,
                 cost=cost,
             )
-
-        if is_all:
-            render_paper_trading_simulator_section(
-                selected_ticker=selected_ticker,
-                full_df=df_processed,
-                model=model,
-                cost=cost,
-                expanded=False,
-            )
-            render_forward_tracking_section(selected_ticker, full_df, expanded=False)
-            render_drift_section(df_processed[config.FEATURES], expanded=False)
