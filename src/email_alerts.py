@@ -101,67 +101,82 @@ def build_newsletter_html(
         <div style="background-color: #0F131D; border: 1px solid #1E293B; border-radius: 10px;
                     padding: 16px 18px; margin-bottom: 14px;
                     border-left: 4px solid {badge_border};">
-            <div style="display: flex; justify-content: space-between; align-items: center;
-                        margin-bottom: 8px; flex-wrap: wrap;">
-                <div>
-                    <span style="font-size: 1.15rem; font-weight: 800; color: #F8FAFC;">
-                        #{idx} {ticker}
-                    </span>
-                    <span style="font-size: 0.82rem; color: #64748B; margin-left: 6px;">
-                        {sector}
-                    </span>
-                    <span style="font-size: 1.05rem; font-weight: 700; color: #38BDF8;
-                                 margin-left: 10px;">
-                        {price:.2f} TL
-                    </span>
-                </div>
-                <div style="background-color: {badge_bg}; color: {badge_color}; font-size: 0.78rem;
-                            font-weight: 700; padding: 4px 10px; border-radius: 6px;
-                            border: 1px solid {badge_border};">
-                    {verdict}
-                </div>
-            </div>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
+                   style="margin-bottom: 8px;">
+                <tr>
+                    <td align="left" style="vertical-align: middle;">
+                        <span style="font-size: 1.15rem; font-weight: 800; color: #F8FAFC;">
+                            #{idx} {ticker}
+                        </span>
+                        <span style="font-size: 0.82rem; color: #64748B; margin-left: 6px;">
+                            {sector}
+                        </span>
+                        <span style="font-size: 1.05rem; font-weight: 700; color: #38BDF8;
+                                     margin-left: 10px;">
+                            {price:.2f} TL
+                        </span>
+                    </td>
+                    <td align="right" style="vertical-align: middle;">
+                        <span style="background-color: {badge_bg}; color: {badge_color};
+                                     font-size: 0.78rem; font-weight: 700; padding: 4px 10px;
+                                     border-radius: 6px; border: 1px solid {badge_border};
+                                     display: inline-block; white-space: nowrap;">
+                            {verdict}
+                        </span>
+                    </td>
+                </tr>
+            </table>
 
-            <!-- 3 Vade İhtimal Çubukları -->
-            <div style="background-color: #07090E; border: 1px solid #1A2233; border-radius: 8px;
-                        padding: 10px 14px; margin: 10px 0; display: flex;
-                        justify-content: space-around; text-align: center;">
-                <div>
-                    <div style="font-size: 0.70rem; color: #94A3B8; font-weight: 600;">
-                        1 GÜN (YARIN)
-                    </div>
-                    <div style="font-size: 1.05rem; font-weight: 800; color: #F8FAFC;">
-                        %{prob_1d:.1f}
-                    </div>
-                </div>
-                <div style="border-left: 1px solid #1E293B; height: 32px;"></div>
-                <div>
-                    <div style="font-size: 0.70rem; color: #94A3B8; font-weight: 600;">
-                        1 HAFTA (5 GÜN)
-                    </div>
-                    <div style="font-size: 1.05rem; font-weight: 800; color: #F8FAFC;">
-                        %{prob_5d:.1f}
-                    </div>
-                </div>
-                <div style="border-left: 1px solid #1E293B; height: 32px;"></div>
-                <div>
-                    <div style="font-size: 0.70rem; color: #94A3B8; font-weight: 600;">
-                        1 AY (20 GÜN)
-                    </div>
-                    <div style="font-size: 1.05rem; font-weight: 800; color: #F8FAFC;">
-                        %{prob_20d:.1f}
-                    </div>
-                </div>
-                <div style="border-left: 1px solid #1E293B; height: 32px;"></div>
-                <div>
-                    <div style="font-size: 0.70rem; color: #94A3B8; font-weight: 600;">
-                        Kelly Payı
-                    </div>
-                    <div style="font-size: 1.05rem; font-weight: 800; color: #F59E0B;">
-                        {alloc_badge}
-                    </div>
-                </div>
-            </div>
+            <!-- 3 Vade İhtimal Çubukları (Email Table) -->
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
+                   style="background-color: #07090E; border: 1px solid #1A2233; border-radius: 8px;
+                          margin: 12px 0 10px 0; table-layout: fixed; border-collapse: separate;">
+                <tr>
+                    <td align="center" style="padding: 10px 4px; width: 25%;
+                                              border-right: 1px solid #1E293B;">
+                        <div style="font-size: 0.68rem; color: #94A3B8; font-weight: 600;
+                                    letter-spacing: 0.01em;">
+                            1 GÜN (YARIN)
+                        </div>
+                        <div style="font-size: 1.05rem; font-weight: 800; color: #F8FAFC;
+                                    margin-top: 4px;">
+                            %{prob_1d:.1f}
+                        </div>
+                    </td>
+                    <td align="center" style="padding: 10px 4px; width: 25%;
+                                              border-right: 1px solid #1E293B;">
+                        <div style="font-size: 0.68rem; color: #94A3B8; font-weight: 600;
+                                    letter-spacing: 0.01em;">
+                            1 HAFTA (5 GÜN)
+                        </div>
+                        <div style="font-size: 1.05rem; font-weight: 800; color: #F8FAFC;
+                                    margin-top: 4px;">
+                            %{prob_5d:.1f}
+                        </div>
+                    </td>
+                    <td align="center" style="padding: 10px 4px; width: 25%;
+                                              border-right: 1px solid #1E293B;">
+                        <div style="font-size: 0.68rem; color: #94A3B8; font-weight: 600;
+                                    letter-spacing: 0.01em;">
+                            1 AY (20 GÜN)
+                        </div>
+                        <div style="font-size: 1.05rem; font-weight: 800; color: #F8FAFC;
+                                    margin-top: 4px;">
+                            %{prob_20d:.1f}
+                        </div>
+                    </td>
+                    <td align="center" style="padding: 10px 4px; width: 25%;">
+                        <div style="font-size: 0.68rem; color: #94A3B8; font-weight: 600;
+                                    letter-spacing: 0.01em;">
+                            Kelly Payı
+                        </div>
+                        <div style="font-size: 1.05rem; font-weight: 800; color: #F59E0B;
+                                    margin-top: 4px;">
+                            {alloc_badge}
+                        </div>
+                    </td>
+                </tr>
+            </table>
 
             {extra_info}
         </div>
@@ -219,11 +234,11 @@ def build_newsletter_html(
             {cards_html}
 
             <!-- Info Bar -->
-            <div style="background-color: #0F131D; border-left: 4px solid #2563EB;
+            <div style="background-color: #0F131D; border-left: 4px solid #10B981;
                         padding: 12px 16px; border-radius: 6px; margin: 20px 0 24px 0;">
-                <p style="margin: 0; font-size: 0.80rem; color: #94A3B8; line-height: 1.5;">
-                    ⚙️ <strong>Model Mimarisi:</strong> {model_version} &nbsp;|&nbsp;
-                    🎯 <strong>Test Doğruluğu:</strong> {accuracy_text} &nbsp;|&nbsp;
+                <p style="margin: 0; font-size: 0.80rem; color: #94A3B8; line-height: 1.6;">
+                    ⚙️ <strong>Model Mimarisi:</strong> {model_version} &nbsp;•&nbsp;
+                    🎯 <strong>Test Doğruluğu:</strong> {accuracy_text} &nbsp;•&nbsp;
                     🛡️ <strong>Risk Modeli:</strong> Fraksiyonel Kelly (%25) & MPT
                 </p>
             </div>

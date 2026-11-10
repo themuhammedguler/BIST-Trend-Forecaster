@@ -16,9 +16,11 @@ from src import (
     kap_llm,
     kap_news,
     multi_horizon,
+    patterns,
     risk_sizing,
     session_calendar,
     signals,
+    simulator,
     tracker,
 )
 from src.ui.components import get_prediction_data, load_model
@@ -667,6 +669,155 @@ def render_financial_tools_section(
             )
 
 
+def render_patterns_and_sr_section(
+    selected_ticker: str,
+    full_df: pd.DataFrame,
+) -> None:
+    """Klasik Japon mum formasyonları ve dinamik kırılım analizini render eder."""
+    sr = patterns.calculate_support_resistance(full_df)
+    c_patterns = patterns.detect_candlestick_patterns(full_df, lookback=5)
+
+    with st.expander("🕯️ Mum Formasyonları & Destek / Direnç Kırılım Radarı", expanded=True):
+        if sr is not None:
+            c1, c2, c3, c4 = st.columns(4)
+            c1.markdown(f"**Kırılım / Durum:**<br>{sr.status_label}", unsafe_allow_html=True)
+            c2.markdown(
+                f"**Direnç (R1):**<br>`{sr.resistance_1:.2f} TL` "
+                f"({sr.distance_to_resistance_pct:+.1f}%)",
+                unsafe_allow_html=True,
+            )
+            c3.markdown(f"**Pivot Seviyesi:**<br>`{sr.pivot:.2f} TL`", unsafe_allow_html=True)
+            c4.markdown(
+                f"**Destek (S1):**<br>`{sr.support_1:.2f} TL` (-{sr.distance_to_support_pct:.1f}%)",
+                unsafe_allow_html=True,
+            )
+
+        if c_patterns:
+            st.markdown("##### 🔍 Son Günlerde Tespit Edilen Mum Formasyonları:")
+            for p in c_patterns[-4:]:
+                st.markdown(
+                    f"* **{p.label}** ({p.date}): {p.description} "
+                    f"*(Sinyal Gücü: %{p.strength * 100:.0f})*"
+                )
+        else:
+            st.caption(
+                "ℹ️ Son 5 işlem gününde belirgin bir dönüş formasyonu "
+                "(Çekiç, Boğa/Ayı Yutan vb.) tespit edilmedi; fiyat konsolidasyon bandında."
+            )
+
+
+def render_paper_trading_simulator_section(
+    selected_ticker: str,
+    full_df: pd.DataFrame,
+    model,
+    cost: float = 0.001,
+) -> None:
+    """TL bazlı sanal portföy ve kâğıt üzerinde alım-satım simülatörü (#52)."""
+    with st.expander(
+        "💼 Sanal Portföy & Kâğıt Üzerinde İşlem Simülatörü (Paper Trading)", expanded=False
+    ):
+        st.markdown(
+            f"**{selected_ticker}** için belirleyeceğiniz sanal sermaye ile yapay zeka modelinin "
+            f"ürettiği olasılık sinyalleri doğrultusunda işlem yapılsaydı portföyünüzün nasıl "
+            f"büyüyeceğini ve 'Al ve Tut' stratejisine göre ne kadar **Alfa (Ekstra Getiri)** "
+            f"sağlandığını simüle edin."
+        )
+
+        c_cap, c_thr = st.columns(2)
+        with c_cap:
+            init_cap = st.number_input(
+                "Başlangıç Sermayesi (TL)",
+                min_value=10_000,
+                max_value=5_000_000,
+                value=100_000,
+                step=10_000,
+                key=f"sim_cap_input_{selected_ticker}",
+                help="Sanal portföy başlangıç nakit bakiyesi.",
+            )
+        with c_thr:
+            sim_thr = st.slider(
+                "İşleme Giriş Olasılığı Eşiği",
+                min_value=0.50,
+                max_value=0.70,
+                value=0.53,
+                step=0.01,
+                key=f"sim_thresh_slider_{selected_ticker}",
+                help="Model güveni bu değerin üzerine çıktığında AL, altına düştüğünde NAKDE GEÇ.",
+            )
+
+        window = backtest.recent_window(full_df, months=BACKTEST_MONTHS)
+        if len(window) < 10:
+            st.caption("Yeterli geçmiş veri bulunamadığı için simülasyon hesaplanamadı.")
+            return
+
+        probs = model.predict_proba(features.align_model_features(model, window))[:, 1]
+        sim_res = simulator.simulate_investment(
+            frame=window[["Date", "close"]],
+            probs=probs,
+            threshold=sim_thr,
+            initial_capital=float(init_cap),
+            cost=cost,
+        )
+
+        if sim_res is None:
+            st.warning("Simülasyon hesaplanamadı.")
+            return
+
+        m1, m2, m3, m4 = st.columns(4)
+        m1.markdown(
+            f"**Son Portföy Değeri:**<br>`{sim_res.final_value:,.2f} TL` "
+            f"(%{sim_res.total_return_pct:+.1f})",
+            unsafe_allow_html=True,
+        )
+        m2.markdown(
+            f"**Net Kâr / Zarar:**<br>`{sim_res.net_profit_tl:+,.2f} TL`",
+            unsafe_allow_html=True,
+        )
+        m3.markdown(
+            f"**Al ve Tut (Buy & Hold):**<br>`{sim_res.buy_hold_final_value:,.2f} TL` "
+            f"(Alfa: `{sim_res.alpha_tl:+,.2f} TL`)",
+            unsafe_allow_html=True,
+        )
+        m4.markdown(
+            f"**Kazanma Oranı (Win Rate):**<br>`%{sim_res.win_rate * 100:.1f}` "
+            f"({sim_res.winning_trades} Kâr / {sim_res.trades_count} İşlem)",
+            unsafe_allow_html=True,
+        )
+
+        st.caption(
+            f"Ödenen Komisyon: **{sim_res.total_commission_paid:,.2f} TL** · "
+            f"Maksimum Çekilme (Max Drawdown): **-%{sim_res.max_drawdown_pct:.1f}** · "
+            f"Zararlı İşlemler: **{sim_res.losing_trades}**"
+        )
+
+        if not sim_res.daily_timeline.empty:
+            fig_sim = go.Figure()
+            fig_sim.add_trace(
+                go.Scatter(
+                    x=sim_res.daily_timeline["Date"],
+                    y=sim_res.daily_timeline["portfolio_value"],
+                    mode="lines",
+                    name="🤖 Yapay Zeka Portföyü",
+                    line=dict(color="#10B981", width=2.5),
+                )
+            )
+            fig_sim.add_trace(
+                go.Scatter(
+                    x=sim_res.daily_timeline["Date"],
+                    y=sim_res.daily_timeline["buy_hold_value"],
+                    mode="lines",
+                    name="📈 Al ve Tut (Buy & Hold)",
+                    line=dict(color="#64748B", width=1.5, dash="dash"),
+                )
+            )
+            fig_sim.update_layout(
+                yaxis_title="Portföy Değeri (TL)",
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                margin=dict(l=20, r=20, t=30, b=20),
+            )
+            st.plotly_chart(fig_sim, width="stretch")
+
+
 def render_single_ticker_tab(
     selected_ticker: str,
     selected_ticker_full: str,
@@ -759,6 +910,7 @@ def render_single_ticker_tab(
             full_df=full_df,
             current_price=current_price,
         )
+        render_patterns_and_sr_section(selected_ticker, full_df)
 
         # Günlük Tahmin Kaydı (Forward Tracking Denetim Defteri) (#53)
         last_date_str = str(input_data["Date"].iloc[-1]).split()[0]
@@ -792,8 +944,9 @@ def render_single_ticker_tab(
         annual_vol = float(np.clip(d_vol * np.sqrt(252.0), 0.10, 0.80))
         render_risk_sizing_section(selected_ticker, prob, annual_vol)
 
-        # GRAFİK KISMI (Candlestick)
-        st.subheader(f"{selected_ticker} - Son 3 Ay Fiyat Grafiği", anchor=False)
+        # GRAFİK KISMI (Candlestick & Destek/Direnç Seviyeleri)
+        st.subheader(f"{selected_ticker} - Fiyat Grafiği & Kırılım Seviyeleri", anchor=False)
+        sr = patterns.calculate_support_resistance(full_df)
         fig = go.Figure(
             data=[
                 go.Candlestick(
@@ -802,9 +955,41 @@ def render_single_ticker_tab(
                     high=full_df["high"][-90:],
                     low=full_df["low"][-90:],
                     close=full_df["close"][-90:],
+                    name="Fiyat",
                 )
             ]
         )
+        if sr is not None and len(full_df) >= 2:
+            x_dates = full_df["Date"][-90:]
+            x_start = x_dates.iloc[0]
+            x_end = x_dates.iloc[-1]
+            fig.add_trace(
+                go.Scatter(
+                    x=[x_start, x_end],
+                    y=[sr.resistance_1, sr.resistance_1],
+                    mode="lines",
+                    line=dict(color="#EF4444", width=1.5, dash="dash"),
+                    name=f"Direnç (R1): {sr.resistance_1:.2f} TL",
+                )
+            )
+            fig.add_trace(
+                go.Scatter(
+                    x=[x_start, x_end],
+                    y=[sr.pivot, sr.pivot],
+                    mode="lines",
+                    line=dict(color="#38BDF8", width=1, dash="dot"),
+                    name=f"Pivot: {sr.pivot:.2f} TL",
+                )
+            )
+            fig.add_trace(
+                go.Scatter(
+                    x=[x_start, x_end],
+                    y=[sr.support_1, sr.support_1],
+                    mode="lines",
+                    line=dict(color="#10B981", width=1.5, dash="dash"),
+                    name=f"Destek (S1): {sr.support_1:.2f} TL",
+                )
+            )
         fig.update_layout(xaxis_rangeslider_visible=False)
         st.plotly_chart(fig, width="stretch")
 
@@ -849,6 +1034,12 @@ def render_single_ticker_tab(
             model,
             df_processed[["Date", "close"] + config.FEATURES],
             threshold=prob_high,
+            cost=cost,
+        )
+        render_paper_trading_simulator_section(
+            selected_ticker=selected_ticker,
+            full_df=df_processed,
+            model=model,
             cost=cost,
         )
         render_forward_tracking_section(selected_ticker, full_df)
