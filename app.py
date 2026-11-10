@@ -113,6 +113,89 @@ st.markdown(
         color: #34D399 !important;
         border: 1px solid #10B981 !important;
     }
+
+    /* ==================================================================== */
+    /* ANALİZ MENÜSÜ: Modern Dikey Navigasyon Menüsü (Radyo Noktalarını Gizle) */
+    /* ==================================================================== */
+    div[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup"] {
+        gap: 6px !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    /* Radyo dairesini ve radyo noktasını tamamen gizle */
+    div[data-testid="stSidebar"] div[data-testid="stRadio"]
+      label[data-baseweb="radio"] > div:first-child,
+    div[data-testid="stSidebar"] div[data-testid="stRadio"] input[type="radio"] {
+        display: none !important;
+        visibility: hidden !important;
+        width: 0 !important;
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* Menü kartının şık, modern buton tasarımı */
+    div[data-testid="stSidebar"] div[data-testid="stRadio"] label[data-baseweb="radio"] {
+        background: linear-gradient(
+            180deg,
+            rgba(30, 41, 59, 0.70) 0%,
+            rgba(15, 23, 42, 0.85) 100%
+        ) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 8px !important;
+        padding: 9px 12px !important;
+        margin: 0 !important;
+        cursor: pointer !important;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        display: flex !important;
+        align-items: center !important;
+        width: 100% !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+    }
+
+    /* Hover: Modern neon mavi parlama ve hafif kayma efekti */
+    div[data-testid="stSidebar"] div[data-testid="stRadio"] label[data-baseweb="radio"]:hover {
+        background: linear-gradient(
+            180deg,
+            rgba(37, 99, 235, 0.18) 0%,
+            rgba(30, 41, 59, 0.90) 100%
+        ) !important;
+        border-color: rgba(96, 165, 250, 0.55) !important;
+        transform: translateX(4px) !important;
+        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25) !important;
+    }
+
+    /* Aktif / Seçili menü kartı: Parlayan mavi gradyan ve sol vurgu çizgisi */
+    div[data-testid="stSidebar"] div[data-testid="stRadio"]
+      label[data-baseweb="radio"]:has(input:checked),
+    div[data-testid="stSidebar"] div[data-testid="stRadio"]
+      label[data-baseweb="radio"][aria-checked="true"] {
+        background: linear-gradient(
+            135deg,
+            rgba(37, 99, 235, 0.35) 0%,
+            rgba(15, 23, 42, 0.95) 100%
+        ) !important;
+        border: 1px solid #3b82f6 !important;
+        border-left: 4px solid #60a5fa !important;
+        box-shadow: 0 0 12px rgba(59, 130, 246, 0.32) !important;
+    }
+
+    div[data-testid="stSidebar"] div[data-testid="stRadio"]
+      label[data-baseweb="radio"] div[data-testid="stMarkdownContainer"] p {
+        font-size: 0.88rem !important;
+        font-weight: 500 !important;
+        color: #e2e8f0 !important;
+        margin: 0 !important;
+        line-height: 1.35 !important;
+    }
+
+    div[data-testid="stSidebar"] div[data-testid="stRadio"]
+      label[data-baseweb="radio"]:has(input:checked)
+      div[data-testid="stMarkdownContainer"] p {
+        color: #ffffff !important;
+        font-weight: 600 !important;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -191,19 +274,20 @@ st.sidebar.button(
 # Yan Menü: Analiz Modülü Seçimi
 st.sidebar.header("Analiz Menüsü")
 VIEW_OPTIONS = [
-    "📊 Tüm Analizler (Kapsamlı Rapor)",
-    "🎯 Teknik Model & Trend Özeti",
+    "📊 Kapsamlı Analiz Raporu",
+    "📈 Teknik Model & Grafikler",
+    "🏢 Kurumsal Bilanço & Chatbot",
+    "📑 KAP Bildirimleri & Analiz",
     "🎮 Paper Trading Simülatörü",
-    "📜 Model Başarısı & Takip (Audit)",
+    "🎯 Model Doğrulama (Audit)",
     "🔬 Veri Sapması & Kararlılık (PSI)",
-    "🤖 Yapay Zeka KAP Analizi",
-    "💬 Kurumsal Bilanço & Colab LLM",
 ]
 selected_view = st.sidebar.radio(
     "İnceleme Modülü",
     VIEW_OPTIONS,
     index=0,
     key="sidebar_analysis_view",
+    label_visibility="collapsed",
 )
 
 # Yan Menü: Sinyal & Strateji Ayarları
