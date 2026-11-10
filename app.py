@@ -4,7 +4,7 @@ import os
 
 import streamlit as st
 
-from src import analytics, config, model_metadata, signals
+from src import analytics, config, signals
 from src.ui import (
     get_cached_macro_data,
     get_cached_market_scan,
@@ -12,7 +12,6 @@ from src.ui import (
     load_model,
     render_market_scanner_tab,
     render_safely,
-    render_sidebar_model_info,
     render_single_ticker_tab,
 )
 
@@ -201,24 +200,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Sayfa Başlığı ve Kurumsal Logo (HTML img olarak render edilir, fullscreen butonu çıkmaz)
-if LOGO_B64:
-    c_icon, c_title = st.columns([1, 16], vertical_alignment="center")
-    with c_icon:
-        st.markdown(
-            f'<img src="data:image/png;base64,{LOGO_B64}" width="52" height="52" '
-            f'class="brand-logo-img" alt="BIST Forecaster Logo" />',
-            unsafe_allow_html=True,
-        )
-    with c_title:
-        st.title("Borsa İstanbul Yapay Zeka Yön Tahmini", anchor=False)
-else:
-    st.title("Borsa İstanbul Yapay Zeka Yön Tahmini", anchor=False)
-st.markdown("""
-Bu platform; **CatBoost, LightGBM ve XGBoost** topluluk modelleri ile BIST 30
-hisselerinin **1 Günlük, 1 Haftalık ve 1 Aylık** yön eğilimlerini ve risk analizini sunar.
-""")
-
 # Yan Menü: Kurumsal Marka Başlığı ve Hisse Seçimi
 if LOGO_B64:
     c_logo, c_brand = st.sidebar.columns([1, 3], vertical_alignment="center")
@@ -313,43 +294,65 @@ commission_rate = st.sidebar.slider(
 )
 cost = commission_rate / 100.0
 
-# Yan Menü: Model Bilgisi (#13, #45) & Analitik Durumu
-model_meta = model_metadata.load_metadata(config.MODEL_META_PATH)
-render_sidebar_model_info(model_meta)
+# Yan Menü: Analitik Durumu
 analytics.render_analytics_status()
+
+
+def _render_single_ticker_tab_safe():
+    try:
+        render_single_ticker_tab(
+            selected_ticker,
+            selected_ticker_full,
+            prob_low,
+            prob_high,
+            cost,
+            active_view=selected_view,
+        )
+    except TypeError as te:
+        if "active_view" in str(te):
+            # Sıcak yeniden yükleme (hot reload) esnasında modül önbelleği uyumluluğu
+            render_single_ticker_tab(
+                selected_ticker,
+                selected_ticker_full,
+                prob_low,
+                prob_high,
+                cost,
+            )
+        else:
+            raise te
+
+
+is_main_technical_view = selected_view == VIEW_OPTIONS[0]
+
+# Ana Sayfa Başlığı, Açıklama ve Sekmeler yalnızca ana teknik görünümde gösterilir
+if is_main_technical_view:
+    if LOGO_B64:
+        c_icon, c_title = st.columns([1, 16], vertical_alignment="center")
+        with c_icon:
+            st.markdown(
+                f'<img src="data:image/png;base64,{LOGO_B64}" width="52" height="52" '
+                f'class="brand-logo-img" alt="BIST Forecaster Logo" />',
+                unsafe_allow_html=True,
+            )
+        with c_title:
+            st.title("Borsa İstanbul Yapay Zeka Yön Tahmini", anchor=False)
+    else:
+        st.title("Borsa İstanbul Yapay Zeka Yön Tahmini", anchor=False)
+    st.markdown("""
+Bu platform; **CatBoost, LightGBM ve XGBoost** topluluk modelleri ile BIST 30
+hisselerinin **1 Günlük, 1 Haftalık ve 1 Aylık** yön eğilimlerini ve risk analizini sunar.
+""")
 
 # Ana Akış
 if not os.path.exists(config.MODEL_PATH):
     st.error("Model dosyası bulunamadı! Lütfen önce `src/model_train.py` çalıştırın.")
-else:
+elif is_main_technical_view:
     tab1, tab2 = st.tabs(["🎯 Tek Hisse Analizi", "📊 BIST 30 Fırsat Radarı"])
 
     with tab1:
-
-        def _render_single_ticker_tab_safe():
-            try:
-                render_single_ticker_tab(
-                    selected_ticker,
-                    selected_ticker_full,
-                    prob_low,
-                    prob_high,
-                    cost,
-                    active_view=selected_view,
-                )
-            except TypeError as te:
-                if "active_view" in str(te):
-                    # Sıcak yeniden yükleme (hot reload) esnasında modül önbelleği uyumluluğu
-                    render_single_ticker_tab(
-                        selected_ticker,
-                        selected_ticker_full,
-                        prob_low,
-                        prob_high,
-                        cost,
-                    )
-                else:
-                    raise te
-
         render_safely(_render_single_ticker_tab_safe)
 
     with tab2:
         render_safely(render_market_scanner_tab)
+else:
+    render_safely(_render_single_ticker_tab_safe)
