@@ -974,6 +974,8 @@ def render_single_ticker_tab(
     prob_high: float,
     cost: float = 0.0,
     active_view: str = "📊 Tüm Analizler (Kapsamlı Rapor)",
+    *args,
+    **kwargs,
 ):
     """Tek hisse senedi detay analizi sekmesini oluşturur."""
     v = active_view.lower()
