@@ -182,21 +182,40 @@ def render_drift_section(df_features):
             st.dataframe(drift_df[["Öznitelik", "Rozet", "PSI", "Öneri"]])
 
 
+@st.cache_data(ttl=900, show_spinner=False)
+def get_cached_fundamental_report(ticker: str) -> fundamental_rag.FundamentalReport | None:
+    """Tekil hisse için temel analiz raporunu 15 dakika boyunca önbellekte tutar."""
+    return fundamental_rag.fetch_fundamental_report(ticker)
+
+
 def render_kap_llm_section(
     selected_ticker: str, report: fundamental_rag.FundamentalReport | None = None
 ):
     """KAP bildirimlerini ve LLM destekli temel analiz özetini gösterir (#70)."""
     with st.expander("🤖 Yapay Zeka Temel Analiz & KAP Yorumu", expanded=False):
         disclosures = kap_news.fetch_latest_disclosures(selected_ticker, limit=5)
+        is_rag_source = False
+        if not disclosures and report is not None and report.recent_disclosures:
+            disclosures = fundamental_rag.convert_disclosures_to_kap(
+                selected_ticker, report.recent_disclosures
+            )
+            is_rag_source = True
+
         analysis = kap_llm.analyze_disclosures_with_llm(selected_ticker, disclosures)
 
-        provider_badge = (
-            "🤖 Gemini LLM"
-            if analysis.provider == "gemini"
-            else "⚙️ Kural Tabanlı (Yedek Mod)"
-            if analysis.provider == "rule_based"
-            else "⚪ Bildirim Yok"
-        )
+        if is_rag_source:
+            if analysis.provider == "gemini":
+                provider_badge = "🤖 Gemini LLM (RAG KAP)"
+            else:
+                provider_badge = "🐙 RAG Chatbot KAP Verisi"
+        else:
+            provider_badge = (
+                "🤖 Gemini LLM"
+                if analysis.provider == "gemini"
+                else "⚙️ Kural Tabanlı (Yedek Mod)"
+                if analysis.provider == "rule_based"
+                else "⚪ Bildirim Yok"
+            )
         c1, c2, c3 = st.columns(3)
         c1.markdown(f"**KAP Etki Rozeti:** {analysis.badge}")
         c2.markdown(f"**Etki Skoru:** `{analysis.impact_score:+.2f}`")
@@ -224,7 +243,28 @@ def render_kap_llm_section(
         if analysis.error_message:
             st.caption(f"ℹ️ Not: {analysis.error_message}")
 
-        if disclosures:
+        if is_rag_source and report is not None and report.recent_disclosures:
+            st.markdown("---")
+            st.markdown("**Son KAP & Finansal Bildirimleri (RAG Chatbot Veri Deposu):**")
+            formatted_rows = []
+            for item in report.recent_disclosures:
+                etki_val = str(item.get("Etki", item.get("impact", "Nötr")))
+                if any(pos in etki_val.lower() for pos in ["pozitif", "olumlu", "positive"]):
+                    etki_badge = "🟢 Pozitif"
+                elif any(neg in etki_val.lower() for neg in ["negatif", "olumsuz", "negative"]):
+                    etki_badge = "🔴 Negatif"
+                else:
+                    etki_badge = "⚪ Nötr"
+                formatted_rows.append(
+                    {
+                        "Tarih": item.get("Tarih", item.get("date", "—")),
+                        "Kategori": item.get("Kategori", item.get("category", "KAP")),
+                        "Başlık": item.get("Başlık", item.get("title", "—")),
+                        "Etki": etki_badge,
+                    }
+                )
+            st.table(pd.DataFrame(formatted_rows))
+        elif disclosures:
             st.markdown("---")
             st.markdown("**Son KAP Bildirimleri & Şirket Haberleri:**")
             disc_table = pd.DataFrame(
@@ -238,10 +278,6 @@ def render_kap_llm_section(
                 ]
             )
             st.dataframe(disc_table)
-        elif report is not None and report.recent_disclosures:
-            st.markdown("---")
-            st.markdown("**Son KAP & Finansal Bildirimleri (RAG Chatbot Veri Deposu):**")
-            st.table(pd.DataFrame(report.recent_disclosures))
 
 
 def render_fundamental_rag_section(
@@ -250,7 +286,7 @@ def render_fundamental_rag_section(
     """Financial Analyst ChatBot Project temel analiz ve bilanço özetini gösterir."""
     with st.expander("💬 Kurumsal Temel Analiz & Bilanço Chatbot'u (RAG)", expanded=False):
         if report is None:
-            report = fundamental_rag.fetch_fundamental_report(selected_ticker)
+            report = get_cached_fundamental_report(selected_ticker)
         chatbot_link = fundamental_rag.build_chatbot_deeplink(selected_ticker)
 
         box_style = (
@@ -311,6 +347,28 @@ def render_fundamental_rag_section(
                 st.markdown("**⚠️ Temel ve Finansal Risk Faktörleri:**")
                 for risk in report.risk_factors:
                     st.markdown(f"- {risk}")
+
+            if report.recent_disclosures:
+                st.markdown("---")
+                st.markdown("**📋 Son KAP & Finansal Bildirimleri (Chatbot Hafızası):**")
+                formatted_disclosures = []
+                for item in report.recent_disclosures:
+                    etki_val = str(item.get("Etki", item.get("impact", "Nötr")))
+                    if any(pos in etki_val.lower() for pos in ["pozitif", "olumlu", "positive"]):
+                        etki_badge = "🟢 Pozitif"
+                    elif any(neg in etki_val.lower() for neg in ["negatif", "olumsuz", "negative"]):
+                        etki_badge = "🔴 Negatif"
+                    else:
+                        etki_badge = "⚪ Nötr"
+                    formatted_disclosures.append(
+                        {
+                            "Tarih": item.get("Tarih", item.get("date", "—")),
+                            "Kategori": item.get("Kategori", item.get("category", "KAP")),
+                            "Başlık": item.get("Başlık", item.get("title", "—")),
+                            "Etki": etki_badge,
+                        }
+                    )
+                st.table(pd.DataFrame(formatted_disclosures))
         else:
             st.markdown(
                 f"ℹ️ *{selected_ticker} için önceden üretilmiş statik özet rapor bulunamadı. "
@@ -914,7 +972,7 @@ def render_single_ticker_tab(
             signal_box(f"%{prob * 100:.1f} Olasılıkla Yükseliş")
 
         # Hibrit Karar Motoru (Teknik ML + RAG Temel Analiz Sentezi)
-        report = fundamental_rag.fetch_fundamental_report(selected_ticker)
+        report = get_cached_fundamental_report(selected_ticker)
         f_score = report.sentiment_score if report is not None else None
         decision = hybrid_decision.evaluate_hybrid_decision(
             ticker=selected_ticker,

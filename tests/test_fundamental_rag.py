@@ -9,6 +9,7 @@ from src.fundamental_rag import (
     KeyMetrics,
     build_chatbot_deeplink,
     clean_ticker,
+    convert_disclosures_to_kap,
     enrich_key_metrics_with_live_market_data,
     fetch_fundamental_report,
     parse_report_payload,
@@ -196,3 +197,71 @@ def test_enrich_key_metrics_handles_yfinance_error_gracefully():
         result = enrich_key_metrics_with_live_market_data("THYAO", original)
         assert result.pe_ratio is None
         assert result.pb_ratio is None
+
+
+def test_convert_disclosures_to_kap_positive_negative_neutral():
+    raw = [
+        {
+            "Tarih": "2026-11-05",
+            "Kategori": "Özel Durum Açıklaması",
+            "Başlık": "Yeni filo alımı",
+            "Etki": "Pozitif",
+        },
+        {
+            "Tarih": "2026-10-20",
+            "Kategori": "Dava / Ceza",
+            "Başlık": "Vergi cezası tebliği",
+            "Etki": "Negatif",
+        },
+        {
+            "Tarih": "2026-10-01",
+            "Kategori": "Genel Kurul",
+            "Başlık": "Olağan genel kurul toplantısı",
+            "Etki": "Nötr",
+        },
+    ]
+    kap_list = convert_disclosures_to_kap("THYAO.IS", raw)
+    assert len(kap_list) == 3
+    assert kap_list[0].ticker == "THYAO"
+    assert "🟢" in kap_list[0].badge
+    assert kap_list[0].category.value == "positive"
+    assert "🔴" in kap_list[1].badge
+    assert kap_list[1].category.value == "negative"
+    assert "⚪" in kap_list[2].badge
+    assert kap_list[2].category.value == "neutral"
+
+
+def test_fundamental_report_kap_disclosures_property():
+    report = parse_report_payload(
+        {
+            "ticker": "EREGL",
+            "recent_disclosures": [
+                {
+                    "Tarih": "2026-11-02",
+                    "Kategori": "Yatırım",
+                    "Başlık": "Peletleme tesisi",
+                    "Etki": "Pozitif",
+                }
+            ],
+        }
+    )
+    disclosures = report.kap_disclosures
+    assert len(disclosures) == 1
+    assert disclosures[0].ticker == "EREGL"
+    assert disclosures[0].title == "Peletleme tesisi"
+
+
+def test_fetch_fundamental_report_fallback_to_data_reports_path():
+    called_urls = []
+
+    def mock_fetch(url, timeout=5.0):
+        called_urls.append(url)
+        if "data/reports/SISE.json" in url:
+            return {"ticker": "SISE", "sentiment_score": 0.5, "sentiment_label": "Pozitif"}
+        return None
+
+    with patch("src.fundamental_rag._fetch_from_url", side_effect=mock_fetch):
+        rep = fetch_fundamental_report("SISE", api_url="", raw_repo="org/repo")
+        assert rep is not None
+        assert rep.ticker == "SISE"
+        assert any("data/reports/SISE.json" in u for u in called_urls)
