@@ -507,11 +507,16 @@ def test_app_renders_weekend_notice_on_weekends(patched_download, monkeypatch):
 def test_app_renders_model_metadata_in_sidebar(patched_download):
     at = AppTest.from_file(APP_PATH, default_timeout=30)
     at.run()
+    at.sidebar.radio(key="sidebar_analysis_view").set_value(
+        "🔬 Veri Sapması & Kararlılık (PSI)"
+    ).run()
 
     assert list(at.exception) == []
-    sidebar_texts = [w.value for w in at.sidebar.get("markdown")]
-    assert any("Sürüm:" in t for t in sidebar_texts)
-    assert any("Test Doğruluğu:" in t for t in sidebar_texts)
+    markdown_texts = [w.value for w in at.markdown]
+    assert any("Sürüm:" in t for t in markdown_texts)
+    assert any("Test Doğruluğu:" in t for t in markdown_texts)
+    assert list(at.title) == []
+    assert not any("Kompozit Skor:" in t for t in markdown_texts)
 
 
 @pytest.fixture

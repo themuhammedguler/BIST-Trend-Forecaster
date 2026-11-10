@@ -17,6 +17,7 @@ from src import (
     kap_llm,
     kap_news,
     live_market,
+    model_metadata,
     multi_horizon,
     patterns,
     risk_sizing,
@@ -173,7 +174,7 @@ def render_risk_sizing_section(selected_ticker: str, prob: float, volatility: fl
 
 
 def render_drift_section(df_features):
-    """Öznitelik sapmasını (Data Drift / PSI) hesaplayıp özetler (#45, #69)."""
+    """Öznitelik sapmasını (Data Drift / PSI) ve model bilgisini özetler (#13, #45, #69)."""
     st.subheader("🔬 Veri & Öznitelik Sapması (Data Drift / PSI)", anchor=False)
     drift_df, summary = drift.compute_series_drift_by_split(df_features, recent_rows=60)
     cyclical_text = (
@@ -195,6 +196,24 @@ def render_drift_section(df_features):
     )
     if not drift_df.empty:
         st.dataframe(drift_df[["Öznitelik", "Rozet", "PSI", "Öneri"]])
+
+    st.markdown("---")
+    st.subheader("ℹ️ Model Bilgisi & Mimari Özeti", anchor=False)
+    model_meta = model_metadata.load_metadata(config.MODEL_META_PATH)
+    if model_meta:
+        mc1, mc2, mc3 = st.columns(3)
+        mc1.write(f"**Sürüm:** v{model_meta.get('version', '1.0')}")
+        mc2.write(f"**Eğitim Kesimi:** {model_meta.get('data_cutoff_date', '-')}")
+        if "test_accuracy" in model_meta:
+            mc3.write(f"**Test Doğruluğu:** %{model_meta['test_accuracy'] * 100:.1f}")
+        mc4, mc5, mc6 = st.columns(3)
+        if "metrics" in model_meta and "roc_auc" in model_meta["metrics"]:
+            mc4.write(f"**ROC-AUC:** {model_meta['metrics']['roc_auc']:.3f}")
+        mc5.write(f"**Öznitelik Sayısı:** {len(model_meta.get('features', []))}")
+        mc6.write(f"**Veri Sağlığı (PSI):** {summary['badge']}")
+        st.write("**Model Motoru:** 🌲 XGBoost · ⚡ LightGBM · 🐱 CatBoost")
+    else:
+        st.write("Model meta-verisi bulunamadı.")
 
 
 @st.cache_data(ttl=900, show_spinner=False)
@@ -1001,13 +1020,14 @@ def render_single_ticker_tab(
             signals.DOWN: (st.error, "**DÜŞÜŞ / ZAYIF TREND** 🔻"),
         }[signal]
 
-        # Seans Takvimi Bilgilendirmesi (#16)
+        # Seans Takvimi Bilgilendirmesi (#16) - Yalnızca ana teknik sayfada gösterilir
         session_info = session_calendar.get_session_info(input_data["Date"].iloc[-1])
-        if session_info.weekend_notice:
-            st.info(session_info.weekend_notice)
-        st.caption(session_info.badge_text)
+        if is_technical:
+            if session_info.weekend_notice:
+                st.info(session_info.weekend_notice)
+            st.caption(session_info.badge_text)
 
-        # GÖSTERGE PANELİ
+        # GÖSTERGE PANELİ (Seçili hissenin özet fiyat ve sinyal başlığı)
         col1, col2, col3 = st.columns(3)
 
         # Fiyat ve Değişim Hesaplama
@@ -1050,17 +1070,19 @@ def render_single_ticker_tab(
             )
             st.caption(q_info)
 
-        # Hibrit Karar Motoru (Teknik ML + RAG Temel Analiz Sentezi)
         report = get_cached_fundamental_report(selected_ticker)
-        f_score = report.sentiment_score if report is not None else None
-        decision = hybrid_decision.evaluate_hybrid_decision(
-            ticker=selected_ticker,
-            technical_prob=prob,
-            fundamental_score=f_score,
-            prob_high=prob_high,
-            prob_low=prob_low,
-        )
-        render_hybrid_decision_card(decision)
+
+        # Hibrit Karar Motoru (Teknik ML + RAG Temel Analiz Sentezi) - Yalnızca ana teknik sayfada
+        if is_technical:
+            f_score = report.sentiment_score if report is not None else None
+            decision = hybrid_decision.evaluate_hybrid_decision(
+                ticker=selected_ticker,
+                technical_prob=prob,
+                fundamental_score=f_score,
+                prob_high=prob_high,
+                prob_low=prob_low,
+            )
+            render_hybrid_decision_card(decision)
 
         # Günlük Tahmin Kaydı (Forward Tracking Denetim Defteri) (#53)
         last_date_str = str(input_data["Date"].iloc[-1]).split()[0]
