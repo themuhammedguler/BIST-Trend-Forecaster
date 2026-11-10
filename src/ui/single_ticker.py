@@ -238,6 +238,10 @@ def render_kap_llm_section(
                 ]
             )
             st.dataframe(disc_table)
+        elif report is not None and report.recent_disclosures:
+            st.markdown("---")
+            st.markdown("**Son KAP & Finansal Bildirimleri (RAG Chatbot Veri Deposu):**")
+            st.table(pd.DataFrame(report.recent_disclosures))
 
 
 def render_fundamental_rag_section(
@@ -668,6 +672,33 @@ def render_financial_tools_section(
                 f"%50.0 (Denge) = **{fib_500:.2f} TL** · %61.8 (Altın Oran) = **{fib_618:.2f} TL**"
             )
 
+        exits = patterns.calculate_atr_exit_levels(full_df)
+        if exits is not None:
+            st.markdown("---")
+            st.markdown("**🎯 Dinamik ATR Tabanlı Çıkış ve Hedef Seviyeleri (14G ATR):**")
+            sl_col, tp1_col, tp2_col = st.columns(3)
+            with sl_col:
+                st.markdown(
+                    f"🛑 **Zarar Kes (Stop-Loss):** `{exits.stop_loss:.2f} TL` "
+                    f"(<span style='color:#EF4444;'>%{exits.stop_loss_pct:.1f}</span>)<br>"
+                    f"<small style='color:#94A3B8;'>1.5 × ATR Koruma Seviyesi</small>",
+                    unsafe_allow_html=True,
+                )
+            with tp1_col:
+                st.markdown(
+                    f"🎯 **Kâr Al 1 (Hedef 1):** `{exits.take_profit_1:.2f} TL` "
+                    f"(<span style='color:#10B981;'>+%{exits.take_profit_1_pct:.1f}</span>)<br>"
+                    f"<small style='color:#94A3B8;'>2.0 × ATR İlk Kâr Realizasyonu</small>",
+                    unsafe_allow_html=True,
+                )
+            with tp2_col:
+                st.markdown(
+                    f"🚀 **Kâr Al 2 (Hedef 2):** `{exits.take_profit_2:.2f} TL` "
+                    f"(<span style='color:#34D399;'>+%{exits.take_profit_2_pct:.1f}</span>)<br>"
+                    f"<small style='color:#94A3B8;'>3.0 × ATR Trend Sürme Hedefi</small>",
+                    unsafe_allow_html=True,
+                )
+
 
 def render_patterns_and_sr_section(
     selected_ticker: str,
@@ -990,6 +1021,30 @@ def render_single_ticker_tab(
                     name=f"Destek (S1): {sr.support_1:.2f} TL",
                 )
             )
+
+            exits = patterns.calculate_atr_exit_levels(full_df)
+            if exits is not None:
+                fig.add_trace(
+                    go.Scatter(
+                        x=[x_start, x_end],
+                        y=[exits.stop_loss, exits.stop_loss],
+                        mode="lines",
+                        line=dict(color="#DC2626", width=1.5, dash="dot"),
+                        name=f"Stop-Loss: {exits.stop_loss:.2f} TL (%{exits.stop_loss_pct:.1f})",
+                    )
+                )
+                fig.add_trace(
+                    go.Scatter(
+                        x=[x_start, x_end],
+                        y=[exits.take_profit_1, exits.take_profit_1],
+                        mode="lines",
+                        line=dict(color="#059669", width=1.5, dash="dot"),
+                        name=(
+                            f"Hedef 1: {exits.take_profit_1:.2f} TL "
+                            f"(+%{exits.take_profit_1_pct:.1f})"
+                        ),
+                    )
+                )
         fig.update_layout(xaxis_rangeslider_visible=False)
         st.plotly_chart(fig, width="stretch")
 
