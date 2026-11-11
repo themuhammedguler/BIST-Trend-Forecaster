@@ -598,14 +598,22 @@ def render_fundamental_rag_section(
     st.markdown("---")
     st.markdown("#### 🚀 Canlı Fine-Tuned BIST LLM & Hibrit RAG Soru-Cevap (Colab Pro GPU — A100)")
     st.caption(
-        "Kendi eğittiğimiz `bist-financial-llm` modeli Colab üzerinde çalışmakta ve "
-        "doğrudan BIST 100 bilanço, DuPont, Altman Z ve KAP eğitim verileriyle yanıt vermektedir."
+        "Colab notebook'unuz açıkken ürettiği `ngrok` URL'sini aşağıya yapıştırarak doğrudan "
+        "A100 GPU üzerindeki `bist-financial-llm` modeline bağlanabilirsiniz. Colab kapalıysa "
+        "sistem otomatik olarak **Yerleşik Kantitatif Analist Motoru** ile yanıt üretir."
     )
-    colab_active = colab_llm.check_colab_health()
+    custom_colab_url = st.text_input(
+        "🔗 Colab ngrok / Özel Model Sunucu URL'si (İsteğe Bağlı):",
+        value=config.COLAB_LLM_URL,
+        placeholder="https://xxxx-xx-xx.ngrok-free.dev",
+        key=f"colab_url_input_{selected_ticker}",
+        help="Colab'da son hücreyi çalıştırdığınızda verilen ngrok adresi.",
+    )
+    colab_active = colab_llm.check_colab_health(base_url=custom_colab_url)
     colab_badge = (
         "🟢 Çevrimiçi (Colab ngrok Aktif: bist-financial-llm)"
         if colab_active
-        else "⚪ Çevrimdışı (ngrok bekleniyor)"
+        else "🟡 Yerleşik Kantitatif Analist Aktif (Colab/ngrok kapalıyken otomatik yanıt verir)"
     )
     st.markdown(f"**Model Sunucusu Durumu:** `{colab_badge}`")
 
@@ -620,8 +628,12 @@ def render_fundamental_rag_section(
         label_visibility="collapsed",
     )
     if c_ask.button("✨ Sor", key=f"btn_ask_colab_{selected_ticker}"):
-        with st.spinner("Fine-Tuned BIST modeli yanıt üretiyor..."):
-            ask_res = fundamental_rag.ask_hybrid_analyst(user_q, ticker=selected_ticker)
+        with st.spinner("Finansal analist yanıt üretiyor..."):
+            ask_res = fundamental_rag.ask_hybrid_analyst(
+                user_q,
+                ticker=selected_ticker,
+                base_url=custom_colab_url,
+            )
             st.markdown(f"**✨ Model Değerlendirmesi:**\n\n{ask_res.get('answer', '')}")
 
 
