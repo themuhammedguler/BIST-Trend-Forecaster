@@ -7,11 +7,15 @@ from unittest.mock import patch
 from src.fundamental_rag import (
     FundamentalReport,
     KeyMetrics,
+    ask_hybrid_analyst,
     build_chatbot_deeplink,
     clean_ticker,
     convert_disclosures_to_kap,
     enrich_key_metrics_with_live_market_data,
     fetch_fundamental_report,
+    fetch_macro_stress_test,
+    fetch_peer_comparison,
+    fetch_quant_metrics,
     parse_report_payload,
 )
 
@@ -265,3 +269,65 @@ def test_fetch_fundamental_report_fallback_to_data_reports_path():
         assert rep is not None
         assert rep.ticker == "SISE"
         assert any("data/reports/SISE.json" in u for u in called_urls)
+
+
+def test_fetch_quant_metrics_deterministic_and_api():
+    quant = fetch_quant_metrics("THYAO.IS", api_url="")
+    assert quant["ticker"] == "THYAO"
+    assert quant["source"] == "deterministic_engine"
+    assert quant["dupont"]["roe_pct"] > 0
+    assert "z_score" in quant["altman_z"]
+    assert quant["dcf_valuation"]["estimated_fair_value_million_tl"] > 0
+    assert "dividend_safety_score" in quant["dividend_safety"]
+    assert "recommended_portfolio_allocation_pct" in quant["kelly_allocation"]
+
+    mock_api_resp = {
+        "ticker": "THYAO",
+        "dupont": {"roe_pct": 31.5},
+        "altman_z": {"z_score": 2.95, "zone": "Güvenli Bölge"},
+    }
+    with patch("src.fundamental_rag._fetch_from_url", return_value=mock_api_resp):
+        quant_api = fetch_quant_metrics("THYAO", api_url="http://localhost:8000")
+        assert quant_api["source"] == "api_v2"
+        assert quant_api["dupont"]["roe_pct"] == 31.5
+
+
+def test_fetch_macro_stress_test_deterministic():
+    stress_thy = fetch_macro_stress_test(
+        "THYAO",
+        usd_change_pct=10.0,
+        rate_change_bps=250.0,
+        oil_change_pct=15.0,
+        api_url="",
+    )
+    assert stress_thy["ticker"] == "THYAO"
+    assert "total_impact_pct" in stress_thy
+    assert stress_thy["scenarios"]["usd_try"]["impact_pct"] == 7.2
+    assert stress_thy["scenarios"]["brent_oil"]["impact_pct"] == -8.5
+
+    stress_tuprs = fetch_macro_stress_test(
+        "TUPRS",
+        usd_change_pct=10.0,
+        rate_change_bps=0.0,
+        oil_change_pct=15.0,
+        api_url="",
+    )
+    assert stress_tuprs["total_impact_pct"] > 5.0
+    assert "🚀" in stress_tuprs["resilience_badge"]
+
+
+def test_fetch_peer_comparison_deterministic():
+    peer = fetch_peer_comparison("FROTO.IS", "EREGL.IS", api_url="")
+    assert peer["company_a"]["ticker"] == "FROTO"
+    assert peer["company_b"]["ticker"] == "EREGL"
+    assert peer["quality_leader"] == "FROTO"
+    assert "FROTO" in peer["analyst_rationale"]
+
+
+def test_ask_hybrid_analyst_fallback_with_quant_context():
+    with patch("src.colab_llm.query_colab_llm", return_value="THYAO ROE %30.1") as mock_q:
+        res = ask_hybrid_analyst("THYAO ROE nedir?", ticker="THYAO", api_url="")
+        assert res["answer"] == "THYAO ROE %30.1"
+        assert res["source"] == "colab_llm_with_quant_context"
+        sent_prompt = mock_q.call_args[0][0]
+        assert "ROE=%30.1" in sent_prompt
