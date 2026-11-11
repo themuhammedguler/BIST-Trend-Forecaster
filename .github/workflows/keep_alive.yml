@@ -1,0 +1,47 @@
+name: Keep-Alive Ping (24/7 Uptime)
+
+# Bu iş akışı Streamlit Community Cloud ve Hugging Face Spaces üzerindeki
+# ücretsiz konteynerlerin hareketsizlikten uyku moduna (sleep mode) geçmesini
+# önlemek için her 6 saatte bir otomatik ping gönderir.
+
+on:
+  schedule:
+    # Her 6 saatte bir (00:00, 06:00, 12:00, 18:00 UTC)
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      custom_url:
+        description: "İsteğe bağlı özel URL (Boş bırakılırsa varsayılan tüm canlı uygulamalar pinglenir)"
+        required: false
+        default: ""
+
+jobs:
+  ping_containers:
+    name: Ping Streamlit & HF Spaces Containers
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+
+      - name: Execute keep-alive ping round
+        env:
+          CUSTOM_URL: ${{ github.event.inputs.custom_url }}
+        run: |
+          if [ -n "$CUSTOM_URL" ]; then
+            python scripts/keep_alive_ping.py "$CUSTOM_URL"
+          else
+            python scripts/keep_alive_ping.py
+          fi
