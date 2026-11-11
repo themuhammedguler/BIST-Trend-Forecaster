@@ -1026,6 +1026,43 @@ def fetch_peer_comparison(
     return res
 
 
+def _build_offline_analyst_answer(question: str, ticker: str | None) -> str:
+    """Colab/API çevrimdışıyken doğrulanmış kantitatif ve bilanço verileriyle yanıt üretir."""
+    clean = clean_ticker(ticker or "THYAO")
+    quant = fetch_quant_metrics(clean, api_url="")
+    dup = quant["dupont"]
+    alt = quant["altman_z"]
+    dcf = quant["dcf_valuation"]
+    div = quant["dividend_safety"]
+    stress = fetch_macro_stress_test(clean, api_url="")
+    rep = fetch_fundamental_report(clean, api_url="", enrich_live_metrics=False)
+
+    summary_line = (
+        f"- **Bilanço & Faaliyet Özeti:** {rep.fundamental_summary}\n"
+        if rep is not None and rep.fundamental_summary
+        else ""
+    )
+    return (
+        f"### 📊 {clean} Kurumsal Finansal & Kantitatif Analiz Özeti\n\n"
+        f"{summary_line}"
+        f"- **DuPont 3-Aşamalı ROE Ayrıştırması:** Özkaynak Kârlılığı **%{dup['roe_pct']}** "
+        f"(Net Kâr Marjı: `%{dup['net_profit_margin_pct']}` × "
+        f"Aktif Devir Hızı: `{dup['asset_turnover']}x` × "
+        f"Finansal Kaldıraç: `{dup['equity_multiplier']}x`). "
+        f"Ana İtici Güç: *{dup['driver']}*.\n"
+        f"- **Altman Z-Skoru & İflas Dayanıklılığı:** **{alt['z_score']}** — "
+        f"**{alt['zone']}**. {alt['interpretation']}\n"
+        f"- **DCF Adil Değerleme & Temettü Güvenliği:** 5 yıllık İndirgenmiş Nakit Akımları "
+        f"modeline göre tahmini adil şirket değeri "
+        f"**{dcf['estimated_fair_value_million_tl']:,.0f} Milyon TL**. "
+        f"Temettü Güvenlik Skoru: **{div['dividend_safety_score']}/100** "
+        f"(*{div['category']}*, Temettü Verimi: `%{div['yield_pct']}`).\n"
+        f"- **Makroekonomik Şok Duyarlılığı:** +10% USD/TRY, +250 bps Politika Faizi ve "
+        f"+15% Brent Petrol şokunda bileşik net kâr etkisi **{stress['total_impact_pct']:+.2f}%** "
+        f"({stress['resilience_badge']})."
+    )
+
+
 def ask_hybrid_analyst(
     question: str,
     ticker: str | None = None,
@@ -1088,6 +1125,18 @@ def ask_hybrid_analyst(
         base_url=base_url or config.COLAB_LLM_URL,
         timeout=timeout,
     )
+    if (
+        not answer
+        or answer.startswith("Colab LLM yanıt veremedi:")
+        or answer.startswith("Colab LLM URL'si")
+        or answer.startswith("Modelden geçerli")
+    ):
+        return {
+            "question": question,
+            "answer": _build_offline_analyst_answer(question, ticker),
+            "sources": [],
+            "source": "deterministic_analyst_fallback",
+        }
     return {
         "question": question,
         "answer": answer,
