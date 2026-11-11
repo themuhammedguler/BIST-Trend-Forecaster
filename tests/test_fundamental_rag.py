@@ -331,3 +331,5 @@ def test_ask_hybrid_analyst_fallback_with_quant_context():
         assert res["source"] == "colab_llm_with_quant_context"
         sent_prompt = mock_q.call_args[0][0]
         assert "ROE=%30.1" in sent_prompt
+        assert "Finansal Analistisin" in mock_q.call_args[1]["system_prompt"]
+        assert mock_q.call_args[1]["max_tokens"] == 1024

@@ -1026,6 +1026,17 @@ def fetch_peer_comparison(
     return res
 
 
+DEFAULT_ANALYST_SYSTEM_PROMPT = (
+    "Sen Borsa İstanbul Kıdemli Finansal Analistisin. "
+    "Kullanıcıya verilen doğrulanmış finansal göstergeleri ve bilanço verilerini kullanarak "
+    "açık, profesyonel, akıcı ve eksiksiz bir kurumsal değerlendirme sun. "
+    "Uzun cebirsel LaTeX formülleri türetmekle vakit kaybetme; doğrudan şu 3 başlık altında yaz:\n"
+    "1. 📊 Temel Finansal Durum & Rasyolar (Kârlılık, Borçluluk, Likidite)\n"
+    "2. 🔍 DuPont Kârlılık Ayrıştırması & Ana İtici Güç (ROE Kalitesi)\n"
+    "3. ⚠️ Temel Riskler, Katalizörler ve Gelecek Beklentileri"
+)
+
+
 def _build_offline_analyst_answer(question: str, ticker: str | None) -> str:
     """Colab/API çevrimdışıyken doğrulanmış kantitatif ve bilanço verileriyle yanıt üretir."""
     clean = clean_ticker(ticker or "THYAO")
@@ -1069,7 +1080,8 @@ def ask_hybrid_analyst(
     provider: str = "colab",
     base_url: str | None = None,
     api_url: str | None = None,
-    timeout: float = 25.0,
+    timeout: float = 45.0,
+    system_prompt: str | None = None,
 ) -> dict[str, Any]:
     """`/api/v1/ask` uç noktasını çağırır; erişilemezse kantitatif bağlamla Colab LLM'i sorgular."""
     active_api = api_url if api_url is not None else config.FINANCIAL_CHATBOT_API_URL
@@ -1124,6 +1136,9 @@ def ask_hybrid_analyst(
         enriched_prompt,
         base_url=base_url or config.COLAB_LLM_URL,
         timeout=timeout,
+        max_tokens=1024,
+        system_prompt=system_prompt or DEFAULT_ANALYST_SYSTEM_PROMPT,
+        auto_continue=True,
     )
     if (
         not answer
