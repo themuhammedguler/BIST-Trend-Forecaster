@@ -60,24 +60,32 @@ st.markdown(
     /* ==================================================================== */
     /* HUGGING FACE SPACES & IFRAME SCROLLBAR STABILIZATION (Titreşimi Önle) */
     /* ==================================================================== */
-    html {
-        overflow-y: scroll !important;
-        scrollbar-gutter: stable !important;
-    }
-
-    body {
+    html, body {
         overflow-x: hidden !important;
+        scrollbar-gutter: stable !important;
+        height: 100% !important;
     }
 
     [data-testid="stAppViewContainer"],
     [data-testid="stApp"],
-    .main {
+    .stApp {
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        max-height: 100vh !important;
+        height: 100vh !important;
         scrollbar-gutter: stable !important;
+    }
+
+    .main .block-container {
+        max-width: 100% !important;
+        padding-top: 1.5rem !important;
+        padding-bottom: 2rem !important;
     }
 
     div.js-plotly-plot,
     .plotly.graph-view {
         contain: paint;
+        width: 100% !important;
     }
 
     /* Streamlit element toolbar ve fullscreen / enlarge butonlarını kesin olarak gizle */
