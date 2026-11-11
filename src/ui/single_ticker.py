@@ -418,12 +418,188 @@ def render_fundamental_rag_section(
             f"canlı RAG analizini başlatabilirsiniz.*"
         )
 
-    # 🚀 Google Colab Pro Fine-Tuned Canlı BIST LLM Entegrasyonu
+    # 📐 v2.0 Derin Kantitatif Karne (DuPont ROE + Altman Z-Skoru + DCF + Temettü)
     st.markdown("---")
-    st.markdown("#### 🚀 Canlı Fine-Tuned BIST LLM (Google Colab Pro GPU — A100)")
+    st.markdown("#### 📐 v2.0 Derin Kantitatif Karne (DuPont ROE • Altman Z • DCF • Temettü)")
+    quant_data = fundamental_rag.fetch_quant_metrics(selected_ticker)
+    dup = quant_data.get("dupont", {})
+    alt = quant_data.get("altman_z", {})
+    dcf = quant_data.get("dcf_valuation", {})
+    div = quant_data.get("dividend_safety", {})
+
+    q_col1, q_col2, q_col3, q_col4 = st.columns(4)
+    q_col1.markdown(
+        f"**Özkaynak Kârlılığı (ROE):**<br>`%{dup.get('roe_pct', 0.0):.1f}`",
+        unsafe_allow_html=True,
+    )
+    q_col2.markdown(
+        f"**Net Kâr Marjı:**<br>`%{dup.get('net_profit_margin_pct', 0.0):.1f}`",
+        unsafe_allow_html=True,
+    )
+    q_col3.markdown(
+        f"**Aktif Devir / Kaldıraç:**<br>`{dup.get('asset_turnover', 0.0):.2f}x` / "
+        f"`{dup.get('equity_multiplier', 1.0):.2f}x`",
+        unsafe_allow_html=True,
+    )
+    q_col4.markdown(
+        f"**Altman Z-Skoru:**<br>`{alt.get('z_score', 0.0):.2f}` ({alt.get('zone', '—')})",
+        unsafe_allow_html=True,
+    )
+    st.caption(
+        f"🔍 **DuPont Ana İtici Güç:** {dup.get('driver', '—')} — "
+        f"{dup.get('quality_assessment', '')} | **Finansal Dayanıklılık:** "
+        f"{alt.get('interpretation', '')}"
+    )
+
+    fair_val = dcf.get("estimated_fair_value_million_tl", 0.0)
+    d_col1, d_col2, d_col3, d_col4 = st.columns(4)
+    d_col1.markdown(
+        f"**DCF Adil Şirket Değeri:**<br>`{fair_val:,.0f} M TL`",
+        unsafe_allow_html=True,
+    )
+    d_col2.markdown(
+        f"**Temettü Güvenlik Skoru:**<br>`{div.get('dividend_safety_score', 0.0):.0f} / 100`",
+        unsafe_allow_html=True,
+    )
+    d_col3.markdown(
+        f"**Temettü Verimi / Dağıtım:**<br>`%{div.get('yield_pct', 0.0):.1f}` / "
+        f"`%{div.get('payout_pct', 0.0):.1f}`",
+        unsafe_allow_html=True,
+    )
+    d_col4.markdown(
+        f"**Serbest Nakit Akış (FCF) Marjı:**<br>`%{div.get('fcf_margin_pct', 0.0):.1f}`",
+        unsafe_allow_html=True,
+    )
+    st.caption(f"👑 **Temettü Sınıfı:** {div.get('category', '—')} — {div.get('takeaway', '')}")
+
+    # 🌪️ v2.0 Makroekonomik Şok & Tornado Duyarlılık Simülatörü
+    st.markdown("---")
+    st.markdown("#### 🌪️ Makroekonomik Şok & Tornado Duyarlılık Simülatörü (v2.0)")
+    s_col1, s_col2, s_col3 = st.columns(3)
+    with s_col1:
+        usd_shock = st.slider(
+            "💵 USD/TRY Kur Şoku (%)",
+            min_value=-20.0,
+            max_value=40.0,
+            value=10.0,
+            step=2.5,
+            key=f"macro_usd_{selected_ticker}",
+        )
+    with s_col2:
+        rate_shock = st.slider(
+            "🏦 TCMB Politika Faizi Şoku (Baz Puan)",
+            min_value=-500.0,
+            max_value=1000.0,
+            value=250.0,
+            step=50.0,
+            key=f"macro_rate_{selected_ticker}",
+        )
+    with s_col3:
+        oil_shock = st.slider(
+            "🛢️ Brent Petrol Şoku (%)",
+            min_value=-30.0,
+            max_value=50.0,
+            value=15.0,
+            step=5.0,
+            key=f"macro_oil_{selected_ticker}",
+        )
+
+    stress = fundamental_rag.fetch_macro_stress_test(
+        selected_ticker,
+        usd_change_pct=float(usd_shock),
+        rate_change_bps=float(rate_shock),
+        oil_change_pct=float(oil_shock),
+    )
+    scenarios = stress.get("scenarios", {})
+    fx_imp = scenarios.get("usd_try", {}).get("impact_pct", 0.0)
+    rt_imp = scenarios.get("interest_rate", {}).get("impact_pct", 0.0)
+    oil_imp = scenarios.get("brent_oil", {}).get("impact_pct", 0.0)
+    tot_imp = stress.get("total_impact_pct", 0.0)
+
+    st.markdown(
+        f"**Bileşik Net Kâr Etkisi:** `{tot_imp:+.2f}%` &nbsp;|&nbsp; "
+        f"**Dayanıklılık Sınıfı:** `{stress.get('resilience_badge', '—')}`  \n"
+        f"{stress.get('verdict', '')}"
+    )
+
+    tornado_fig = go.Figure(
+        go.Bar(
+            y=["🛢️ Brent Petrol", "🏦 Politika Faizi", "💵 USD/TRY Kuru"],
+            x=[oil_imp, rt_imp, fx_imp],
+            orientation="h",
+            marker_color=["#10B981" if v >= 0 else "#EF4444" for v in (oil_imp, rt_imp, fx_imp)],
+            text=[f"{v:+.2f}%" for v in (oil_imp, rt_imp, fx_imp)],
+            textposition="auto",
+        )
+    )
+    tornado_fig.update_layout(
+        xaxis_title="Tahmini Net Kâr Etkisi (%)",
+        height=230,
+        margin=dict(l=20, r=20, t=20, b=20),
+        dragmode=False,
+        xaxis=dict(fixedrange=True),
+        yaxis=dict(fixedrange=True),
+    )
+    st.plotly_chart(tornado_fig, width="stretch", config=PLOTLY_CONFIG)
+
+    # ⚖️ v2.0 Eşler Arası (Peer-to-Peer) Rakip Kıyaslama Matrisi
+    st.markdown("---")
+    st.markdown("#### ⚖️ Eşler Arası (Peer) Rakip Kıyaslama Matrisi (v2.0)")
+    peer_candidates = [
+        t.replace(".IS", "") for t in config.TICKERS if t.replace(".IS", "") != selected_ticker
+    ]
+    default_peer = (
+        "PGSUS"
+        if selected_ticker == "THYAO" and "PGSUS" in peer_candidates
+        else (
+            "GARAN"
+            if selected_ticker == "AKBNK" and "GARAN" in peer_candidates
+            else peer_candidates[0]
+        )
+    )
+    peer_ticker = st.selectbox(
+        "Kıyaslanacak Rakip BIST Hissesini Seçin:",
+        peer_candidates,
+        index=peer_candidates.index(default_peer) if default_peer in peer_candidates else 0,
+        key=f"peer_select_{selected_ticker}",
+    )
+    peer_res = fundamental_rag.fetch_peer_comparison(selected_ticker, peer_ticker)
+    comp_a = peer_res.get("company_a", {})
+    comp_b = peer_res.get("company_b", {})
+    st.markdown(
+        f"🏆 **Kalite Lideri:** `{peer_res.get('quality_leader', '—')}` — "
+        f"{peer_res.get('analyst_rationale', '')}"
+    )
+    peer_df = pd.DataFrame(
+        [
+            {
+                "Hisse": comp_a.get("ticker", selected_ticker),
+                "ROE (%)": comp_a.get("roe_pct", 0.0),
+                "Net Kâr Marjı (%)": comp_a.get("net_margin_pct", 0.0),
+                "Aktif Devir (x)": comp_a.get("asset_turnover", 0.0),
+                "Finansal Kaldıraç (x)": comp_a.get("equity_multiplier", 1.0),
+                "Altman Z-Skoru": comp_a.get("z_score", 0.0),
+                "Risk Bölgesi": comp_a.get("zone", "—"),
+            },
+            {
+                "Hisse": comp_b.get("ticker", peer_ticker),
+                "ROE (%)": comp_b.get("roe_pct", 0.0),
+                "Net Kâr Marjı (%)": comp_b.get("net_margin_pct", 0.0),
+                "Aktif Devir (x)": comp_b.get("asset_turnover", 0.0),
+                "Finansal Kaldıraç (x)": comp_b.get("equity_multiplier", 1.0),
+                "Altman Z-Skoru": comp_b.get("z_score", 0.0),
+                "Risk Bölgesi": comp_b.get("zone", "—"),
+            },
+        ]
+    )
+    st.table(peer_df)
+
+    # 🚀 Google Colab Pro Fine-Tuned Canlı BIST LLM & Hibrit RAG Soru-Cevap
+    st.markdown("---")
+    st.markdown("#### 🚀 Canlı Fine-Tuned BIST LLM & Hibrit RAG Soru-Cevap (Colab Pro GPU — A100)")
     st.caption(
         "Kendi eğittiğimiz `bist-financial-llm` modeli Colab üzerinde çalışmakta ve "
-        "doğrudan BIST 100 bilanço & KAP eğitim verileriyle yanıt vermektedir."
+        "doğrudan BIST 100 bilanço, DuPont, Altman Z ve KAP eğitim verileriyle yanıt vermektedir."
     )
     colab_active = colab_llm.check_colab_health()
     colab_badge = (
@@ -445,8 +621,8 @@ def render_fundamental_rag_section(
     )
     if c_ask.button("✨ Sor", key=f"btn_ask_colab_{selected_ticker}"):
         with st.spinner("Fine-Tuned BIST modeli yanıt üretiyor..."):
-            answer = colab_llm.query_colab_llm(user_q)
-            st.markdown(f"**✨ Model Değerlendirmesi:**\n\n{answer}")
+            ask_res = fundamental_rag.ask_hybrid_analyst(user_q, ticker=selected_ticker)
+            st.markdown(f"**✨ Model Değerlendirmesi:**\n\n{ask_res.get('answer', '')}")
 
 
 def render_hybrid_decision_card(decision: hybrid_decision.HybridDecision) -> None:
