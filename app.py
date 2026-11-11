@@ -57,6 +57,29 @@ LOGO_B64 = get_logo_base64()
 st.markdown(
     """
     <style>
+    /* ==================================================================== */
+    /* HUGGING FACE SPACES & IFRAME SCROLLBAR STABILIZATION (Titreşimi Önle) */
+    /* ==================================================================== */
+    html {
+        overflow-y: scroll !important;
+        scrollbar-gutter: stable !important;
+    }
+
+    body {
+        overflow-x: hidden !important;
+    }
+
+    [data-testid="stAppViewContainer"],
+    [data-testid="stApp"],
+    .main {
+        scrollbar-gutter: stable !important;
+    }
+
+    div.js-plotly-plot,
+    .plotly.graph-view {
+        contain: paint;
+    }
+
     /* Streamlit element toolbar ve fullscreen / enlarge butonlarını kesin olarak gizle */
     [data-testid="stElementToolbar"],
     [data-testid="stElementToolbarButton"],
