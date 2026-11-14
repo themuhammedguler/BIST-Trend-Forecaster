@@ -5,9 +5,9 @@
     "ticker": "AKBNK",
     "signal": 0,
     "direction": "DÜŞÜŞ",
-    "prob": 0.4123,
+    "prob": 0.4052,
     "entry_price": 121.45,
-    "created_at": "2026-11-09T13:42:45.759892+00:00"
+    "created_at": "2026-11-14T01:19:18.676695+00:00"
   },
   {
     "id": "GARAN_2025-07-01",
@@ -15,9 +15,9 @@
     "ticker": "GARAN",
     "signal": 0,
     "direction": "DÜŞÜŞ",
-    "prob": 0.4123,
+    "prob": 0.4052,
     "entry_price": 121.45,
-    "created_at": "2026-11-09T13:42:28.414404+00:00"
+    "created_at": "2026-11-14T01:19:09.763341+00:00"
   },
   {
     "id": "THYAO_2025-07-01",
@@ -25,9 +25,9 @@
     "ticker": "THYAO",
     "signal": 0,
     "direction": "DÜŞÜŞ",
-    "prob": 0.4123,
+    "prob": 0.4052,
     "entry_price": 121.45,
-    "created_at": "2026-11-09T13:42:42.536096+00:00"
+    "created_at": "2026-11-14T01:19:16.029661+00:00"
   },
   {
     "id": "AKBNK_2026-10-16",
@@ -5395,9 +5395,9 @@
     "ticker": "AKBNK",
     "signal": 1,
     "direction": "YÜKSELİŞ",
-    "prob": 0.5665,
-    "entry_price": 70.1,
-    "created_at": "2026-11-12T21:53:42.286289+00:00"
+    "prob": 0.5551,
+    "entry_price": 69.95,
+    "created_at": "2026-11-14T01:18:44.697676+00:00"
   },
   {
     "id": "ARCLK_2026-11-12",
