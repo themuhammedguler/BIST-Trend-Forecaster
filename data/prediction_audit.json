@@ -5988,5 +5988,305 @@
     "prob": 0.5522,
     "entry_price": 37.78,
     "created_at": "2026-11-13T21:29:14.761601+00:00"
+  },
+  {
+    "id": "AKBNK_2026-11-16",
+    "date": "2026-11-16",
+    "ticker": "AKBNK",
+    "signal": 1,
+    "direction": "YÜKSELİŞ",
+    "prob": 0.5704,
+    "entry_price": 69.9,
+    "created_at": "2026-11-16T23:47:25.400757+00:00"
+  },
+  {
+    "id": "ARCLK_2026-11-16",
+    "date": "2026-11-16",
+    "ticker": "ARCLK",
+    "signal": 1,
+    "direction": "YÜKSELİŞ",
+    "prob": 0.574,
+    "entry_price": 68.15,
+    "created_at": "2026-11-16T23:47:25.384722+00:00"
+  },
+  {
+    "id": "ASELS_2026-11-16",
+    "date": "2026-11-16",
+    "ticker": "ASELS",
+    "signal": 1,
+    "direction": "YÜKSELİŞ",
+    "prob": 0.549,
+    "entry_price": 353.0,
+    "created_at": "2026-11-16T23:47:25.453434+00:00"
+  },
+  {
+    "id": "BIMAS_2026-11-16",
+    "date": "2026-11-16",
+    "ticker": "BIMAS",
+    "signal": 1,
+    "direction": "YÜKSELİŞ",
+    "prob": 0.5523,
+    "entry_price": 394.5,
+    "created_at": "2026-11-16T23:47:25.441119+00:00"
+  },
+  {
+    "id": "EKGYO_2026-11-16",
+    "date": "2026-11-16",
+    "ticker": "EKGYO",
+    "signal": 1,
+    "direction": "YÜKSELİŞ",
+    "prob": 0.5792,
+    "entry_price": 18.55,
+    "created_at": "2026-11-16T23:47:25.372723+00:00"
+  },
+  {
+    "id": "ENKAI_2026-11-16",
+    "date": "2026-11-16",
+    "ticker": "ENKAI",
+    "signal": 1,
+    "direction": "YÜKSELİŞ",
+    "prob": 0.567,
+    "entry_price": 82.7,
+    "created_at": "2026-11-16T23:47:25.416826+00:00"
+  },
+  {
+    "id": "EREGL_2026-11-16",
+    "date": "2026-11-16",
+    "ticker": "EREGL",
+    "signal": 1,
+    "direction": "YÜKSELİŞ",
+    "prob": 0.5736,
+    "entry_price": 32.22,
+    "created_at": "2026-11-16T23:47:25.388716+00:00"
+  },
+  {
+    "id": "FROTO_2026-11-16",
+    "date": "2026-11-16",
+    "ticker": "FROTO",
+    "signal": 1,
+    "direction": "YÜKSELİŞ",
+    "prob": 0.5699,
+    "entry_price": 73.0,
+    "created_at": "2026-11-16T23:47:25.404779+00:00"
+  },
+  {
+    "id": "GARAN_2026-11-16",
+    "date": "2026-11-16",
+    "ticker": "GARAN",
+    "signal": 1,
+    "direction": "YÜKSELİŞ",
+    "prob": 0.563,
+    "entry_price": 150.1,
+    "created_at": "2026-11-16T23:47:25.428985+00:00"
+  },
+  {
+    "id": "GUBRF_2026-11-16",
+    "date": "2026-11-16",
+    "ticker": "GUBRF",
+    "signal": 1,
+    "direction": "YÜKSELİŞ",
+    "prob": 0.5424,
+    "entry_price": 290.25,
+    "created_at": "2026-11-16T23:47:25.465838+00:00"
+  },
+  {
+    "id": "HALKB_2026-11-16",
+    "date": "2026-11-16",
+    "ticker": "HALKB",
+    "signal": 1,
+    "direction": "YÜKSELİŞ",
+    "prob": 0.5283,
+    "entry_price": 41.2,
+    "created_at": "2026-11-16T23:47:25.478171+00:00"
+  },
+  {
+    "id": "HEKTS_2026-11-16",
+    "date": "2026-11-16",
+    "ticker": "HEKTS",
+    "signal": 1,
+    "direction": "YÜKSELİŞ",
+    "prob": 0.5329,
+    "entry_price": 1.7,
+    "created_at": "2026-11-16T23:47:25.474061+00:00"
+  },
+  {
+    "id": "ISCTR_2026-11-16",
+    "date": "2026-11-16",
+    "ticker": "ISCTR",
+    "signal": 1,
+    "direction": "YÜKSELİŞ",
+    "prob": 0.5804,
+    "entry_price": 13.34,
+    "created_at": "2026-11-16T23:47:25.368725+00:00"
+  },
+  {
+    "id": "KCHOL_2026-11-16",
+    "date": "2026-11-16",
+    "ticker": "KCHOL",
+    "signal": 1,
+    "direction": "YÜKSELİŞ",
+    "prob": 0.5497,
+    "entry_price": 205.5,
+    "created_at": "2026-11-16T23:47:25.449338+00:00"
+  },
+  {
+    "id": "KOZAA_2026-11-16",
+    "date": "2026-11-16",
+    "ticker": "KOZAA",
+    "signal": 1,
+    "direction": "YÜKSELİŞ",
+    "prob": 0.5386,
+    "entry_price": 110.8,
+    "created_at": "2026-11-16T23:47:25.469957+00:00"
+  },
+  {
+    "id": "KOZAL_2026-11-16",
+    "date": "2026-11-16",
+    "ticker": "KOZAL",
+    "signal": 1,
+    "direction": "YÜKSELİŞ",
+    "prob": 0.5651,
+    "entry_price": 38.18,
+    "created_at": "2026-11-16T23:47:25.420859+00:00"
+  },
+  {
+    "id": "KRDMD_2026-11-16",
+    "date": "2026-11-16",
+    "ticker": "KRDMD",
+    "signal": 1,
+    "direction": "YÜKSELİŞ",
+    "prob": 0.5727,
+    "entry_price": 38.5,
+    "created_at": "2026-11-16T23:47:25.396757+00:00"
+  },
+  {
+    "id": "PETKM_2026-11-16",
+    "date": "2026-11-16",
+    "ticker": "PETKM",
+    "signal": 1,
+    "direction": "YÜKSELİŞ",
+    "prob": 0.5691,
+    "entry_price": 16.47,
+    "created_at": "2026-11-16T23:47:25.412803+00:00"
+  },
+  {
+    "id": "PGSUS_2026-11-16",
+    "date": "2026-11-16",
+    "ticker": "PGSUS",
+    "signal": 1,
+    "direction": "YÜKSELİŞ",
+    "prob": 0.5695,
+    "entry_price": 157.5,
+    "created_at": "2026-11-16T23:47:25.408781+00:00"
+  },
+  {
+    "id": "SAHOL_2026-11-16",
+    "date": "2026-11-16",
+    "ticker": "SAHOL",
+    "signal": 1,
+    "direction": "YÜKSELİŞ",
+    "prob": 0.5477,
+    "entry_price": 84.7,
+    "created_at": "2026-11-16T23:47:25.457566+00:00"
+  },
+  {
+    "id": "SASA_2026-11-16",
+    "date": "2026-11-16",
+    "ticker": "SASA",
+    "signal": 1,
+    "direction": "YÜKSELİŞ",
+    "prob": 0.5582,
+    "entry_price": 1.59,
+    "created_at": "2026-11-16T23:47:25.433034+00:00"
+  },
+  {
+    "id": "SISE_2026-11-16",
+    "date": "2026-11-16",
+    "ticker": "SISE",
+    "signal": 1,
+    "direction": "YÜKSELİŞ",
+    "prob": 0.5648,
+    "entry_price": 34.84,
+    "created_at": "2026-11-16T23:47:25.424925+00:00"
+  },
+  {
+    "id": "TCELL_2026-11-16",
+    "date": "2026-11-16",
+    "ticker": "TCELL",
+    "signal": 1,
+    "direction": "YÜKSELİŞ",
+    "prob": 0.5779,
+    "entry_price": 96.0,
+    "created_at": "2026-11-16T23:47:25.380681+00:00"
+  },
+  {
+    "id": "THYAO_2026-11-16",
+    "date": "2026-11-16",
+    "ticker": "THYAO",
+    "signal": 1,
+    "direction": "YÜKSELİŞ",
+    "prob": 0.5441,
+    "entry_price": 323.5,
+    "created_at": "2026-11-16T23:47:25.461651+00:00"
+  },
+  {
+    "id": "TKFEN_2026-11-16",
+    "date": "2026-11-16",
+    "ticker": "TKFEN",
+    "signal": 0,
+    "direction": "DÜŞÜŞ",
+    "prob": 0.4964,
+    "entry_price": 188.5,
+    "created_at": "2026-11-16T23:47:25.482306+00:00"
+  },
+  {
+    "id": "TOASO_2026-11-16",
+    "date": "2026-11-16",
+    "ticker": "TOASO",
+    "signal": 1,
+    "direction": "YÜKSELİŞ",
+    "prob": 0.5517,
+    "entry_price": 246.0,
+    "created_at": "2026-11-16T23:47:25.445263+00:00"
+  },
+  {
+    "id": "TSKB_2026-11-16",
+    "date": "2026-11-16",
+    "ticker": "TSKB",
+    "signal": 1,
+    "direction": "YÜKSELİŞ",
+    "prob": 0.5806,
+    "entry_price": 10.51,
+    "created_at": "2026-11-16T23:47:25.364304+00:00"
+  },
+  {
+    "id": "TTKOM_2026-11-16",
+    "date": "2026-11-16",
+    "ticker": "TTKOM",
+    "signal": 1,
+    "direction": "YÜKSELİŞ",
+    "prob": 0.5733,
+    "entry_price": 51.2,
+    "created_at": "2026-11-16T23:47:25.392708+00:00"
+  },
+  {
+    "id": "TUPRS_2026-11-16",
+    "date": "2026-11-16",
+    "ticker": "TUPRS",
+    "signal": 1,
+    "direction": "YÜKSELİŞ",
+    "prob": 0.5546,
+    "entry_price": 356.0,
+    "created_at": "2026-11-16T23:47:25.437057+00:00"
+  },
+  {
+    "id": "YKBNK_2026-11-16",
+    "date": "2026-11-16",
+    "ticker": "YKBNK",
+    "signal": 1,
+    "direction": "YÜKSELİŞ",
+    "prob": 0.578,
+    "entry_price": 37.48,
+    "created_at": "2026-11-16T23:47:25.376723+00:00"
   }
 ]
