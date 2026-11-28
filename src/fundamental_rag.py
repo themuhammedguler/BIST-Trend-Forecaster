@@ -443,6 +443,177 @@ MACRO_TICKER_PROFILES: dict[str, dict[str, Any]] = {
             "Hammadde olarak nafta tüketir; petrol artışı etilen-nafta makasını daraltır."
         ),
     },
+    "ARCLK": {
+        "sector": "Dayanıklı Tüketim",
+        "fx_beta": 4.2,
+        "rate_beta": -3.4,
+        "oil_beta": -1.8,
+        "fx_driver": "Avrupa (Whirlpool/Beko) ihracat gelirleri kur artışından pozitif beslenir.",
+        "rate_driver": "Kredi kartı taksit ve finansman maliyeti iç talebi ve net kârı baskılar.",
+        "oil_driver": "Plastik/petrokimya türevi hammadde ve küresel lojistik giderlerini artırır.",
+    },
+    "EKGYO": {
+        "sector": "Gayrimenkul (GYO)",
+        "fx_beta": 1.2,
+        "rate_beta": -5.5,
+        "oil_beta": -1.0,
+        "fx_driver": "Arsa ve konut değerlemeleri enflasyon/kur geçişkenliğiyle orta vadede artar.",
+        "rate_driver": "Yüksek konut kredisi faizleri gayrimenkul satış hızını yavaşlatır.",
+        "oil_driver": "İnşaat ve demir-çimento nakliye maliyetleri üzerinden sınırlı negatif etki.",
+    },
+    "ENKAI": {
+        "sector": "İnşaat & Enerji",
+        "fx_beta": 6.4,
+        "rate_beta": 1.5,
+        "oil_beta": 1.2,
+        "fx_driver": "Yurt dışı müteahhitlik projeleri ve döviz nakit rezervi kurdan kazanır.",
+        "rate_driver": "Net nakit pozisyonu sayesinde yüksek faiz ortamında finansal gelir yazar.",
+        "oil_driver": "Petrol ihracatçısı ülkelerdeki altyapı yatırımlarını doğrudan destekler.",
+    },
+    "GUBRF": {
+        "sector": "Kimya & Gübre & Maden",
+        "fx_beta": 3.8,
+        "rate_beta": -2.2,
+        "oil_beta": -2.8,
+        "fx_driver": "Söğüt altın madeni gelirleri ve gübre fiyatlaması dolar bazlıdır.",
+        "rate_driver": "Tarımsal kredi maliyetleri çiftçi gübre talebini etkiler.",
+        "oil_driver": "Doğalgaz ve amonyak hammadde maliyetleri enerji fiyatlarına duyarlıdır.",
+    },
+    "HALKB": {
+        "sector": "Bankacılık",
+        "fx_beta": 0.3,
+        "rate_beta": -4.4,
+        "oil_beta": -1.0,
+        "fx_driver": "Kamu bankası döviz pozisyonu dengelidir.",
+        "rate_driver": "KOBİ kredi-mevduat makası yüksek politika faizinde kısa vadede daralır.",
+        "oil_driver": "Enflasyon beklentileri üzerinden tahvil portföyünü dolaylı etkiler.",
+    },
+    "HEKTS": {
+        "sector": "Tarım & Kimya",
+        "fx_beta": 1.5,
+        "rate_beta": -4.8,
+        "oil_beta": -2.2,
+        "fx_driver": "İthal aktif madde maliyetleri ile döviz bazlı fiyatlama kısmen dengelenir.",
+        "rate_driver": "Yüksek işletme sermayesi ve finansman borcu faiz artışına çok duyarlıdır.",
+        "oil_driver": "Kimyasal hammadde ve tedarik zinciri maliyetlerini artırır.",
+    },
+    "ISCTR": {
+        "sector": "Bankacılık",
+        "fx_beta": 1.4,
+        "rate_beta": -3.5,
+        "oil_beta": -1.0,
+        "fx_driver": "Şişecam başta olmak üzere sanayi iştirakleri döviz gelirleriyle katkı sunar.",
+        "rate_driver": "Mevduat fonlama maliyeti artışı kısa vadeli net faiz marjını sınırlar.",
+        "oil_driver": "İştiraklerin enerji maliyetleri ve makro enflasyon kanalıyla dolaylı etki.",
+    },
+    "KCHOL": {
+        "sector": "Holding",
+        "fx_beta": 4.8,
+        "rate_beta": -2.4,
+        "oil_beta": 0.5,
+        "fx_driver": "Otomotiv (FROTO/TOASO) ve dayanıklı tüketim ihracatı kur kalkanı sunar.",
+        "rate_driver": "Bankacılık (YKBNK) ve dayanıklı tüketim talebi faiz artışından etkilenir.",
+        "oil_driver": "Tüpraş rafineri kârlılığı enerji fiyat artışlarında holdingi dengeler.",
+    },
+    "KOZAA": {
+        "sector": "Madencilik",
+        "fx_beta": 5.8,
+        "rate_beta": 1.8,
+        "oil_beta": -1.4,
+        "fx_driver": "Altın ve metal satışları tamamen ons/dolar kuru üzerinden fiyatlanır.",
+        "rate_driver": "Güçlü solo nakit bilançosu yüksek TL faizinden mevduat geliri üretir.",
+        "oil_driver": "Açık ocak ve tesis enerji/mazot giderleri üzerinden sınırlı maliyet artışı.",
+    },
+    "KOZAL": {
+        "sector": "Altın Madenciliği",
+        "fx_beta": 6.2,
+        "rate_beta": 2.4,
+        "oil_beta": -1.2,
+        "fx_driver": "Ons altın ve USD/TRY yükselişi ciroya birebir pozitif yansır.",
+        "rate_driver": "Sıfır finansal borç ve yüksek nakit varlığıyla faizden net kâr yazar.",
+        "oil_driver": "Madencilik iş makinesi akaryakıt maliyetlerini sınırlı etkiler.",
+    },
+    "KRDMD": {
+        "sector": "Demir & Çelik",
+        "fx_beta": 3.2,
+        "rate_beta": -3.8,
+        "oil_beta": -2.2,
+        "fx_driver": "Uzun çelik, ray ve profil satış fiyatları dolar bazında belirlenir.",
+        "rate_driver": "Altyapı ve inşaat sektörü kredi faizlerine yüksek duyarlılık gösterir.",
+        "oil_driver": "Kok kömürü ve enerji maliyetleri marjları etkiler.",
+    },
+    "SAHOL": {
+        "sector": "Holding",
+        "fx_beta": 3.4,
+        "rate_beta": -2.2,
+        "oil_beta": -0.6,
+        "fx_driver": "Enerji üretim, malzeme teknolojileri ve solo döviz pozisyonu koruma sağlar.",
+        "rate_driver": "Akbank ağırlığı nedeniyle faize duyarlıdır; solo nakdi tampon oluşturur.",
+        "oil_driver": "Sanayi ve çimento iştiraklerinde enerji maliyetlerini etkiler.",
+    },
+    "SASA": {
+        "sector": "Polyester & Petrokimya",
+        "fx_beta": 3.6,
+        "rate_beta": -4.2,
+        "oil_beta": -3.8,
+        "fx_driver": "PTA ve polyester elyaf fiyatları küresel dolar paritesine endekslidir.",
+        "rate_driver": "Yüksek yatırım kredileri nedeniyle finansman gideri faize duyarlıdır.",
+        "oil_driver": "Petrokimya türevi hammaddeler (PX/MEG) petrol fiyatlarıyla hareket eder.",
+    },
+    "TCELL": {
+        "sector": "Telekomünikasyon",
+        "fx_beta": -1.2,
+        "rate_beta": -1.4,
+        "oil_beta": -0.6,
+        "fx_driver": "Altyapı yatırımları döviz bazlıdır ancak kur koruma türevleri güçlüdür.",
+        "rate_driver": "Düzenli nakit akışı ve ARPU enflasyon uyarlaması faiz etkisini sınırlar.",
+        "oil_driver": "Baz istasyonu elektrik giderleri dışında petrol duyarlılığı çok düşüktür.",
+    },
+    "TKFEN": {
+        "sector": "İnşaat & Tarım",
+        "fx_beta": 4.0,
+        "rate_beta": -2.6,
+        "oil_beta": 0.4,
+        "fx_driver": "Yurt dışı taahhüt bakiye siparişleri ve Toros Tarım ihracatı döviz bazlıdır.",
+        "rate_driver": "Tarımsal işletme sermayesi finansman maliyetleri faizden etkilenir.",
+        "oil_driver": "Hazar ve Orta Doğu petrol üreticisi ülkelerin yatırım bütçesini destekler.",
+    },
+    "TOASO": {
+        "sector": "Otomotiv",
+        "fx_beta": 4.6,
+        "rate_beta": -3.6,
+        "oil_beta": -1.2,
+        "fx_driver": "İhracat sözleşmeleri kur korumalıdır; iç pazar ise kur şokuna duyarlıdır.",
+        "rate_driver": "Taşıt kredisi faizleri yurtiçi binek ve hafif ticari satışlarını etkiler.",
+        "oil_driver": "Lojistik ve tedarik maliyetleri üzerinden sınırlı etki.",
+    },
+    "TSKB": {
+        "sector": "Kalkınma & Yatırım Bankası",
+        "fx_beta": 2.2,
+        "rate_beta": -1.2,
+        "oil_beta": -0.5,
+        "fx_driver": "Kredi portföyünün büyük çoğunluğu uzun vadeli döviz yatırım kredileridir.",
+        "rate_driver": "Mevduat toplamadığı ve kalkınma fonu kullandığı için NIM istikrarlıdır.",
+        "oil_driver": "Yenilenebilir enerji projeleri finansman talebini dolaylı destekler.",
+    },
+    "TTKOM": {
+        "sector": "Telekomünikasyon",
+        "fx_beta": -1.8,
+        "rate_beta": -2.1,
+        "oil_beta": -0.6,
+        "fx_driver": "Fiber ve 5G altyapı yatırımları döviz cinsi CAPEX gerektirir.",
+        "rate_driver": "Taahhütlü abone sözleşmeleri yenilendikçe nakit akışı faizi dengeler.",
+        "oil_driver": "Saha operasyonları dışında doğrudan petrol duyarlılığı düşüktür.",
+    },
+    "YKBNK": {
+        "sector": "Bankacılık",
+        "fx_beta": 0.6,
+        "rate_beta": -3.9,
+        "oil_beta": -1.0,
+        "fx_driver": "Sendikasyon ve yabancı para pozisyonu tam koruma (hedge) altındadır.",
+        "rate_driver": "TL mevduat fiyatlaması ve kredi büyüme sınırları marjı etkiler.",
+        "oil_driver": "Makroekonomik enflasyon beklentileri üzerinden dolaylı etki.",
+    },
 }
 
 DEFAULT_MACRO_PROFILE: dict[str, Any] = {
@@ -516,6 +687,132 @@ DEFAULT_DIVIDEND_PROFILES: dict[str, dict[str, float | int]] = {
         "fcf_margin_pct": 6.5,
         "consecutive_years": 5,
     },
+    "ARCLK": {
+        "yield_pct": 2.8,
+        "payout_pct": 35.0,
+        "fcf_margin_pct": 5.2,
+        "consecutive_years": 4,
+    },
+    "EKGYO": {
+        "yield_pct": 3.4,
+        "payout_pct": 40.0,
+        "fcf_margin_pct": 8.4,
+        "consecutive_years": 4,
+    },
+    "ENKAI": {
+        "yield_pct": 4.8,
+        "payout_pct": 55.0,
+        "fcf_margin_pct": 17.5,
+        "consecutive_years": 9,
+    },
+    "GUBRF": {
+        "yield_pct": 0.0,
+        "payout_pct": 0.0,
+        "fcf_margin_pct": 7.8,
+        "consecutive_years": 0,
+    },
+    "HALKB": {
+        "yield_pct": 0.0,
+        "payout_pct": 0.0,
+        "fcf_margin_pct": 9.2,
+        "consecutive_years": 0,
+    },
+    "HEKTS": {
+        "yield_pct": 0.0,
+        "payout_pct": 0.0,
+        "fcf_margin_pct": -4.5,
+        "consecutive_years": 0,
+    },
+    "ISCTR": {
+        "yield_pct": 3.6,
+        "payout_pct": 20.0,
+        "fcf_margin_pct": 17.2,
+        "consecutive_years": 5,
+    },
+    "KCHOL": {
+        "yield_pct": 4.2,
+        "payout_pct": 28.0,
+        "fcf_margin_pct": 13.8,
+        "consecutive_years": 8,
+    },
+    "KOZAA": {
+        "yield_pct": 1.8,
+        "payout_pct": 22.0,
+        "fcf_margin_pct": 19.0,
+        "consecutive_years": 2,
+    },
+    "KOZAL": {
+        "yield_pct": 4.4,
+        "payout_pct": 45.0,
+        "fcf_margin_pct": 24.5,
+        "consecutive_years": 3,
+    },
+    "KRDMD": {
+        "yield_pct": 2.4,
+        "payout_pct": 30.0,
+        "fcf_margin_pct": 6.2,
+        "consecutive_years": 3,
+    },
+    "PETKM": {
+        "yield_pct": 0.0,
+        "payout_pct": 0.0,
+        "fcf_margin_pct": 4.2,
+        "consecutive_years": 0,
+    },
+    "SAHOL": {
+        "yield_pct": 4.6,
+        "payout_pct": 30.0,
+        "fcf_margin_pct": 14.4,
+        "consecutive_years": 7,
+    },
+    "SASA": {
+        "yield_pct": 0.0,
+        "payout_pct": 0.0,
+        "fcf_margin_pct": 3.5,
+        "consecutive_years": 0,
+    },
+    "SISE": {
+        "yield_pct": 2.9,
+        "payout_pct": 32.0,
+        "fcf_margin_pct": 7.8,
+        "consecutive_years": 8,
+    },
+    "TCELL": {
+        "yield_pct": 5.2,
+        "payout_pct": 50.0,
+        "fcf_margin_pct": 15.2,
+        "consecutive_years": 7,
+    },
+    "TKFEN": {
+        "yield_pct": 2.2,
+        "payout_pct": 30.0,
+        "fcf_margin_pct": 5.8,
+        "consecutive_years": 3,
+    },
+    "TOASO": {
+        "yield_pct": 8.4,
+        "payout_pct": 80.0,
+        "fcf_margin_pct": 13.4,
+        "consecutive_years": 10,
+    },
+    "TSKB": {
+        "yield_pct": 1.9,
+        "payout_pct": 15.0,
+        "fcf_margin_pct": 21.0,
+        "consecutive_years": 3,
+    },
+    "TTKOM": {
+        "yield_pct": 3.1,
+        "payout_pct": 40.0,
+        "fcf_margin_pct": 11.4,
+        "consecutive_years": 4,
+    },
+    "YKBNK": {
+        "yield_pct": 3.5,
+        "payout_pct": 20.0,
+        "fcf_margin_pct": 17.8,
+        "consecutive_years": 4,
+    },
 }
 
 DEFAULT_DUPONT_PROFILES: dict[str, dict[str, float]] = {
@@ -529,6 +826,59 @@ DEFAULT_DUPONT_PROFILES: dict[str, dict[str, float]] = {
     "SISE": {"npm": 8.4, "at": 0.68, "em": 1.95, "roe": 11.1, "roa": 5.7},
     "AKBNK": {"npm": 24.5, "at": 0.12, "em": 8.50, "roe": 25.0, "roa": 2.9},
     "GARAN": {"npm": 26.0, "at": 0.13, "em": 8.20, "roe": 27.7, "roa": 3.4},
+    "ARCLK": {"npm": 4.6, "at": 1.15, "em": 3.10, "roe": 16.4, "roa": 5.3},
+    "EKGYO": {"npm": 19.2, "at": 0.42, "em": 2.15, "roe": 17.3, "roa": 8.1},
+    "ENKAI": {"npm": 21.5, "at": 0.48, "em": 1.45, "roe": 15.0, "roa": 10.3},
+    "GUBRF": {"npm": 9.4, "at": 0.88, "em": 2.10, "roe": 17.4, "roa": 8.3},
+    "HALKB": {"npm": 11.8, "at": 0.10, "em": 10.50, "roe": 12.4, "roa": 1.2},
+    "HEKTS": {"npm": -6.2, "at": 0.45, "em": 2.95, "roe": -8.2, "roa": -2.8},
+    "ISCTR": {"npm": 22.8, "at": 0.12, "em": 8.60, "roe": 23.5, "roa": 2.7},
+    "KCHOL": {"npm": 11.6, "at": 0.74, "em": 2.85, "roe": 24.5, "roa": 8.6},
+    "KOZAA": {"npm": 24.0, "at": 0.56, "em": 1.42, "roe": 19.1, "roa": 13.4},
+    "KOZAL": {"npm": 31.5, "at": 0.54, "em": 1.28, "roe": 21.8, "roa": 17.0},
+    "KRDMD": {"npm": 5.8, "at": 0.72, "em": 1.85, "roe": 7.7, "roa": 4.2},
+    "PETKM": {"npm": 3.9, "at": 0.82, "em": 2.30, "roe": 7.4, "roa": 3.2},
+    "SAHOL": {"npm": 12.4, "at": 0.65, "em": 2.95, "roe": 23.8, "roa": 8.1},
+    "SASA": {"npm": 10.8, "at": 0.58, "em": 2.75, "roe": 17.2, "roa": 6.3},
+    "TCELL": {"npm": 15.6, "at": 0.76, "em": 2.25, "roe": 26.7, "roa": 11.9},
+    "TKFEN": {"npm": 4.8, "at": 0.92, "em": 2.40, "roe": 10.6, "roa": 4.4},
+    "TOASO": {"npm": 10.4, "at": 1.32, "em": 2.15, "roe": 29.5, "roa": 13.7},
+    "TSKB": {"npm": 32.0, "at": 0.11, "em": 8.10, "roe": 28.5, "roa": 3.5},
+    "TTKOM": {"npm": 11.2, "at": 0.74, "em": 2.45, "roe": 20.3, "roa": 8.3},
+    "YKBNK": {"npm": 23.6, "at": 0.12, "em": 8.80, "roe": 24.9, "roa": 2.8},
+}
+
+DEFAULT_FCF_PROFILES: dict[str, float] = {
+    "THYAO": 48500.0,
+    "KCHOL": 42000.0,
+    "TUPRS": 32000.0,
+    "SAHOL": 28000.0,
+    "GARAN": 26500.0,
+    "FROTO": 24500.0,
+    "AKBNK": 24000.0,
+    "ISCTR": 22500.0,
+    "YKBNK": 21000.0,
+    "BIMAS": 16500.0,
+    "ENKAI": 15200.0,
+    "TCELL": 14800.0,
+    "PGSUS": 13500.0,
+    "EREGL": 12400.0,
+    "TOASO": 11800.0,
+    "SISE": 11200.0,
+    "ASELS": 9800.0,
+    "TTKOM": 9500.0,
+    "SASA": 8200.0,
+    "HALKB": 7800.0,
+    "ARCLK": 7400.0,
+    "TSKB": 6800.0,
+    "EKGYO": 6500.0,
+    "KOZAL": 6200.0,
+    "KOZAA": 4800.0,
+    "GUBRF": 4200.0,
+    "KRDMD": 3900.0,
+    "PETKM": 3400.0,
+    "TKFEN": 2800.0,
+    "HEKTS": 950.0,
 }
 
 
@@ -668,7 +1018,7 @@ def calculate_dcf_valuation(
     """İndirgenmiş Nakit Akımları (DCF) 5 yıllık projeksiyon ve Gordon terminal değerlemesi."""
     clean_sym = clean_ticker(ticker)
     if base_fcf_million_tl is None or base_fcf_million_tl <= 0:
-        base_fcf_million_tl = 1500.0
+        base_fcf_million_tl = DEFAULT_FCF_PROFILES.get(clean_sym, 1500.0)
 
     g = growth_rate_pct / 100.0
     r = discount_rate_pct / 100.0
@@ -1074,6 +1424,58 @@ def _build_offline_analyst_answer(question: str, ticker: str | None) -> str:
     )
 
 
+def _query_gemini_analyst(
+    prompt: str,
+    system_prompt: str,
+    timeout: float = 15.0,
+) -> str | None:
+    """GEMINI_API_KEY yapılandırılmışsa Google Gemini Flash üzerinden analist yanıtı üretir."""
+    from src import kap_llm
+
+    api_key = kap_llm.get_gemini_api_key()
+    if not api_key:
+        return None
+
+    model_name = getattr(config, "GEMINI_MODEL", "gemini-1.5-flash") or "gemini-1.5-flash"
+    url = (
+        f"https://generativelanguage.googleapis.com/v1beta/models/"
+        f"{model_name}:generateContent?key={api_key}"
+    )
+    payload = json.dumps(
+        {
+            "contents": [
+                {
+                    "parts": [
+                        {"text": f"{system_prompt}\n\n{prompt}"},
+                    ]
+                }
+            ],
+            "generationConfig": {
+                "temperature": 0.25,
+                "maxOutputTokens": 1024,
+            },
+        }
+    ).encode("utf-8")
+    req = urllib.request.Request(
+        url,
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            if resp.status == 200:
+                body = json.loads(resp.read().decode("utf-8"))
+                candidates = body.get("candidates", [])
+                if candidates:
+                    parts = candidates[0].get("content", {}).get("parts", [])
+                    if parts and parts[0].get("text"):
+                        return str(parts[0]["text"]).strip()
+    except Exception as exc:
+        logger.debug("Gemini analist çağrısı başarısız: %s", exc)
+    return None
+
+
 def ask_hybrid_analyst(
     question: str,
     ticker: str | None = None,
@@ -1083,7 +1485,7 @@ def ask_hybrid_analyst(
     timeout: float = 45.0,
     system_prompt: str | None = None,
 ) -> dict[str, Any]:
-    """`/api/v1/ask` uç noktasını çağırır; erişilemezse kantitatif bağlamla Colab LLM'i sorgular."""
+    """`/api/v1/ask` uç noktasını çağırır; erişilemezse Colab veya Gemini sorgular."""
     active_api = api_url if api_url is not None else config.FINANCIAL_CHATBOT_API_URL
     if active_api:
         endpoint = f"{active_api.rstrip('/')}/api/v1/ask"
@@ -1116,6 +1518,7 @@ def ask_hybrid_analyst(
 
     from src import colab_llm
 
+    active_sys_prompt = system_prompt or DEFAULT_ANALYST_SYSTEM_PROMPT
     enriched_prompt = question
     if ticker:
         clean = clean_ticker(ticker)
@@ -1137,7 +1540,7 @@ def ask_hybrid_analyst(
         base_url=base_url or config.COLAB_LLM_URL,
         timeout=timeout,
         max_tokens=1024,
-        system_prompt=system_prompt or DEFAULT_ANALYST_SYSTEM_PROMPT,
+        system_prompt=active_sys_prompt,
         auto_continue=True,
     )
     if (
@@ -1146,6 +1549,18 @@ def ask_hybrid_analyst(
         or answer.startswith("Colab LLM URL'si")
         or answer.startswith("Modelden geçerli")
     ):
+        gemini_answer = _query_gemini_analyst(
+            enriched_prompt,
+            system_prompt=active_sys_prompt,
+            timeout=min(timeout, 15.0),
+        )
+        if gemini_answer:
+            return {
+                "question": question,
+                "answer": gemini_answer,
+                "sources": [],
+                "source": "gemini_cloud_llm",
+            }
         return {
             "question": question,
             "answer": _build_offline_analyst_answer(question, ticker),
