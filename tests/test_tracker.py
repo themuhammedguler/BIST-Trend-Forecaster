@@ -115,3 +115,25 @@ def test_summarize_performance():
     h5 = summary["horizons"]["1H (5G)"]
     assert h5["completed_count"] == 2
     assert h5["hit_rate_pct"] == 50.0
+
+
+def test_get_ticker_audit_snapshot(tmp_path):
+    log_file = str(tmp_path / "snap_audit.json")
+    dates = pd.bdate_range("2025-01-01", periods=5).strftime("%Y-%m-%d")
+    prices = [100.0, 104.0, 108.0, 110.0, 112.0]
+    price_df = pd.DataFrame({"Date": dates, "close": prices})
+
+    tracker.record_prediction(
+        date=dates[0],
+        ticker="THYAO",
+        signal=1,
+        prob=0.62,
+        entry_price=100.0,
+        log_path=log_file,
+    )
+    snap = tracker.get_ticker_audit_snapshot("THYAO.IS", price_frame=price_df, log_path=log_file)
+    assert snap["ticker"] == "THYAO"
+    assert snap["total_records"] == 1
+    assert snap["completed_1d"] == 1
+    assert snap["hit_rate_1d_pct"] == 100.0
+    assert snap["avg_return_1d_pct"] == 4.0

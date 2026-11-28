@@ -123,3 +123,24 @@ def test_build_daily_newsletter_and_picks(mock_scan_results):
     assert picks[0]["prob_1d"] == 65.0
     assert "corridor_1d" in picks[0]
     assert "confluence" in picks[0]
+
+
+def test_prepare_newsletter_picks_uses_real_multi_horizon_probs_when_present():
+    df_with_horizons = pd.DataFrame(
+        [
+            {
+                "Hisse": "THYAO",
+                "ticker_code": "THYAO.IS",
+                "Son Fiyat (TL)": 310.50,
+                "_prob": 0.65,
+                "_prob_5d": 0.592,
+                "_prob_20d": 0.614,
+                "Tahmin": "YUKARI 🚀",
+            }
+        ]
+    )
+    picks = daily_updater.prepare_newsletter_picks(df_with_horizons)
+    assert len(picks) == 1
+    assert picks[0]["prob_1d"] == 65.0
+    assert picks[0]["prob_5d"] == 59.2
+    assert picks[0]["prob_20d"] == 61.4

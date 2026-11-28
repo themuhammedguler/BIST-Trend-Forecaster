@@ -1292,6 +1292,16 @@ def render_single_ticker_tab(
             entry_price=current_price,
         )
 
+        if is_technical:
+            snap = tracker.get_ticker_audit_snapshot(selected_ticker, price_frame=full_df)
+            if snap["completed_1d"] > 0 and snap["hit_rate_1d_pct"] is not None:
+                st.caption(
+                    f"🎯 **Canlı Tahmin Sicili ({selected_ticker}):** Denetim defterinde "
+                    f"`{snap['total_records']}` kayıt · Gerçekleşen 1G İsabet: "
+                    f"**%{snap['hit_rate_1d_pct']:.1f}** ({snap['completed_1d']} seans) · "
+                    f"Ort. Sinyal Getirisi: **%{snap['avg_return_1d_pct']:+.2f}**"
+                )
+
         # Her menü öğesi kendine özel tam sayfa olarak render edilir (açılır/kapanır kutu olmadan)
         if is_rag:
             render_fundamental_rag_section(selected_ticker, report=report)

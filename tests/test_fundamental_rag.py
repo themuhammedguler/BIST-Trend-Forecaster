@@ -333,3 +333,40 @@ def test_ask_hybrid_analyst_fallback_with_quant_context():
         assert "ROE=%30.1" in sent_prompt
         assert "Finansal Analistisin" in mock_q.call_args[1]["system_prompt"]
         assert mock_q.call_args[1]["max_tokens"] == 1024
+
+
+def test_all_30_bist_tickers_have_distinct_calibrated_profiles():
+    """Tüm 30 BIST 30 hissesinin DuPont, Temettü, DCF ve Makro profillerinde tanımlı
+    olduğunu ve hiçbirinin jenerik %8.5 / 1500.0 varsayılanına düşmediğini doğrular."""
+    from src import config
+    from src.fundamental_rag import (
+        DEFAULT_DIVIDEND_PROFILES,
+        DEFAULT_DUPONT_PROFILES,
+        DEFAULT_FCF_PROFILES,
+        MACRO_TICKER_PROFILES,
+    )
+
+    for raw_t in config.TICKERS:
+        sym = clean_ticker(raw_t)
+        assert sym in DEFAULT_DUPONT_PROFILES, f"{sym} DEFAULT_DUPONT_PROFILES içinde eksik"
+        assert sym in DEFAULT_DIVIDEND_PROFILES, f"{sym} DEFAULT_DIVIDEND_PROFILES içinde eksik"
+        assert sym in MACRO_TICKER_PROFILES, f"{sym} MACRO_TICKER_PROFILES içinde eksik"
+        assert sym in DEFAULT_FCF_PROFILES, f"{sym} DEFAULT_FCF_PROFILES içinde eksik"
+
+        quant = fetch_quant_metrics(sym, api_url="")
+        assert quant["dupont"]["net_profit_margin_pct"] != 8.5
+        assert quant["dcf_valuation"]["base_fcf_million_tl"] != 1500.0
+
+
+def test_ask_hybrid_analyst_uses_gemini_when_colab_offline():
+    """Colab çevrimdışıyken GEMINI_API_KEY yapılandırılmışsa Gemini yanıtı dönmelidir."""
+    with (
+        patch("src.colab_llm.query_colab_llm", return_value="Colab LLM yanıt veremedi: timeout"),
+        patch(
+            "src.fundamental_rag._query_gemini_analyst",
+            return_value="Gemini Analist Değerlendirmesi: KCHOL güçlü.",
+        ),
+    ):
+        res = ask_hybrid_analyst("KCHOL bilanço analizi", ticker="KCHOL", api_url="")
+        assert res["source"] == "gemini_cloud_llm"
+        assert "KCHOL güçlü" in res["answer"]

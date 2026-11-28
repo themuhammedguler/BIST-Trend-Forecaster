@@ -19,7 +19,7 @@ from typing import Any
 import pandas as pd
 import xgboost as xgb
 
-from src import config, email_alerts, network, scanner, tracker
+from src import config, email_alerts, model_metadata, network, scanner, tracker
 
 logger = logging.getLogger(__name__)
 
@@ -50,9 +50,19 @@ def prepare_newsletter_picks(df_scan: pd.DataFrame, max_picks: int = 3) -> list[
                 f"{max(0.01, entry_price - half_w):.2f} TL — {entry_price + half_w:.2f} TL"
             )
 
-            # Çoklu vade projeksiyonu
-            prob_5d = round(min(94.0, prob_pct + 3.8), 1)
-            prob_20d = round(min(96.0, prob_pct + 6.5), 1)
+            # Çoklu vade projeksiyonu (gerçek 5G / 20G model çıktıları varsa onları kullan)
+            raw_5d = row.get("_prob_5d")
+            raw_20d = row.get("_prob_20d")
+            prob_5d = (
+                round(float(raw_5d) * 100, 1)
+                if raw_5d is not None and pd.notna(raw_5d)
+                else round(min(94.0, prob_pct + 3.8), 1)
+            )
+            prob_20d = (
+                round(float(raw_20d) * 100, 1)
+                if raw_20d is not None and pd.notna(raw_20d)
+                else round(min(96.0, prob_pct + 6.5), 1)
+            )
 
             if prob_pct >= 62.0:
                 verdict = "🏛️ GÜÇLÜ BOĞA"
@@ -90,11 +100,13 @@ def build_daily_newsletter(
     """Günlük bülten HTML içeriğini ve seçilen ilk 3 hisseyi döner."""
     target_date = report_date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
     top_3 = prepare_newsletter_picks(df_scan, max_picks=3)
+    meta = model_metadata.load_metadata(config.MODEL_META_PATH)
+    live_acc = float(meta["test_accuracy"]) if meta and "test_accuracy" in meta else 0.5263
     html = email_alerts.build_newsletter_html(
         top_picks=top_3,
         report_date=target_date,
-        model_version="v2.1-ensemble",
-        model_accuracy=0.5213,
+        model_version="v3.0-ensemble",
+        model_accuracy=live_acc,
     )
     return html, top_3
 

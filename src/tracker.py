@@ -175,3 +175,37 @@ def summarize_performance(
             }
 
     return summary
+
+
+def get_ticker_audit_snapshot(
+    ticker: str,
+    price_frame: Optional[pd.DataFrame] = None,
+    log_path: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Seçili hisse için denetim defterindeki geçmiş tahmin sayısını ve isabet özetini döner."""
+    clean = ticker.upper().replace(".IS", "").strip()
+    all_preds = load_predictions(log_path)
+    ticker_preds = [p for p in all_preds if str(p.get("ticker", "")).upper() == clean]
+
+    snapshot: Dict[str, Any] = {
+        "ticker": clean,
+        "total_records": len(ticker_preds),
+        "completed_1d": 0,
+        "hit_rate_1d_pct": None,
+        "avg_return_1d_pct": None,
+    }
+    if not ticker_preds or price_frame is None or price_frame.empty:
+        return snapshot
+
+    eval_df = evaluate_realization(ticker_preds, price_frame, horizons=(1, 3, 5))
+    if eval_df.empty:
+        return snapshot
+
+    perf = summarize_performance(eval_df, horizons=(1, 3, 5))
+    h1 = perf.get("horizons", {}).get("1G", {})
+    completed = int(h1.get("completed_count", 0))
+    snapshot["completed_1d"] = completed
+    if completed > 0:
+        snapshot["hit_rate_1d_pct"] = float(h1.get("hit_rate_pct", 0.0))
+        snapshot["avg_return_1d_pct"] = float(h1.get("avg_return_pct", 0.0))
+    return snapshot
