@@ -11,9 +11,11 @@ except ImportError:
 
 # model_train.py'deki manuel parametreler: optimizasyon bu noktadan başlar
 DEFAULT_PARAMS = {
-    "n_estimators": 100,
-    "learning_rate": 0.05,
-    "max_depth": 5,
+    "n_estimators": 200,
+    "learning_rate": 0.03,
+    "max_depth": 6,
+    "subsample": 0.8,
+    "colsample_bytree": 0.8,
 }
 
 # Optuna'nın maksimize edebileceği CV metrikleri (metrics.evaluate anahtarları)

@@ -60,3 +60,14 @@ def test_scale_pos_weight_is_negative_to_positive_ratio():
 def test_scale_pos_weight_falls_back_to_one_for_single_class():
     assert metrics.scale_pos_weight([1, 1]) == 1.0
     assert metrics.scale_pos_weight([0, 0]) == 1.0
+
+
+def test_evaluate_extended_reports_recall_and_f1():
+    y = np.array([0, 0, 1, 1])
+    proba = np.array([0.1, 0.2, 0.8, 0.9])
+    ext = metrics.evaluate_extended(y, proba)
+
+    assert {"recall", "f1", "f1_macro"} <= set(ext.keys())
+    assert ext["recall"] == pytest.approx(1.0)
+    assert ext["f1"] == pytest.approx(1.0)
+    assert ext["f1_macro"] == pytest.approx(1.0)

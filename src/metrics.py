@@ -4,8 +4,10 @@ import numpy as np
 from sklearn.metrics import (
     accuracy_score,
     balanced_accuracy_score,
+    f1_score,
     log_loss,
     precision_score,
+    recall_score,
     roc_auc_score,
 )
 
@@ -31,6 +33,17 @@ def evaluate(y_true, proba, threshold=0.5):
         "log_loss": log_loss(y_true, proba, labels=[0, 1]),
         "precision": precision_score(y_true, preds, zero_division=0),
     }
+
+
+def evaluate_extended(y_true, proba, threshold=0.5):
+    """Temel 5 metriğe ek olarak Recall (Duyarlılık), F1-Score ve Macro-F1 hesaplar."""
+    base = evaluate(y_true, proba, threshold=threshold)
+    y_arr = np.asarray(y_true)
+    preds = (np.asarray(proba, dtype=float) >= threshold).astype(int)
+    base["recall"] = float(recall_score(y_arr, preds, zero_division=0))
+    base["f1"] = float(f1_score(y_arr, preds, zero_division=0))
+    base["f1_macro"] = float(f1_score(y_arr, preds, average="macro", zero_division=0))
+    return base
 
 
 def class_distribution(y):
