@@ -3,8 +3,23 @@ import pandas as pd
 import pytest
 import yfinance
 
-import app
 import config
+from src import config as src_config
+
+
+def _get_app_module(monkeypatch):
+    """app.py'yi canlı ağ isteği tetiklemeden güvenli biçimde yükler."""
+    for cfg in (config, src_config):
+        monkeypatch.setattr(cfg, "MACRO_TICKERS", [])
+    dates = pd.bdate_range("2025-01-01", periods=120)
+    default_df = pd.DataFrame(
+        {"Open": 10.0, "High": 11.0, "Low": 9.0, "Close": 10.5, "Volume": 1000.0},
+        index=dates,
+    )
+    monkeypatch.setattr(yfinance, "download", lambda *args, **kwargs: default_df)
+    import app
+
+    return app
 
 
 def test_ticker_yahoo_map_contains_renamed_tickers():
@@ -18,6 +33,7 @@ def test_ticker_yahoo_map_contains_renamed_tickers():
 def test_get_prediction_data_uses_mapped_ticker(monkeypatch):
     """get_prediction_data fonksiyonunun Yahoo Finance'e sorgu atarken haritadaki
     güncel sembolü kullandığını doğrular."""
+    app = _get_app_module(monkeypatch)
     requested_tickers = []
 
     def fake_download(ticker, *args, **kwargs):
@@ -42,6 +58,7 @@ def test_get_prediction_data_uses_mapped_ticker(monkeypatch):
 
 def test_get_prediction_data_raises_value_error_on_empty_df(monkeypatch):
     """Yahoo Finance boş veri döndüğünde KeyError: 'Date' yerine anlamlı ValueError fırlatılmalı."""
+    app = _get_app_module(monkeypatch)
     monkeypatch.setattr(yfinance, "download", lambda *args, **kwargs: pd.DataFrame())
 
     with pytest.raises(ValueError, match="piyasa verisi alınamadı"):

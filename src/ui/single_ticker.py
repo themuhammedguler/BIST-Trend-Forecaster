@@ -836,7 +836,7 @@ def render_multi_horizon_matrix(
 
     # Yüzde getiri oynaklığı üzerinden hesapla
     if full_df is not None and len(full_df) >= 10:
-        vol = float(full_df["close"].pct_change().tail(20).std())
+        vol = float(full_df["close"].pct_change(fill_method=None).tail(20).std())
         if np.isnan(vol) or vol <= 0:
             vol = 0.02
     else:
@@ -1343,7 +1343,7 @@ def render_single_ticker_tab(
 
             # Sermaye Tahsisi & Pozisyon Boyutlandırma (Kelly) (#71)
             if len(full_df) >= 10:
-                d_vol = float(full_df["close"].pct_change().tail(20).std())
+                d_vol = float(full_df["close"].pct_change(fill_method=None).tail(20).std())
                 if np.isnan(d_vol) or d_vol <= 0:
                     d_vol = 0.02
             else:

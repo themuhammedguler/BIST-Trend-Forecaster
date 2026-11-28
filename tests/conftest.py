@@ -49,6 +49,17 @@ def no_retry_delay(monkeypatch):
         monkeypatch.setattr(module, "_sleep", lambda seconds: None)
 
 
+@pytest.fixture(autouse=True)
+def isolate_audit_log(tmp_path, monkeypatch):
+    """Testlerin gerçek data/prediction_audit.json dosyasını kirletmesini önler."""
+    import tracker
+    from src import tracker as src_tracker
+
+    isolated_path = str(tmp_path / "prediction_audit.json")
+    for module in (tracker, src_tracker):
+        monkeypatch.setattr(module, "DEFAULT_AUDIT_LOG_PATH", isolated_path)
+
+
 @pytest.fixture
 def small_dataset(tmp_path, monkeypatch):
     """Gerçek CSV'den 3 hisse x ~1 yıllık küçük bir kesit; config yolları tmp'ye yönlendirilir."""

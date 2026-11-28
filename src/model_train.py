@@ -49,6 +49,48 @@ def get_temporal_split(df_processed, features_list, train_ratio=0.9):
     return X_train, X_test, y_train, y_test, dates_train, cutoff_date
 
 
+def train_horizon_models(
+    df_processed: pd.DataFrame,
+    models_dir: str,
+    params: dict | None = None,
+    balance_classes: bool = False,
+) -> dict[str, float]:
+    """5 Günlük (1 Hafta) ve 20 Günlük (1 Ay) çoklu vade XGBoost modellerini eğitir ve kaydeder."""
+    os.makedirs(models_dir, exist_ok=True)
+    xgb_params = dict(params if params is not None else tune_module.DEFAULT_PARAMS)
+    horizon_Map = {
+        "5d": ("xgb_5d_model.json", 5),
+        "20d": ("xgb_20d_model.json", 20),
+    }
+    accuracies: dict[str, float] = {}
+
+    df_sorted = df_processed.sort_values(by=["ticker", "Date"]).copy()
+    for h_key, (filename, days) in horizon_Map.items():
+        future_close = df_sorted.groupby("ticker")["close"].shift(-days)
+        valid_mask = future_close.notna()
+        df_h = df_sorted.loc[valid_mask].copy()
+        df_h["target"] = (future_close.loc[valid_mask] > df_h["close"]).astype(int)
+
+        X_tr, X_te, y_tr, y_te, _, _ = get_temporal_split(df_h, config.FEATURES, train_ratio=0.9)
+        w_params = tune_module.class_weight_params(y_tr, balance_classes)
+        h_model = xgb.XGBClassifier(**xgb_params, **tune_module.FIXED_PARAMS, **w_params)
+        print(f"Çoklu vade ({h_key} / {days} iş günü) XGBoost modeli eğitiliyor...")
+        h_model.fit(X_tr, y_tr)
+
+        h_proba = h_model.predict_proba(X_te)[:, 1]
+        h_acc = float(metrics.evaluate(y_te, h_proba)["accuracy"])
+        accuracies[h_key] = h_acc
+
+        out_path = os.path.join(models_dir, filename)
+        if hasattr(h_model, "save_model"):
+            h_model.save_model(out_path)
+        elif hasattr(h_model, "booster_") and hasattr(h_model.booster_, "save_model"):
+            h_model.booster_.save_model(out_path)
+        print(f"✅ {h_key} modeli kaydedildi: {out_path} (Test Doğruluğu: {h_acc:.4f})")
+
+    return accuracies
+
+
 def train_model(
     tune=False,
     n_trials=50,
@@ -56,6 +98,8 @@ def train_model(
     balance_classes=False,
     min_accuracy=None,
     model_type="xgb",
+    include_ensemble=False,
+    include_horizons=False,
 ):
     # 1. Veriyi Yükle
     print("Veri yükleniyor...")
@@ -187,6 +231,35 @@ def train_model(
     model_metadata.save_metadata(meta, config.MODEL_META_PATH)
     print(f"✅ Model meta-verisi kaydedildi: {config.MODEL_META_PATH}")
 
+    models_dir = os.path.dirname(config.MODEL_PATH)
+
+    # 7. İsteğe Bağlı: Topluluk (LightGBM + CatBoost + Ensemble Karşılaştırma Özeti) Eğitimi
+    if include_ensemble and model_type != "ensemble":
+        print("\nÇoklu model topluluğu (LightGBM + CatBoost + Ensemble) güncelleniyor...")
+        trained_models, df_comparison = ensemble.evaluate_models_comparison(
+            X_train, y_train, X_test, y_test
+        )
+        print("\n📊 Çoklu Model Karşılaştırma Karnesi:")
+        print(df_comparison.to_string(index=False))
+        # Ana XGBoost modelini ezmeden LightGBM, CatBoost ve ensemble_meta.json kaydet
+        remaining_models = {k: v for k, v in trained_models.items() if k != "xgboost"}
+        ensemble.save_ensemble_models(
+            remaining_models,
+            models_dir,
+            comparison_df=df_comparison,
+        )
+
+    # 8. İsteğe Bağlı: Çoklu Vade (5G ve 20G) Modellerinin Eğitimi
+    if include_horizons:
+        print("\nÇoklu vade (5G ve 20G) modelleri güncelleniyor...")
+        active_params = params if "params" in locals() else None
+        train_horizon_models(
+            df_processed,
+            models_dir=models_dir,
+            params=active_params,
+            balance_classes=balance_classes,
+        )
+
     return model, acc
 
 
@@ -226,6 +299,16 @@ if __name__ == "__main__":
         default=None,
         help="Modelin kaydedilmesi için gereken minimum test doğruluğu eşiği (örn: 0.50)",
     )
+    parser.add_argument(
+        "--include-ensemble",
+        action="store_true",
+        help="Ana modele ek olarak LightGBM, CatBoost ve ensemble_meta.json dosyalarını da eğit",
+    )
+    parser.add_argument(
+        "--include-horizons",
+        action="store_true",
+        help="1 günlük modele ek olarak 5 günlük (1H) ve 20 günlük (1A) modelleri de eğit",
+    )
     args = parser.parse_args()
     train_model(
         tune=args.tune,
@@ -234,4 +317,6 @@ if __name__ == "__main__":
         balance_classes=args.balance_classes,
         min_accuracy=args.min_accuracy,
         model_type=args.model,
+        include_ensemble=args.include_ensemble,
+        include_horizons=args.include_horizons,
     )

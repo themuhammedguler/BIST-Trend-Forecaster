@@ -122,3 +122,20 @@ def test_temporal_split_extreme_ratios(multi_ticker_dataset):
     )
     assert len(X_tr_high) > 0
     assert len(X_te_high) > 0
+
+
+def test_train_horizon_models_saves_5d_and_20d_models(small_dataset, tmp_path):
+    import os
+
+    import features
+    import model_train
+
+    df_proc = features.add_features(small_dataset)
+    out_dir = str(tmp_path / "horizon_models")
+    accs = model_train.train_horizon_models(df_proc, models_dir=out_dir)
+
+    assert "5d" in accs and "20d" in accs
+    assert 0.0 <= accs["5d"] <= 1.0
+    assert 0.0 <= accs["20d"] <= 1.0
+    assert os.path.exists(os.path.join(out_dir, "xgb_5d_model.json"))
+    assert os.path.exists(os.path.join(out_dir, "xgb_20d_model.json"))

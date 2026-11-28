@@ -27,7 +27,7 @@ def extract_macro_table(macro_df):
                         else ("close" if "close" in s.columns else None)
                     )
                     if col:
-                        xu_ret = s[col].pct_change()
+                        xu_ret = s[col].ffill().pct_change(fill_method=None)
                     break
             if xu_ret is not None:
                 break
@@ -42,7 +42,7 @@ def extract_macro_table(macro_df):
                         else ("close" if "close" in s.columns else None)
                     )
                     if col:
-                        fx_ret = s[col].pct_change()
+                        fx_ret = s[col].ffill().pct_change(fill_method=None)
                     break
             if fx_ret is not None:
                 break
@@ -58,9 +58,11 @@ def extract_macro_table(macro_df):
                     else ("Close" if "Close" in sub.columns else None)
                 )
                 if col:
-                    xu_ret = pd.Series(
-                        sub[col].values, index=pd.to_datetime(sub["Date"])
-                    ).pct_change()
+                    xu_ret = (
+                        pd.Series(sub[col].values, index=pd.to_datetime(sub["Date"]))
+                        .ffill()
+                        .pct_change(fill_method=None)
+                    )
 
             fx_mask = macro_df["ticker"].isin(["USDTRY", "USDTRY=X"])
             if fx_mask.any():
@@ -71,9 +73,11 @@ def extract_macro_table(macro_df):
                     else ("Close" if "Close" in sub.columns else None)
                 )
                 if col:
-                    fx_ret = pd.Series(
-                        sub[col].values, index=pd.to_datetime(sub["Date"])
-                    ).pct_change()
+                    fx_ret = (
+                        pd.Series(sub[col].values, index=pd.to_datetime(sub["Date"]))
+                        .ffill()
+                        .pct_change(fill_method=None)
+                    )
 
     if xu_ret is None and fx_ret is None:
         return None
@@ -202,7 +206,7 @@ def _ticker_features(df):
 
     # 6. Lag Features
     # pct_change bazen 0'a bölünme yüzünden inf üretebilir, add_features bunu temizler
-    out["pct_change"] = close.pct_change()
+    out["pct_change"] = close.pct_change(fill_method=None)
     out["lag_1_ret"] = out["pct_change"].shift(1)
     out["lag_2_ret"] = out["pct_change"].shift(2)
 
@@ -211,7 +215,7 @@ def _ticker_features(df):
     out["month"] = df["Date"].dt.month
 
     # 8. Hacim Değişimi
-    out["vol_change"] = df["volume"].pct_change()
+    out["vol_change"] = df["volume"].pct_change(fill_method=None)
 
     # 9. Makro Piyasa Göstergeleri (#10)
     out["xu100_ret"] = df["_xu100_ret"]
@@ -229,7 +233,7 @@ def _ticker_features(df):
     # 11. Momentum ve Salınım Göstergeleri
     out["stoch_k"] = ta.momentum.stoch(high, low, close, window=14, smooth_window=3).fillna(50.0)
     out["williams_r"] = ta.momentum.williams_r(high, low, close, lbp=14).fillna(-50.0)
-    out["roc_5"] = close.pct_change(5).fillna(0.0)
+    out["roc_5"] = close.pct_change(5, fill_method=None).fillna(0.0)
 
     # 12. Normalize Edilmiş Gerçek Aralık (ATR Oranı)
     atr = ta.volatility.average_true_range(high, low, close, window=14)
