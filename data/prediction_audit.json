@@ -1,35 +1,5 @@
 [
   {
-    "id": "AKBNK_2025-07-01",
-    "date": "2025-07-01",
-    "ticker": "AKBNK",
-    "signal": 0,
-    "direction": "DÜŞÜŞ",
-    "prob": 0.4091,
-    "entry_price": 121.45,
-    "created_at": "2026-11-28T03:07:29.520822+00:00"
-  },
-  {
-    "id": "GARAN_2025-07-01",
-    "date": "2025-07-01",
-    "ticker": "GARAN",
-    "signal": 0,
-    "direction": "DÜŞÜŞ",
-    "prob": 0.4091,
-    "entry_price": 121.45,
-    "created_at": "2026-11-28T03:07:18.579249+00:00"
-  },
-  {
-    "id": "THYAO_2025-07-01",
-    "date": "2025-07-01",
-    "ticker": "THYAO",
-    "signal": 0,
-    "direction": "DÜŞÜŞ",
-    "prob": 0.4091,
-    "entry_price": 121.45,
-    "created_at": "2026-11-28T03:07:26.927658+00:00"
-  },
-  {
     "id": "AKBNK_2026-10-16",
     "date": "2026-10-16",
     "ticker": "AKBNK",

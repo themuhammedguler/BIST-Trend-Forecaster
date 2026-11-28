@@ -21,7 +21,7 @@ def strategy_returns(close, positions, cost=0.0):
     close = pd.Series(close, dtype=float)
     positions = pd.Series(np.asarray(positions, dtype=float), index=close.index)
 
-    asset = close.pct_change()
+    asset = close.pct_change(fill_method=None)
     held = positions.shift(1)
     trades = positions.diff().abs()
     trades.iloc[0] = abs(positions.iloc[0])  # nakitten ilk giriş
