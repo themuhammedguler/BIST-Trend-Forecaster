@@ -184,12 +184,15 @@ def train_model(
     proba = model.predict_proba(X_test)[:, 1]
     preds = (proba >= 0.5).astype(int)
     scores = metrics.evaluate(y_test, proba)
+    ext_scores = metrics.evaluate_extended(y_test, proba)
     acc = scores["accuracy"]
     print(f"\n🎯 Model Doğruluğu (Test Seti): {acc:.4f}")
     print(f"Dengeli Doğruluk (Balanced Accuracy): {scores['balanced_accuracy']:.4f}")
     print(f"ROC-AUC: {scores['roc_auc']:.4f}")
     print(f"Log Loss: {scores['log_loss']:.4f}")
     print(f"Kesinlik (Precision, Yükseliş): {scores['precision']:.4f}")
+    print(f"Duyarlılık (Recall, Yükseliş): {ext_scores['recall']:.4f}")
+    print(f"F1-Skoru (Yükseliş / Macro): {ext_scores['f1']:.4f} / {ext_scores['f1_macro']:.4f}")
     print("\nSınıflandırma Raporu:")
     print(classification_report(y_test, preds))
 

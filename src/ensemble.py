@@ -22,9 +22,9 @@ def build_xgb_classifier(params: dict[str, Any] | None = None) -> Any:
     import xgboost as xgb
 
     default_params = {
-        "n_estimators": 100,
-        "max_depth": 3,
-        "learning_rate": 0.05,
+        "n_estimators": 200,
+        "max_depth": 6,
+        "learning_rate": 0.03,
         "subsample": 0.8,
         "colsample_bytree": 0.8,
         "random_state": 42,
@@ -40,10 +40,10 @@ def build_lgbm_classifier(params: dict[str, Any] | None = None) -> Any:
     import lightgbm as lgb
 
     default_params = {
-        "n_estimators": 100,
-        "max_depth": 3,
-        "num_leaves": 8,
-        "learning_rate": 0.05,
+        "n_estimators": 200,
+        "max_depth": 6,
+        "num_leaves": 31,
+        "learning_rate": 0.03,
         "subsample": 0.8,
         "colsample_bytree": 0.8,
         "random_state": 42,
@@ -153,7 +153,7 @@ def evaluate_models_comparison(
         )
 
     # Topluluk Modeli
-    ensemble_weights = weights or {"catboost": 0.50, "lightgbm": 0.25, "xgboost": 0.25}
+    ensemble_weights = weights or {"xgboost": 0.50, "lightgbm": 0.30, "catboost": 0.20}
     ensemble = EnsemblePredictor(trained_models, ensemble_weights)
     ens_proba = ensemble.predict_proba(X_test)[:, 1]
     ens_preds = (ens_proba >= 0.5).astype(int)
